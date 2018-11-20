@@ -33,6 +33,8 @@ defmodule Asteroid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:apisex, github: "tanguilp/apisex", tag: "master"},
+      {:oauth2_utils, github: "tanguilp/oauth2_utils", tag: "master"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 4.0"},
@@ -42,7 +44,9 @@ defmodule Asteroid.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
-      {:plug_cowboy, "~> 2.0"}
+      {:plug_cowboy, "~> 2.0"},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
   end
 
