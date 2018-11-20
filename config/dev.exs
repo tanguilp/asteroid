@@ -73,3 +73,32 @@ config :asteroid, Asteroid.Repo,
   database: "asteroid_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :asteroid, :flow_ropc_enabled, true
+
+config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
+
+config :asteroid, :ropc_username_password_verify_callback,
+  &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
+
+config :asteroid, :refresh_token_lifetime_callback,
+  &Asteroid.Config.DefaultCallbacks.refresh_token_lifetime_callback/3
+
+config :asteroid, :refresh_token_lifetime_ropc, 60 * 60 * 24 * 7 # 1 week
+
+config :asteroid, :access_token_lifetime_callback,
+  &Asteroid.Config.DefaultCallbacks.access_token_lifetime_callback/3
+
+config :asteroid, :access_token_lifetime_ropc, 60 * 10
+
+config :asteroid, :access_token_store, Asteroid.Store.AccessToken.Mnesia
+config :asteroid, :access_token_store_opts, []
+
+config :asteroid, :refresh_token_store, Asteroid.Store.RefreshToken.Mnesia
+config :asteroid, :refresh_token_store_opts, []
+
+config :asteroid, :ropc_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :ropc_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2

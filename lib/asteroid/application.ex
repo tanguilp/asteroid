@@ -16,6 +16,10 @@ defmodule Asteroid.Application do
       # {Asteroid.Worker, arg},
     ]
 
+    Asteroid.Store.AccessToken.Mnesia.install()
+    Asteroid.Store.RefreshToken.Mnesia.install()
+    :mnesia.start()
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Asteroid.Supervisor]

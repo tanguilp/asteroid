@@ -11,6 +11,7 @@ defmodule AsteroidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Plug.Parsers, parsers: [:urlencoded]
   end
 
   scope "/", AsteroidWeb do
@@ -19,8 +20,9 @@ defmodule AsteroidWeb.Router do
     get "/", PageController, :index
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AsteroidWeb do
-  #   pipe_through :api
-  # end
+  scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
+    pipe_through :api
+
+    post "/token", TokenEndpoint, :handle
+  end
 end

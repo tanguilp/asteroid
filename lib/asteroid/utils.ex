@@ -1,0 +1,21 @@
+defmodule Asteroid.Utils do
+  @doc """
+  Returns the current UNIX timestamp
+  """
+  @spec now() :: non_neg_integer()
+  def now(), do: System.system_time(:second)
+
+  @doc """
+  Returns a secure random base 64 string of `size` bytes of randomness
+  """
+  @spec secure_random_b64(non_neg_integer()) :: String.t()
+  def secure_random_b64(bytes \\ 32) do
+    :crypto.strong_rand_bytes(bytes)
+    |> Base.url_encode64(padding: false)
+  end
+
+  @spec astrenv(atom()) :: any()
+  def astrenv(key) do
+    Application.get_env(:asteroid, key)
+  end
+end
