@@ -23,41 +23,42 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, subject} <-
            astrenv(:ropc_username_password_verify_callback).(conn, username, password)
     do
-      ctx = %{
-        :request => %{
+      ctx = %Asteroid.Context{
+        request: %{
           :endpoint => :token,
           :flow => :ropc,
           :grant_type => :password,
-          :scope => Scope.Set.from_scope_param!(scope_param),
+          :scope => scope
         },
         client: client,
-        subject: subject
+        subject: subject,
+        device: nil
       }
 
       refresh_token =
         RefreshToken.new()
         |> RefreshToken.put_claim(:iat, now())
         |> RefreshToken.put_claim(:exp, now() + astrenv(:refresh_token_lifetime_callback).(ctx))
-        |> RefreshToken.put_claim(:client_id, client.client_id)
-        |> RefreshToken.put_claim(:sub, subject.sub)
+        |> RefreshToken.put_claim(:client_id, client.id)
+        |> RefreshToken.put_claim(:sub, subject.id)
         |> RefreshToken.put_claim(:iss, astrenv(:issuer_callback).(ctx))
 
       access_token =
         AccessToken.new(refresh_token: refresh_token)
         |> AccessToken.put_claim(:iat, now())
         |> AccessToken.put_claim(:exp, now() + astrenv(:access_token_lifetime_callback).(ctx))
-        |> AccessToken.put_claim(:client_id, client.client_id)
-        |> AccessToken.put_claim(:sub, subject.sub)
+        |> AccessToken.put_claim(:client_id, client.id)
+        |> AccessToken.put_claim(:sub, subject.id)
         |> AccessToken.put_claim(:iss, astrenv(:issuer_callback).(ctx))
 
-      RefreshToken.store(refresh_token, ctx: ctx)
-      AccessToken.store(access_token, ctx: ctx)
+      RefreshToken.store(refresh_token, ctx)
+      AccessToken.store(access_token, ctx)
 
       resp =
         %{
           "access_token" => AccessToken.serialize(access_token),
           "refresh_token" => RefreshToken.serialize(refresh_token),
-          "expires_in" => access_token.exp - now(),
+          "expires_in" => access_token.claims[:exp] - now(),
           "token_type" => "bearer"
         }
         |> astrenv(:ropc_before_send_resp_callback).(ctx)
@@ -102,12 +103,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   @spec client_authenticated?(Plug.Conn.t()) ::
     {:ok, String.t} | {:error, :unauthenticated_client}
   defp client_authenticated?(conn) do
-    case APISex.client(conn) do
-      client when is_binary(client) ->
-        {:ok, client}
+    if APISex.authenticated?(conn) do
+      client = %Client{id: APISex.client(conn)}
 
-      nil ->
-        {:error, :unauthenticated_client}
+      {:ok, client}
+    else
+      {:error, :unauthenticated_client}
     end
   end
 
@@ -119,16 +120,24 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   @spec grant_type_enabled?(Asteroid.GrantType.t()) :: :ok | {:error, :grant_type_disabled}
   defp grant_type_enabled?(:password) do
-    Application.get_env(:asteroid, :flow_ropc_enabled, false)
+    if Application.get_env(:asteroid, :flow_ropc_enabled, false) do
+      :ok
+    else
+      {:error, :grant_type_disabled}
+    end
   end
 
   @spec client_grant_type_authorized?(Asteroid.Client.client_param(), Asteroid.GrantType.t()) ::
     :ok | {:error, :grant_type_not_authorized_for_client}
-  defp  client_grant_type_authorized?(client, :password) do
+  defp  client_grant_type_authorized?(_client, :password) do
     :ok
   end
 
-  @spec scope_param_valid?(String.t()) :: {:ok, Scope.Set.t()} | {:error, :malformed_scope_param}
+  @spec scope_param_valid?(String.t() | nil)
+    :: {:ok, Scope.Set.t()} | {:error, :malformed_scope_param}
+
+  def scope_param_valid?(nil), do: {:ok, Scope.Set.new()}
+
   def scope_param_valid?(scope_param) do
     if Scope.oauth2_scope_param?(scope_param) do
       {:ok, Scope.Set.from_scope_param!(scope_param)}

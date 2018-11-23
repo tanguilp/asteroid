@@ -66,6 +66,14 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+config :apisex_auth_basic,
+  clients: %{
+    "Asteroid"=> [{"testclient", "1235813"}]
+  }
+
+config :hammer,
+  backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
+
 # Configure your database
 config :asteroid, Asteroid.Repo,
   username: "postgres",
@@ -82,12 +90,12 @@ config :asteroid, :ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
 config :asteroid, :refresh_token_lifetime_callback,
-  &Asteroid.Config.DefaultCallbacks.refresh_token_lifetime_callback/3
+  &Asteroid.Config.DefaultCallbacks.refresh_token_lifetime_callback/1
 
 config :asteroid, :refresh_token_lifetime_ropc, 60 * 60 * 24 * 7 # 1 week
 
 config :asteroid, :access_token_lifetime_callback,
-  &Asteroid.Config.DefaultCallbacks.access_token_lifetime_callback/3
+  &Asteroid.Config.DefaultCallbacks.access_token_lifetime_callback/1
 
 config :asteroid, :access_token_lifetime_ropc, 60 * 10
 
@@ -100,5 +108,5 @@ config :asteroid, :refresh_token_store_opts, []
 config :asteroid, :ropc_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :ropc_before_send_resp_callback,
+config :asteroid, :ropc_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2

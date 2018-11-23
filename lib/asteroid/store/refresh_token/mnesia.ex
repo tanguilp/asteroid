@@ -21,7 +21,7 @@ defmodule Asteroid.Store.RefreshToken.Mnesia do
   end
 
   @impl Asteroid.Store.RefreshToken
-  def put(refresh_token, %Asteroid.Context{}) do
+  def put(refresh_token) do
     :mnesia.transaction(fn ->
       :mnesia.write({:refresh_token, refresh_token.id, refresh_token.claims})
     end)

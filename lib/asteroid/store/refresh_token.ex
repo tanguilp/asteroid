@@ -6,8 +6,7 @@ defmodule Asteroid.Store.RefreshToken do
 
   @callback get(Asteroid.Token.RefreshToken.id()) :: Asteroid.Token.RefreshToken.t()
 
-  @callback put(Asteroid.Token.RefreshToken.t(), Asteroid.Context.t())
-    :: Asteroid.Token.RefreshToken.t()
+  @callback put(Asteroid.Token.RefreshToken.t()) :: Asteroid.Token.RefreshToken.t()
 
   @callback delete(Asteroid.Token.RefreshToken.id()) :: :ok
 end

@@ -34,6 +34,12 @@ defmodule Asteroid.MixProject do
   defp deps do
     [
       {:apisex, github: "tanguilp/apisex", tag: "master"},
+      {:apisex_auth_basic, github: "tanguilp/apisex_auth_basic", tag: "master"},
+      {:apisex_auth_bearer, github: "tanguilp/apisex_auth_bearer", tag: "master"},
+      {:apisex_auth_mtls, github: "tanguilp/apisex_auth_mtls", tag: "master"},
+      {:apisex_filter_ip_blacklist, github: "tanguilp/apisex_filter_ip_blacklist", tag: "master"},
+      {:apisex_filter_ip_whitelist, github: "tanguilp/apisex_filter_ip_whitelist", tag: "master"},
+      {:apisex_filter_throttler, github: "tanguilp/apisex_filter_throttler", tag: "master"},
       {:oauth2_utils, github: "tanguilp/oauth2_utils", tag: "master"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},

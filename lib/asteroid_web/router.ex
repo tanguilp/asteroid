@@ -11,6 +11,7 @@ defmodule AsteroidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug APISexAuthBasic, realm: "Asteroid"
     plug Plug.Parsers, parsers: [:urlencoded]
   end
 

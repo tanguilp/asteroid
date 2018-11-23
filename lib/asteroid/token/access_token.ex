@@ -22,6 +22,7 @@ defmodule Asteroid.Token.AccessToken do
     %__MODULE__{
       id: secure_random_b64(),
       refresh_token: (if opts[:refresh_token], do: opts[:refresh_token].id, else: nil),
+      claims: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
     }
   end
@@ -33,12 +34,12 @@ defmodule Asteroid.Token.AccessToken do
   def put_claim(access_token, _key, nil), do: access_token
 
   def put_claim(access_token, key, val) do
-    %{access_token | claims: Map.put(access_token.data, key, val)}
+    %{access_token | claims: Map.put(access_token.claims, key, val)}
   end
 
   @spec store(t(), Asteroid.Context.t()) :: t()
   def store(access_token, ctx) do
-    astrenv(:access_token_store).put(access_token, ctx)
+    astrenv(:access_token_store).put(access_token)
 
     access_token
   end

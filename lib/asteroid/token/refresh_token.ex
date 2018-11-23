@@ -20,6 +20,7 @@ defmodule Asteroid.Token.RefreshToken do
   def new(opts \\ []) do
     %__MODULE__{
       id: secure_random_b64(),
+      claims: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
     }
   end
@@ -31,12 +32,12 @@ defmodule Asteroid.Token.RefreshToken do
   def put_claim(refresh_token, _key, nil), do: refresh_token
 
   def put_claim(refresh_token, key, val) do
-    %{refresh_token | claims: Map.put(refresh_token.data, key, val)}
+    %{refresh_token | claims: Map.put(refresh_token.claims, key, val)}
   end
 
   @spec store(t(), Asteroid.Context.t()) :: t()
   def store(refresh_token, ctx) do
-    astrenv(:refresh_token_store).put(refresh_token, ctx)
+    astrenv(:refresh_token_store).put(refresh_token)
 
     refresh_token
   end

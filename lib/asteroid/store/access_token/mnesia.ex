@@ -5,17 +5,18 @@ defmodule Asteroid.Store.AccessToken.Mnesia do
   @impl Asteroid.Store.AccessToken
   def install() do
     :mnesia.create_table(:access_token, [
-      attributes: [:id, :claims]
+      attributes: [:id, :refresh_token, :claims]
     ])
   end
 
   @impl Asteroid.Store.AccessToken
   def get(id) do
-    {:atomic, [{:access_token, ^id, claims}]} =
+    {:atomic, [{:access_token, ^id, refresh_token, claims}]} =
       :mnesia.transaction(fn -> :mnesia.read(:access_token, id) end)
 
     %AccessToken{
       id: id,
+      refresh_token: refresh_token,
       claims: claims
     }
   end
@@ -23,7 +24,10 @@ defmodule Asteroid.Store.AccessToken.Mnesia do
   @impl Asteroid.Store.AccessToken
   def put(access_token) do
     :mnesia.transaction(fn ->
-      :mnesia.write({:access_token, access_token.id, access_token.claims})
+      :mnesia.write({:access_token,
+        access_token.id,
+        access_token.refresh_token,
+        access_token.claims})
     end)
 
     access_token
