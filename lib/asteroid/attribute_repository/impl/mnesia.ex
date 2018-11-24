@@ -3,6 +3,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   alias Asteroid.AttributeRepository.{Configure, Read, Write}
   import Asteroid.Utils
 
+  require Logger
+
   @behaviour Configure
   @behaviour Read
   @behaviour Write
@@ -16,7 +18,7 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
 
     :mnesia.start()
 
-    :mnesia.create_table(opts[:table], [
+    res = :mnesia.create_table(opts[:table], [
       attributes: [:key,
                    :value,
                    :metadata,
@@ -25,8 +27,11 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
                    :last_modified_at,
                    :last_modified_by,
                    :history
-      ]
-    ])
+      ],
+      index: [:value]
+    ] ++ opts[:mnesia_create_table])
+
+    Logger.debug("#{__MODULE__}: creating table #{opts[:table]}, result: #{inspect res}")
 
     :mnesia.stop()
 
@@ -34,8 +39,10 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Configure
-  def start(_opts) do
-    :mnesia.start()
+  def start(opts) do
+    res = :mnesia.start()
+
+    Logger.debug("#{__MODULE__}: starting for table #{opts[:table]}, result: #{inspect res}")
 
     :ok
   end

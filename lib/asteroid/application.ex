@@ -5,6 +5,8 @@ defmodule Asteroid.Application do
 
   use Application
 
+  alias Asteroid.AttributeRepository, as: AttrRep
+
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
@@ -15,6 +17,9 @@ defmodule Asteroid.Application do
       # Starts a worker by calling: Asteroid.Worker.start_link(arg)
       # {Asteroid.Worker, arg},
     ]
+
+    AttrRep.auto_install_from_config()
+    AttrRep.auto_start_from_config()
 
     :mnesia.start()
     Asteroid.Store.AccessToken.Mnesia.install()

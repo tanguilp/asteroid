@@ -82,6 +82,36 @@ config :asteroid, Asteroid.Repo,
   hostname: "localhost",
   pool_size: 10
 
+config :asteroid, :attribute_repositories,
+[
+  [
+    impl: Asteroid.AttributeRepository.Impl.Mnesia,
+    autoinstall: true,
+    autostart: true,
+    opts:
+    [
+      table: :client,
+      mnesia_create_table:
+      [
+        disc_copies: [node()]
+      ]
+    ]
+  ],
+  [
+    impl: Asteroid.AttributeRepository.Impl.Mnesia,
+    autoinstall: true,
+    autostart: true,
+    opts:
+    [
+      table: :subject,
+      mnesia_create_table:
+      [
+        disc_copies: [node()]
+      ]
+    ]
+  ]
+]
+
 config :asteroid, :flow_ropc_enabled, true
 
 config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1

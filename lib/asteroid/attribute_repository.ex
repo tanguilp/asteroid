@@ -54,4 +54,120 @@ defmodule Asteroid.AttributeRepository do
 
   # def unquote(name)(), do: true
   #end
+
+  @doc """
+  Auto install all attribute repositories from the configuration file for
+  repositories that have the `:autoinstall` key set to `true`
+
+  Example configuration:
+  ```elixir
+  config :asteroid, :attribute_repositories,
+  [
+    [
+      impl: Asteroid.AttributeRepository.Impl.Mnesia,
+      autoinstall: true,
+      autostart: true,
+      opts:
+      [
+        table: :client,
+        mnesia_create_table:
+        [
+          disc_copies: [node()]
+        ]
+      ]
+    ],
+    [
+      impl: Asteroid.AttributeRepository.Impl.Mnesia,
+      autoinstall: true,
+      autostart: true,
+      opts:
+      [
+        table: :subject,
+        mnesia_create_table:
+        [
+          disc_copies: [node()]
+        ]
+      ]
+    ]
+  ]
+  ```
+  """
+
+  @spec auto_install_from_config() :: :ok
+  def auto_install_from_config() do
+    configs = Application.get_env(:asteroid, :attribute_repositories)
+
+    if is_list(configs) do
+      Enum.map(
+        configs,
+        fn config ->
+          if config[:autoinstall] == true do
+            config[:impl].install(config[:opts])
+          end
+        end
+      )
+
+      :ok
+    else
+      :ok
+    end
+  end
+
+  @doc """
+  Autostarts all attribute repositories from the configuration file for
+  repositories that have the `:autostart` key set to `true`
+
+  Example configuration:
+  ```elixir
+  config :asteroid, :attribute_repositories,
+  [
+    [
+      impl: Asteroid.AttributeRepository.Impl.Mnesia,
+      autoinstall: true,
+      autostart: true,
+      opts:
+      [
+        table: :client,
+        mnesia_create_table:
+        [
+          disc_copies: [node()]
+        ]
+      ]
+    ],
+    [
+      impl: Asteroid.AttributeRepository.Impl.Mnesia,
+      autoinstall: true,
+      autostart: true,
+      opts:
+      [
+        table: :subject,
+        mnesia_create_table:
+        [
+          disc_copies: [node()]
+        ]
+      ]
+    ]
+  ]
+  ```
+  """
+
+  @spec auto_start_from_config() :: :ok
+  def auto_start_from_config() do
+    configs = Application.get_env(:asteroid, :attribute_repositories)
+
+    if is_list(configs) do
+      Enum.map(
+        configs,
+        fn config ->
+          if config[:autostart] == true do
+            config[:impl].start(config[:opts])
+          end
+        end
+      )
+
+      :ok
+    else
+      :ok
+    end
+  end
 end
