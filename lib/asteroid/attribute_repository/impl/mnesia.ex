@@ -1,6 +1,6 @@
 defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   alias Asteroid.AttributeRepository
-  alias Asteroid.AttributeRepository.{Configure, Read, Write}
+  alias Asteroid.AttributeRepository.{Configure, Read, Write, Search}
   import Asteroid.Utils
 
   require Logger
@@ -8,6 +8,7 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   @behaviour Configure
   @behaviour Read
   @behaviour Write
+  @behaviour Search
 
   @impl Configure
   def install(opts) do
@@ -192,4 +193,30 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
 
   @impl Write
   def on_the_fly_attribute_creation?(_), do: true
+
+  @impl Search
+  def search(attribute, value, opts) do
+    pattern = {:subject, {:_, attribute}, value, :_, :_, :_, :_, :_, :_}
+
+    case :mnesia.transaction(fn ->
+      :mnesia.index_match_object(opts[:table], pattern, 3, :read)
+    end) do
+      {:atomic, res} ->
+        {:ok, res}
+
+      _ ->
+        {:error, %AttributeRepository.ReadError{}}
+    end
+  end
+
+  @impl Search
+  def search!(attribute, value, opts) do
+    case search(attribute, value, opts) do
+      {:ok, res} ->
+        res
+
+      {:error, error} ->
+        raise(error)
+    end
+  end
 end
