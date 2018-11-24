@@ -11,7 +11,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   def test_ropc_username_password_callback(_conn, _username, _password) do
     {:ok,
       %Subject{id: "11dcfa0a-80b4-4e82-9218-055f3fbcd6f0",
-        claims: %{
+        attrs: %{
           :name =>"John Doe",
           :given_name => "John",
           :family_name => "Smith"

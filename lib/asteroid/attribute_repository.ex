@@ -7,6 +7,8 @@ defmodule Asteroid.AttributeRepository do
   several values for this pair.
   """
 
+  import Asteroid.Utils
+
   @typedoc """
   The **unique** and **immutable** identifier of an object of an attribute repository
   """
@@ -25,6 +27,11 @@ defmodule Asteroid.AttributeRepository do
   Configuration passed to all attribute repository functions
   """
   @type config :: Keyword.t()
+
+  @typedoc """
+  Configuration name as registered in config file
+  """
+  @type config_name :: atom()
 
   defmodule ReadError do
     defexception message: "Unknown read error"
@@ -100,7 +107,7 @@ defmodule Asteroid.AttributeRepository do
     if is_list(configs) do
       Enum.map(
         configs,
-        fn config ->
+        fn {_config_name, config} ->
           if config[:autoinstall] == true do
             config[:impl].install(config[:opts])
           end
@@ -158,7 +165,7 @@ defmodule Asteroid.AttributeRepository do
     if is_list(configs) do
       Enum.map(
         configs,
-        fn config ->
+        fn {_config_name, config} ->
           if config[:autostart] == true do
             config[:impl].start(config[:opts])
           end
@@ -169,5 +176,27 @@ defmodule Asteroid.AttributeRepository do
     else
       :ok
     end
+  end
+
+  @spec load_attributes_for_object(struct(), [attribute()], config_name()) :: struct()
+  def load_attributes_for_object(obj, nil, _config_name), do: obj
+
+  def load_attributes_for_object(%_{id: id, attrs: %{}} = obj, attribute_list, config_name) do
+    module = astrenv(:attribute_repositories)[config_name][:impl]
+    opts = astrenv(:attribute_repositories)[config_name][:opts]
+
+    Enum.reduce(
+      attribute_list,
+      obj,
+      fn attribute, obj ->
+        case module.get(id, attribute, opts) do
+          {:ok, value} ->
+            %{obj | attrs: Map.put(obj.attrs, attribute, value)}
+
+          {:error, _} ->
+            obj
+        end
+      end
+    )
   end
 end

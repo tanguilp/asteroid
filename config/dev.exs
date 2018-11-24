@@ -84,10 +84,11 @@ config :asteroid, Asteroid.Repo,
 
 config :asteroid, :attribute_repositories,
 [
-  [
+  client: [
     impl: Asteroid.AttributeRepository.Impl.Mnesia,
     autoinstall: true,
     autostart: true,
+    attribute_autoload: ["client_id", "client_class"],
     opts:
     [
       table: :client,
@@ -97,10 +98,11 @@ config :asteroid, :attribute_repositories,
       ]
     ]
   ],
-  [
+  subject: [
     impl: Asteroid.AttributeRepository.Impl.Mnesia,
     autoinstall: true,
     autostart: true,
+    attribute_autoload: ["sub", "given_name", "family_name", "gender"],
     opts:
     [
       table: :subject,

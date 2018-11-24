@@ -17,6 +17,6 @@ defmodule Asteroid.AttributeRepository.Search do
   @doc """
   Same as `search/3`, but raises an exception instead of returning an error tuple
   """
-  @callback search(AttrRep.attribute(), AttrRep.value(), AttrRep.config())
+  @callback search!(AttrRep.attribute(), AttrRep.value(), AttrRep.config())
     :: [AttrRep.value()] | no_return()
 end
