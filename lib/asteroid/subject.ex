@@ -32,4 +32,25 @@ defmodule Asteroid.Subject do
       subject
     end
   end
+
+  @spec new_from_attribute(AttrRep.attribute(), AttrRep.value(), Keyword.t())
+    :: {:ok, t()} | {:error, :not_found} | {:error, :multiple_values} | {:error, Exception.t()}
+  def new_from_attribute(attribute, value, opts \\ [attrs_autoload: true]) do
+    module = astrenv(:attribute_repositories)[:subject][:impl]
+    config = astrenv(:attribute_repositories)[:subject][:opts]
+
+    case module.search(attribute, value, config) do
+      {:ok, [id]} when is_binary(id) ->
+        new_from_id(id, opts)
+
+      {:ok, []} ->
+        {:error, :not_found}
+
+      {:ok, _} ->
+        {:error, :multiple_values}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
 end

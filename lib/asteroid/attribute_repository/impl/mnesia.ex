@@ -201,8 +201,13 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
     case :mnesia.transaction(fn ->
       :mnesia.index_match_object(opts[:table], pattern, 3, :read)
     end) do
-      {:atomic, res} ->
-        {:ok, res}
+      {:atomic, tuple_list} ->
+        {:ok,
+          Enum.map(
+            tuple_list,
+            fn tuple -> elem(tuple, 1) |> elem(0) end
+          )
+        }
 
       _ ->
         {:error, %AttributeRepository.ReadError{}}
