@@ -102,7 +102,9 @@ config :asteroid, :attribute_repositories,
     impl: Asteroid.AttributeRepository.Impl.Mnesia,
     autoinstall: true,
     autostart: true,
+    history: true,
     attribute_autoload: ["sub", "given_name", "family_name", "gender"],
+    history: true,
     opts:
     [
       table: :subject,

@@ -11,7 +11,7 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   @behaviour Search
 
   @impl Configure
-  def install(opts) do
+  def install(conf) do
     # make sure Mnesia is stopped, otherwise schema can't be created
     :mnesia.stop()
 
@@ -19,7 +19,7 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
 
     :mnesia.start()
 
-    res = :mnesia.create_table(opts[:table], [
+    res = :mnesia.create_table(conf[:table], [
       attributes: [:key,
                    :value,
                    :metadata,
@@ -30,9 +30,9 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
                    :history
       ],
       index: [:value]
-    ] ++ opts[:mnesia_create_table])
+    ] ++ conf[:mnesia_create_table])
 
-    Logger.debug("#{__MODULE__}: creating table #{opts[:table]}, result: #{inspect res}")
+    Logger.debug("#{__MODULE__}: creating table #{conf[:table]}, result: #{inspect res}")
 
     :mnesia.stop()
 
@@ -40,17 +40,17 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Configure
-  def start(opts) do
+  def start(conf) do
     res = :mnesia.start()
 
-    Logger.debug("#{__MODULE__}: starting for table #{opts[:table]}, result: #{inspect res}")
+    Logger.debug("#{__MODULE__}: starting for table #{conf[:table]}, result: #{inspect res}")
 
     :ok
   end
 
   @impl Read
-  def get(id, attribute, opts) do
-    case :mnesia.transaction(fn -> :mnesia.read(opts[:table], {id, attribute}) end) do
+  def get(id, attribute, conf) do
+    case :mnesia.transaction(fn -> :mnesia.read(conf[:table], {id, attribute}) end) do
       {:atomic, [{
         _table,
          _key,
@@ -72,8 +72,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Read
-  def get!(id, attribute, opts) do
-    case get(id, attribute, opts) do
+  def get!(id, attribute, conf) do
+    case get(id, attribute, conf) do
       {:ok, value} ->
         value
 
@@ -83,26 +83,17 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Write
-  def put(id, attribute, value, opts) do
-    case :mnesia.transaction(fn -> :mnesia.read(opts[:table], {id, attribute}) end) do
+  def put(id, attribute, value, conf, opts \\ [history: false]) do
+    case :mnesia.transaction(fn -> :mnesia.read(conf[:table], {id, attribute}) end) do
       {:atomic, []} ->
-        put_create(id, attribute, value, opts)
+        put_create(id, attribute, value, conf)
 
-      {:atomic, [{
-        _table,
-         _key,
-         _value,
-         metadata,
-         created_at,
-         created_by,
-         _last_modified_at,
-         _last_modified_by,
-         history}]} ->
-        put_update(id, attribute, value, opts, [
-          metadata: metadata,
-          created_at: created_at,
-          created_by: created_by,
-          history: history])
+      {:atomic, [existing_record]} ->
+        if opts[:history] == true do
+          put_update(id, attribute, value, conf, existing_record, true)
+        else
+          put_update(id, attribute, value, conf, existing_record, false)
+        end
     end
   end
 
@@ -110,10 +101,10 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
     :: {:ok, AttrRep.value()} |
       {:error, %Asteroid.AttributeRepository.Write.NonConfiguredAttributeError{} |
                %Asteroid.AttributeRepository.WriteError{}}
-  defp put_create(id, attribute, value, opts) do
+  defp put_create(id, attribute, value, conf) do
     case :mnesia.transaction(fn ->
       :mnesia.write({
-        opts[:table],     # table name
+        conf[:table],     # table name
         {id, attribute},  # key
         value,            # value
         nil,              # metadata
@@ -121,7 +112,7 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
         "Asteroid",       # created_by
         now(),            # last_update_at
         "Asteroid",       # last_update_by
-        nil               # history
+        []               # history
       })
     end) do
       {:atomic, :ok} ->
@@ -132,22 +123,36 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
     end
   end
 
-  @spec put_update(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config(), map())
+  @spec put_update(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config(),
+                   tuple(), boolean())
     :: {:ok, AttrRep.value()} |
       {:error, %Asteroid.AttributeRepository.Write.NonConfiguredAttributeError{} |
                %Asteroid.AttributeRepository.WriteError{}}
-  defp put_update(id, attribute, value, opts, add_columns) do
+  defp put_update(id, attribute, value, conf, existing_record, history) do
+    history_record =
+      if history == true do
+        [
+          {
+            elem(existing_record, 2),
+            elem(existing_record, 6),
+            elem(existing_record, 7)
+          } | elem(existing_record, 8)
+        ]
+      else
+        elem(existing_record, 8)
+      end
+
     case :mnesia.transaction(fn ->
       :mnesia.write({
-        opts[:table],             # table name
+        conf[:table],             # table name
         {id, attribute},          # key
         value,                    # value
-        add_columns[:metadata],   # metadata
-        add_columns[:created_at], # created_at
-        add_columns[:created_by], # created_by
+        elem(existing_record, 3), # metadata
+        elem(existing_record, 4), # created_at
+        elem(existing_record, 5), # created_by
         now(),                    # last_update_at
         "Asteroid",               # last_update_by
-        add_columns[:history]     # history
+        history_record            # history
       })
     end) do
       {:atomic, :ok} ->
@@ -159,8 +164,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Write
-  def put!(id, attribute, value, opts) do
-    case put(id, attribute, value, opts) do
+  def put!(id, attribute, value, conf, opts \\ [history: false]) do
+    case put(id, attribute, value, conf, opts) do
       {:ok, value} ->
         value
 
@@ -170,8 +175,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Write
-  def delete(id, attribute, opts) do
-    case :mnesia.transaction(fn -> :mnesia.delete({opts[:table], {id, attribute}}) end) do
+  def delete(id, attribute, conf) do
+    case :mnesia.transaction(fn -> :mnesia.delete({conf[:table], {id, attribute}}) end) do
       {:atomic, :ok} ->
         :ok
 
@@ -181,8 +186,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Write
-  def delete!(id, attribute, opts) do
-    case delete(id, attribute, opts) do
+  def delete!(id, attribute, conf) do
+    case delete(id, attribute, conf) do
       :ok ->
         :ok
 
@@ -195,11 +200,11 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   def on_the_fly_attribute_creation?(_), do: true
 
   @impl Search
-  def search(attribute, value, opts) do
+  def search(attribute, value, conf) do
     pattern = {:subject, {:_, attribute}, value, :_, :_, :_, :_, :_, :_}
 
     case :mnesia.transaction(fn ->
-      :mnesia.index_match_object(opts[:table], pattern, 3, :read)
+      :mnesia.index_match_object(conf[:table], pattern, 3, :read)
     end) do
       {:atomic, tuple_list} ->
         {:ok,
@@ -215,8 +220,8 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
   end
 
   @impl Search
-  def search!(attribute, value, opts) do
-    case search(attribute, value, opts) do
+  def search!(attribute, value, conf) do
+    case search(attribute, value, conf) do
       {:ok, res} ->
         res
 

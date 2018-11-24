@@ -15,7 +15,8 @@ defmodule Asteroid.AttributeRepository.Write do
   tuple. Those which cannot (e.g.: LDAP repositories that require schema extension) should
   return
   """
-  @callback put(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config())
+  @callback put(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config(),
+                Keyword.t())
     :: {:ok, AttrRep.value()} |
       {:error, %Asteroid.AttributeRepository.Write.NonConfiguredAttributeError{} |
                %Asteroid.AttributeRepository.WriteError{}}
@@ -23,7 +24,8 @@ defmodule Asteroid.AttributeRepository.Write do
   @doc """
   Same as `put/4`, but raises an exception instead of returning an error
   """
-  @callback put!(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config())
+  @callback put!(AttrRep.id(), AttrRep.attribute(), AttrRep.value(), AttrRep.config(),
+                 Keyword.t())
     :: AttrRep.value() | no_return()
 
   @doc """
