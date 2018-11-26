@@ -68,7 +68,7 @@ config :phoenix, :plug_init_mode, :runtime
 
 config :apisex_auth_basic,
   clients: %{
-    "Asteroid"=> [{"testclient", "1235813"}]
+    "Asteroid"=> [{"client_private", "1235813"}]
   }
 
 config :hammer,
@@ -115,6 +115,12 @@ config :asteroid, :attribute_repositories,
     ]
   ]
 ]
+
+config :asteroid, :plugs_oauth2_endpoint_token,
+  [
+    {APISexFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
+    {APISexAuthBasic, realm: "Asteroid", error_response_verbosity: :debug}
+  ]
 
 config :asteroid, :flow_ropc_enabled, true
 

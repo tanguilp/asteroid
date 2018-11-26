@@ -1,5 +1,6 @@
 defmodule AsteroidWeb.Router do
   use AsteroidWeb, :router
+  import Asteroid.Utils
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -11,8 +12,13 @@ defmodule AsteroidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug APISexAuthBasic, realm: "Asteroid"
     plug Plug.Parsers, parsers: [:urlencoded]
+  end
+
+  pipeline :oauth2_endpoint_token do
+    for {plug_module, plug_options} <- astrenv(:plugs_oauth2_endpoint_token, []) do
+      plug plug_module, plug_options
+    end
   end
 
   scope "/", AsteroidWeb do
@@ -24,6 +30,15 @@ defmodule AsteroidWeb.Router do
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
     pipe_through :api
 
-    post "/token", TokenEndpoint, :handle
+    scope "/token" do
+      pipe_through :oauth2_endpoint_token
+
+      post "/", TokenEndpoint, :handle
+    end
+  end
+
+  defp printconn(conn, _opts) do
+    IO.inspect(conn)
+    conn
   end
 end

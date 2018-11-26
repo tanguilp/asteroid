@@ -18,4 +18,15 @@ defmodule Asteroid.Utils do
   def astrenv(key) do
     Application.get_env(:asteroid, key)
   end
+
+  @spec astrenv(atom(), any()) :: any()
+  def astrenv(key, default) do
+    case Application.get_env(:asteroid, key) do
+      nil ->
+        default
+
+      val ->
+        val
+    end
+  end
 end
