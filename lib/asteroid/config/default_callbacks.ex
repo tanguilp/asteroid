@@ -1,5 +1,5 @@
 defmodule Asteroid.Config.DefaultCallbacks do
-  alias Asteroid.Subject
+  alias Asteroid.{Client, Subject}
 
   @spec issuer(Asteroid.Context.t()) :: String.t()
   def issuer(_) do
@@ -31,4 +31,15 @@ defmodule Asteroid.Config.DefaultCallbacks do
 
   @spec id_first_param(any(), any()) :: any()
   def id_first_param(param, _), do: param
+
+  @spec get_client_secret(APISex.realm(), APISex.client()) :: binary() | nil
+  def get_client_secret(_realm, client_id) do
+    client =
+      Client.new_from_id(client_id)
+      |> Client.fetch_attribute("client_secret")
+
+    IO.inspect(client)
+
+    client.attrs["client_secret"]
+  end
 end

@@ -57,4 +57,49 @@ defmodule Asteroid.Client do
         {:error, error}
     end
   end
+
+  @doc """
+  Fetches an attribute if not already loaded in the client
+  """
+  @spec fetch_attribute(t(), AttrRep.attribute()) :: t()
+  def fetch_attribute(client, attribute) do
+    if client.attrs[attribute] == nil do
+      module = astrenv(:attribute_repositories)[:client][:impl]
+      config = astrenv(:attribute_repositories)[:client][:opts]
+
+      case module.get(client.id, attribute, config) do
+        {:ok, value} ->
+          put_attribute(client, attribute, value)
+
+        {:error, _} ->
+          client
+      end
+    else
+      client
+    end
+  end
+
+  @doc """
+  Puts an attribute in the client, overriding any existing one
+  """
+  @spec put_attribute(t(), AttrRep.attribute(), AttrRep.value()) :: t()
+  def put_attribute(client, attribute, value) do
+    %{client | attrs: Map.put(client.attrs, attribute, value)}
+  end
+
+  @doc """
+  Persists the attributes of the client in its repository and returns the
+  unmodified client
+  """
+  @spec store(t()) :: t()
+  def store(client) do
+    module = astrenv(:attribute_repositories)[:client][:impl]
+    config = astrenv(:attribute_repositories)[:client][:opts]
+
+    for {attribute, value} <- client.attrs do
+      module.put(client.id, attribute, value, config)
+    end
+
+    client
+  end
 end
