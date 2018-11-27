@@ -15,10 +15,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   when username != nil and password != nil do
     scope_param = conn.body_params["scope"]
 
-    with {:ok, client} <- get_client(conn),
-         :ok <- grant_type_enabled?(:password),
+    with :ok <- grant_type_enabled?(:password),
+         {:ok, client} <- get_client(conn),
          :ok <- client_grant_type_authorized?(client, :password),
-         {:ok, scope} <- scope_param_valid?(scope_param),
+         {:ok, scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, scope),
          {:ok, subject} <-
            astrenv(:ropc_username_password_verify_callback).(conn, username, password)
@@ -72,6 +72,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         error_resp(conn, 401, error: :invalid_client,
                    error_description: "Client authentication failed")
 
+      {:error, :unauthenticated_public_client_has_credentials} ->
+        error_resp(conn, 401, error: :invalid_client,
+          error_description:
+            "Client authentication failed: public client has credentials but did not use it")
+
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
                    error_description: "Grant type password not enabled")
@@ -83,6 +88,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, :malformed} ->
         error_resp(conn, error: :invalid_scope,
                    error_description: "Scope param is malformed")
+
+      {:error, :unauthorized_scope} ->
+        error_resp(conn, error: :unauthorized_scope,
+                    error_description: "The client has not been granted this scope")
     end
   end
 
@@ -122,7 +131,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           case {client.attrs["client_type"], client.attrs["client_secret"]} do
           # only registered public clients with no credentials are acccepted
           {:public, nil} ->
-            client
+            {:ok, client}
 
           # public client who have credentials shall use them
           {:public, _} ->
@@ -156,12 +165,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     :ok
   end
 
-  @spec scope_param_valid?(String.t() | nil)
-    :: {:ok, Scope.Set.t()} | {:error, :malformed_scope_param}
+  @spec get_scope(String.t() | nil)
+    :: {:ok, Scope.Set.t() | nil} | {:error, :malformed_scope_param}
 
-  def scope_param_valid?(nil), do: {:ok, Scope.Set.new()}
+  def get_scope(nil), do: {:ok, Scope.Set.new()}
 
-  def scope_param_valid?(scope_param) do
+  def get_scope(scope_param) do
     if Scope.oauth2_scope_param?(scope_param) do
       {:ok, Scope.Set.from_scope_param!(scope_param)}
     else
@@ -171,5 +180,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   @spec client_scope_authorized?(Client.t(), Scope.Set.t())
     :: :ok | {:error, :unauthorized_scope}
-  def client_scope_authorized?(_, _), do: :ok
+  def client_scope_authorized?(client, scope) do
+    client = Client.fetch_attribute(client, "scope")
+
+    if client.attrs["scope"] != nil and Scope.Set.subset?(scope, client.attrs["scope"]) do
+      :ok
+    else
+      {:error, :unauthorized_scope}
+    end
+  end
 end

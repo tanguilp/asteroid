@@ -88,6 +88,19 @@ defmodule Asteroid.Client do
   end
 
   @doc """
+  Deletes an attribute from the client
+  """
+  @spec delete_attribute(t(), AttrRep.attribute()) :: t()
+  def delete_attribute(client, attribute) do
+    module = astrenv(:attribute_repositories)[:client][:impl]
+    config = astrenv(:attribute_repositories)[:client][:opts]
+
+    module.delete(client.id, attribute, config)
+
+    %{client | attrs: Map.delete(client.attrs, attribute)}
+  end
+
+  @doc """
   Persists the attributes of the client in its repository and returns the
   unmodified client
   """

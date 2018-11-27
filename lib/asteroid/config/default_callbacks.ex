@@ -38,8 +38,9 @@ defmodule Asteroid.Config.DefaultCallbacks do
       Client.new_from_id(client_id)
       |> Client.fetch_attribute("client_secret")
 
-    IO.inspect(client)
-
     client.attrs["client_secret"]
   end
+
+  @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
+  def conn_not_authenticated?(conn), do: not APISex.authenticated?(conn)
 end

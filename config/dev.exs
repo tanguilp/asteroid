@@ -88,7 +88,7 @@ config :asteroid, :attribute_repositories,
     impl: Asteroid.AttributeRepository.Impl.Mnesia,
     autoinstall: true,
     autostart: true,
-    attribute_autoload: ["client_id", "client_type"],
+    attribute_autoload: ["client_id", "client_type", "scope"],
     opts:
     [
       table: :client,
@@ -118,9 +118,18 @@ config :asteroid, :attribute_repositories,
 
 config :asteroid, :plugs_oauth2_endpoint_token,
   [
-    {APISexFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
-    {APISexAuthBasic, realm: "Asteroid", error_response_verbosity: :debug,
-      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2}
+    #{APISexFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
+    {APISexAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      set_error_response: &APISexAuthBasic.set_WWWauthenticate_header/3,
+      error_response_verbosity: :debug},
+    {APISexFilterThrottler,
+      key: &APISexFilterThrottler.Functions.throttle_by_ip_path/1,
+      scale: 60_000,
+      limit: 50,
+      exec_cond: &Asteroid.Config.DefaultCallbacks.conn_not_authenticated?/1,
+      error_response_verbosity: :debug}
   ]
 
 config :asteroid, :flow_ropc_enabled, true
