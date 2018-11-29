@@ -132,6 +132,10 @@ config :asteroid, :plugs_oauth2_endpoint_token,
       error_response_verbosity: :debug}
   ]
 
+config :asteroid, :plugs_oauth2_endpoint_introspect,
+  [
+  ]
+
 config :asteroid, :flow_ropc_enabled, true
 
 config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
@@ -160,3 +164,9 @@ config :asteroid, :ropc_before_send_resp_callback,
 
 config :asteroid, :ropc_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :introspect_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1
+
+config :asteroid, :introspect_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1

@@ -64,8 +64,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> astrenv(:ropc_before_send_resp_callback).(ctx)
 
       conn
-      |> astrenv(:ropc_before_send_conn_callback).(ctx)
       |> put_status(200)
+      |> astrenv(:ropc_before_send_conn_callback).(ctx)
       |> json(resp)
     else
       {:error, :unauthenticated_client} ->

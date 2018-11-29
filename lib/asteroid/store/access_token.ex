@@ -4,7 +4,8 @@ defmodule Asteroid.Store.AccessToken do
 
   @callback install() :: :ok
 
-  @callback get(Asteroid.Token.AccessToken.id()) :: Asteroid.Token.AccessToken.t()
+  @callback get(Asteroid.Token.AccessToken.id()) :: {:ok, Asteroid.Token.AccessToken.t()} |
+    {:error, any()}
 
   @callback put(Asteroid.Token.AccessToken.t()) :: :ok
 

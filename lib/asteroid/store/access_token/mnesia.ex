@@ -11,14 +11,19 @@ defmodule Asteroid.Store.AccessToken.Mnesia do
 
   @impl Asteroid.Store.AccessToken
   def get(id) do
-    {:atomic, [{:access_token, ^id, refresh_token, claims}]} =
-      :mnesia.transaction(fn -> :mnesia.read(:access_token, id) end)
+    case :mnesia.transaction(fn -> :mnesia.read(:access_token, id) end) do
+      {:atomic, [{:access_token, ^id, refresh_token, claims}]} ->
+        {:ok,
+          %AccessToken{
+            id: id,
+            refresh_token: refresh_token,
+            claims: claims
+          }
+        }
 
-    %AccessToken{
-      id: id,
-      refresh_token: refresh_token,
-      claims: claims
-    }
+      _ ->
+        {:error, "FIXME"}
+    end
   end
 
   @impl Asteroid.Store.AccessToken

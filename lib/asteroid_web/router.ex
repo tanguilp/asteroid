@@ -21,6 +21,12 @@ defmodule AsteroidWeb.Router do
     end
   end
 
+  pipeline :oauth2_endpoint_introspect do
+    for {plug_module, plug_options} <- astrenv(:plugs_oauth2_endpoint_introspect, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   scope "/", AsteroidWeb do
     pipe_through :browser
 
@@ -34,6 +40,12 @@ defmodule AsteroidWeb.Router do
       pipe_through :oauth2_endpoint_token
 
       post "/", TokenEndpoint, :handle
+    end
+
+    scope "/introspect" do
+      pipe_through :oauth2_endpoint_introspect
+
+      post "/", IntrospectEndpoint, :handle
     end
   end
 
