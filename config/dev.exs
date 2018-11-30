@@ -90,6 +90,7 @@ config :asteroid, :store_access_token, [
     disc_copies: [node()]
   ],
   run_config: [
+    cleaning_interval: 60
   ]
 ]
 
