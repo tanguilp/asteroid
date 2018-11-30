@@ -50,7 +50,9 @@ defmodule Asteroid.Token.AccessToken do
 
   @spec store(t(), Asteroid.Context.t()) :: t()
   def store(access_token, ctx) do
-    astrenv(:store_access_token)[:impl].put(access_token)
+    access_token
+    |> astrenv(:access_token_before_store_callback).(ctx)
+    |> astrenv(:store_access_token)[:impl].put()
 
     access_token
   end

@@ -176,12 +176,6 @@ config :asteroid, :access_token_lifetime_callback,
 
 config :asteroid, :access_token_lifetime_ropc, 60 * 10
 
-config :asteroid, :access_token_store, Asteroid.Store.AccessToken.Mnesia
-config :asteroid, :access_token_store_opts, []
-
-config :asteroid, :refresh_token_store, Asteroid.Store.RefreshToken.Mnesia
-config :asteroid, :refresh_token_store_opts, []
-
 config :asteroid, :ropc_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
@@ -193,3 +187,9 @@ config :asteroid, :introspect_before_send_resp_callback,
 
 config :asteroid, :introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id/1
+
+config :asteroid, :refresh_token_before_store_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :access_token_before_store_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2

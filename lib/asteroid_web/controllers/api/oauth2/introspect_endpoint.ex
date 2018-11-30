@@ -6,22 +6,43 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   alias Asteroid.{Client, Subject, Context}
 
   def handle(%Plug.Conn{body_params: %{"token" => token}} = conn, _params) do
-    token_type =
-      case conn.body_params["token_type_hint"] do
-        "access_token" ->
-          introspect_access_token(conn, token)
+    case conn.body_params["token_type_hint"] do
+      "access_token" ->
+        case AccessToken.get(token) do
+          {:ok, access_token} ->
+            introspect_access_token(conn, access_token)
 
-        "refresh_token" ->
-          introspect_refresh_token(conn, token)
+          {:error, _} ->
+            token_not_found_resp(conn)
+        end
 
-        nil ->
-          if introspect_access_token(conn, token) == false do
-            introspect_refresh_token(conn, token)
-          end
+      "refresh_token" ->
+        case RefreshToken.get(token) do
+          {:ok, refresh_token} ->
+            introspect_refresh_token(conn, refresh_token)
 
-        _ ->
-          error_resp(conn, 400, error: :invalid_request,
-                     error_description: "Unrecognized `token_type_hint`")
+          {:error, _} ->
+            token_not_found_resp(conn)
+        end
+
+      nil ->
+        case AccessToken.get(token) do
+          {:ok, access_token} ->
+            introspect_access_token(conn, access_token)
+
+          {:error, _} ->
+            case RefreshToken.get(token) do
+              {:ok, refresh_token} ->
+                introspect_refresh_token(conn, refresh_token)
+
+              {:error, _} ->
+                token_not_found_resp(conn)
+            end
+        end
+
+      _ ->
+        error_resp(conn, 400, error: :invalid_request,
+                   error_description: "Unrecognized `token_type_hint`")
     end
   end
 
@@ -31,47 +52,27 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   end
 
   @spec introspect_access_token(Plug.Conn.t(), String.t()) :: boolean
-  defp introspect_access_token(conn, token) do
-    case AccessToken.get(token) do
-      {:ok, access_token} ->
-        resp = 
-          access_token.claims
-          |> astrenv(:introspect_before_send_resp_callback).()
+  defp introspect_access_token(conn, access_token) do
+    resp = 
+      access_token.claims
+      |> astrenv(:introspect_before_send_resp_callback).()
 
-        conn
-        |> put_status(200)
-        |> astrenv(:introspect_before_send_conn_callback).()
-        |> json(resp)
-
-        true
-
-      {:error, _} ->
-        token_not_found_resp(conn)
-
-        false
-    end
+    conn
+    |> put_status(200)
+    |> astrenv(:introspect_before_send_conn_callback).()
+    |> json(resp)
   end
 
   @spec introspect_refresh_token(Plug.Conn.t(), String.t()) :: boolean
-  defp introspect_refresh_token(conn, token) do
-    case RefreshToken.get(token) do
-      {:ok, refresh_token} ->
-        resp = 
-          refresh_token.claims
-          |> astrenv(:introspect_before_send_resp_callback).()
+  defp introspect_refresh_token(conn, refresh_token) do
+    resp = 
+      refresh_token.claims
+      |> astrenv(:introspect_before_send_resp_callback).()
 
-        conn
-        |> put_status(200)
-        |> astrenv(:introspect_before_send_conn_callback).()
-        |> json(resp)
-
-        true
-
-      {:error, _} ->
-        token_not_found_resp(conn)
-
-        false
-    end
+    conn
+    |> put_status(200)
+    |> astrenv(:introspect_before_send_conn_callback).()
+    |> json(resp)
   end
 
   @spec token_not_found_resp(Plug.Conn.t()) :: any()

@@ -48,7 +48,9 @@ defmodule Asteroid.Token.RefreshToken do
 
   @spec store(t(), Asteroid.Context.t()) :: t()
   def store(refresh_token, ctx) do
-    astrenv(:store_refresh_token)[:impl].put(refresh_token)
+    refresh_token
+    |> astrenv(:refresh_token_before_store_callback).(ctx)
+    |> astrenv(:store_refresh_token)[:impl].put()
 
     refresh_token
   end
