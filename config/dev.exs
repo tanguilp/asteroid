@@ -82,6 +82,29 @@ config :asteroid, Asteroid.Repo,
   hostname: "localhost",
   pool_size: 10
 
+config :asteroid, :store_access_token, [
+  impl: Asteroid.AccessToken.Store.Mnesia,
+  autostart: true,
+  autostart: true,
+  install_config: [
+    disc_copies: [node()]
+  ],
+  run_config: [
+  ]
+]
+
+config :asteroid, :store_refresh_token, [
+  impl: Asteroid.RefreshToken.Store.Mnesia,
+  autostart: true,
+  autostart: true,
+  install_config: [
+    disc_copies: [node()]
+  ],
+  run_config: [
+  ]
+]
+
+
 config :asteroid, :attribute_repositories,
 [
   client: [
@@ -166,7 +189,7 @@ config :asteroid, :ropc_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :introspect_before_send_resp_callback,
-  &Asteroid.Config.DefaultCallbacks.id/1
+  &Asteroid.Config.DefaultCallbacks.put_chuck_norris_quote_on_failure/1
 
 config :asteroid, :introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id/1

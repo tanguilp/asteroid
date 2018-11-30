@@ -25,6 +25,17 @@ defmodule Asteroid.Token.RefreshToken do
     }
   end
 
+  @spec get(id()) :: {:ok, t()} | {:error, any()}
+  def get(refresh_token_id) do
+    case astrenv(:store_refresh_token)[:impl].get(refresh_token_id) do
+      {:ok, refresh_token} ->
+        {:ok, refresh_token}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
   @doc """
   """
   #FIXME: shouldn't the val be necessarily a String.t()?
@@ -37,7 +48,7 @@ defmodule Asteroid.Token.RefreshToken do
 
   @spec store(t(), Asteroid.Context.t()) :: t()
   def store(refresh_token, ctx) do
-    astrenv(:refresh_token_store).put(refresh_token)
+    astrenv(:store_refresh_token)[:impl].put(refresh_token)
 
     refresh_token
   end

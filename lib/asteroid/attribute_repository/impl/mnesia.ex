@@ -34,8 +34,6 @@ defmodule Asteroid.AttributeRepository.Impl.Mnesia do
 
     Logger.debug("#{__MODULE__}: creating table #{conf[:table]}, result: #{inspect res}")
 
-    :mnesia.stop()
-
     :ok
   end
 

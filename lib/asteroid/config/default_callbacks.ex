@@ -43,4 +43,15 @@ defmodule Asteroid.Config.DefaultCallbacks do
 
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
   def conn_not_authenticated?(conn), do: not APISex.authenticated?(conn)
+
+  def put_chuck_norris_quote_on_failure(%{"active" => false} = resp) do
+    chuck_norris_quote = 
+      HTTPoison.get!("http://api.icndb.com/jokes/random?limitTo=[nerdy]").body
+      |> Jason.decode!()
+      |> get_in(["value", "joke"])
+
+    Map.put(resp, "chuck_norris_quote", chuck_norris_quote)
+  end
+
+  def put_chuck_norris_quote_on_failure(resp), do: resp
 end

@@ -32,7 +32,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec introspect_access_token(Plug.Conn.t(), String.t()) :: boolean
   defp introspect_access_token(conn, token) do
-    case astrenv(:access_token_store).get(token) do
+    case AccessToken.get(token) do
       {:ok, access_token} ->
         resp = 
           access_token.claims
@@ -54,7 +54,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec introspect_refresh_token(Plug.Conn.t(), String.t()) :: boolean
   defp introspect_refresh_token(conn, token) do
-    case astrenv(:refresh_token_store).get(token) do
+    case RefreshToken.get(token) do
       {:ok, refresh_token} ->
         resp = 
           refresh_token.claims

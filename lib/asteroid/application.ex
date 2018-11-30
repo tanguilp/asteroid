@@ -6,6 +6,7 @@ defmodule Asteroid.Application do
   use Application
 
   alias Asteroid.AttributeRepository, as: AttrRep
+  alias Asteroid.Token
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -21,9 +22,8 @@ defmodule Asteroid.Application do
     AttrRep.auto_install_from_config()
     AttrRep.auto_start_from_config()
 
-    :mnesia.start()
-    Asteroid.Store.AccessToken.Mnesia.install()
-    Asteroid.Store.RefreshToken.Mnesia.install()
+    Token.auto_install_from_config()
+    Token.auto_start_from_config()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
