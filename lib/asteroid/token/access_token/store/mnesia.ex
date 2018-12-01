@@ -14,7 +14,7 @@ defmodule Asteroid.AccessToken.Store.Mnesia do
 
     default_config = [
       attributes: [:id, :refresh_token_id, :claims],
-      index: [:store_access_token]
+      index: [:refresh_token_id]
     ]
 
     # user configuration overrides the default config
@@ -39,7 +39,7 @@ defmodule Asteroid.AccessToken.Store.Mnesia do
     Logger.info("#{__MODULE__}: started")
 
     cleaning_interval = astrenv(:store_access_token)[:run_config][:cleaning_interval]
-    
+
     Singleton.start_child(Asteroid.AccessToken.Store.Mnesia.Cleaner, cleaning_interval,
       __MODULE__)
   end
@@ -55,7 +55,7 @@ defmodule Asteroid.AccessToken.Store.Mnesia do
   @impl Asteroid.AccessToken.Store
   def get(id) do
     Logger.debug("#{__MODULE__}: get access token `#{id}`")
-    
+
     case :mnesia.transaction(fn -> :mnesia.read(:access_token, id) end) do
       {:atomic, [{:access_token, ^id, refresh_token_id, claims}]} ->
         {:ok,
@@ -109,13 +109,18 @@ defmodule Asteroid.AccessToken.Store.Mnesia do
     end
 
     def init(interval) do
-      Process.send_after(self(), :clean, interval * 1000)
+      interval = interval * 1000
+
+      Process.send_after(self(), :clean, interval)
+
       {:ok, interval}
     end
 
     def handle_info(:clean, interval) do
       clean_cache()
-      Process.send_after(self(), :clean, interval * 1000)
+
+      Process.send_after(self(), :clean, interval)
+
       {:noreply, interval}
     end
 
