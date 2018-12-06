@@ -20,7 +20,6 @@ defmodule Asteroid.RefreshToken.Store.Mnesia do
     config =
       default_config
       |> Keyword.merge(astrenv(:store_refresh_token, [])[:install_config])
-    IO.inspect(config)
 
     case :mnesia.create_table(:refresh_token, config) do
       {:atomic, :ok} ->

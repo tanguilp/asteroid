@@ -24,16 +24,17 @@ defmodule Asteroid.Client do
   If the `:attrs_autoload` is set to `true` (default), the function will try to load
   the default attributes from the configuration file into the object.
   """
-  @spec new_from_id(AttrRep.id(), Keyword.t()) :: t()
+  @spec new_from_id(AttrRep.id(), Keyword.t())
+    :: {:ok, t()} | {:error, :client_not_found}
   def new_from_id(id, opts \\ [attrs_autoload: true]) when is_binary(id) do
     client = %Asteroid.Client{id: id}
 
     if opts[:attrs_autoload] == true do
       attribute_list = astrenv(:attribute_repositories)[:client][:attribute_autoload]
 
-      AttrRep.load_attributes_for_object(client, attribute_list, :client)
+      {:ok, AttrRep.load_attributes_for_object(client, attribute_list, :client)}
     else
-      client
+      {:ok, client}
     end
   end
 

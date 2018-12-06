@@ -36,6 +36,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   def get_client_secret(_realm, client_id) do
     client =
       Client.new_from_id(client_id)
+      |> elem(1)
       |> Client.fetch_attribute("client_secret")
 
     client.attrs["client_secret"]

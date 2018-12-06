@@ -102,7 +102,7 @@ config :asteroid, :store_refresh_token, [
     disc_copies: [node()]
   ],
   run_config: [
-    cleaning_interval: 60
+    cleaning_interval: 60 * 10
   ]
 ]
 
@@ -147,7 +147,7 @@ config :asteroid, :plugs_oauth2_endpoint_token,
     {APISexAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
-      set_error_response: &APISexAuthBasic.set_WWWauthenticate_header/3,
+      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
     {APISexFilterThrottler,
       key: &APISexFilterThrottler.Functions.throttle_by_ip_path/1,
@@ -159,6 +159,11 @@ config :asteroid, :plugs_oauth2_endpoint_token,
 
 config :asteroid, :plugs_oauth2_endpoint_introspect,
   [
+    {APISexAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug}
   ]
 
 config :asteroid, :flow_ropc_enabled, true

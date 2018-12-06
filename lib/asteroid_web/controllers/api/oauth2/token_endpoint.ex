@@ -16,7 +16,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     scope_param = conn.body_params["scope"]
 
     with :ok <- grant_type_enabled?(:password),
-         {:ok, client} <- get_client(conn),
+         {:ok, client} <- Client.Utils.get_client(conn, true),
          :ok <- client_grant_type_authorized?(client, :password),
          {:ok, scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, scope),
@@ -107,41 +107,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     error_resp(conn,
                    error: "invalid_grant",
                    error_description: "Invalid grant #{grant}")
-  end
-
-  @spec get_client(Plug.Conn.t()) ::
-    {:ok, String.t} |
-    {:error, :unauthenticated_client | :unauthenticated_public_client_has_credentials}
-  defp get_client(conn) do
-    if APISex.authenticated?(conn) do
-      client = Client.new_from_id(APISex.client(conn))
-
-      {:ok, client}
-    else
-      case conn.body_params["client_id"] do
-        nil ->
-          {:error, :unauthenticated_client}
-
-        client_id ->
-          client =
-            Client.new_from_id(client_id)
-            |> Client.fetch_attribute("client_type")
-            |> Client.fetch_attribute("client_secret")
-
-          case {client.attrs["client_type"], client.attrs["client_secret"]} do
-          # only registered public clients with no credentials are acccepted
-          {:public, nil} ->
-            {:ok, client}
-
-          # public client who have credentials shall use them
-          {:public, _} ->
-            {:error, :unauthenticated_public_client_has_credentials}
-
-          _ ->
-            {:error, :unauthenticated_client}
-          end
-      end
-    end
   end
 
   defp error_resp(conn, error_status \\ 400, error_data) do
