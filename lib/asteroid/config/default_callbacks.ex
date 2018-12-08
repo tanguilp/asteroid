@@ -55,4 +55,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   end
 
   def put_chuck_norris_quote_on_failure(resp), do: resp
+
+  @spec always_nil(any(), any()) :: nil
+  def always_nil(_, _ \\ nil), do: nil
 end

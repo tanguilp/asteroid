@@ -4,9 +4,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   alias OAuth2Utils.Scope
   alias Asteroid.Token.{RefreshToken, AccessToken}
   alias Asteroid.{Client, Subject, Context}
+  alias Asteroid.OAuth2
 
   def handle(conn, params) do
-    with {:ok, client} <- Client.Utils.get_client(conn, false),
+    with {:ok, client} <- OAuth2.Client.get_client(conn, false),
          :ok <- client_authorized?(client)
     do
       do_handle(conn, params)

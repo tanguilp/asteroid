@@ -4,6 +4,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   alias OAuth2Utils.Scope
   alias Asteroid.Token.{RefreshToken, AccessToken}
   alias Asteroid.{Client, Subject, Context}
+  alias Asteroid.OAuth2
 
   # OAuth2 ROPC flow (resource owner password credentials)
   # https://tools.ietf.org/html/rfc6749#section-4.3.2
@@ -16,7 +17,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     scope_param = conn.body_params["scope"]
 
     with :ok <- grant_type_enabled?(:password),
-         {:ok, client} <- Client.Utils.get_client(conn, true),
+         {:ok, client} <- OAuth2.Client.get_client(conn, true),
          :ok <- client_grant_type_authorized?(client, :password),
          {:ok, scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, scope),
@@ -68,14 +69,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> astrenv(:ropc_before_send_conn_callback).(ctx)
       |> json(resp)
     else
-      {:error, :unauthenticated_client} ->
-        error_resp(conn, 401, error: :invalid_client,
-                   error_description: "Client authentication failed")
-
-      {:error, :unauthenticated_public_client_has_credentials} ->
-        error_resp(conn, 401, error: :invalid_client,
-          error_description:
-            "Client authentication failed: public client has credentials but did not use it")
+      {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
+        OAuth2.Client.AuthenticationError.response(conn, error, nil) #FIXME: nil = ctx?
 
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
