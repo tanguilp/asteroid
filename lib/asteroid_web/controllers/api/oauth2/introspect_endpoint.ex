@@ -26,7 +26,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   def do_handle(%Plug.Conn{body_params: %{"token" => token}} = conn, _params, client) do
     case conn.body_params["token_type_hint"] do
       "access_token" ->
-        case AccessToken.get(token) do
+        case AccessToken.get(token, check_active: true) do
           {:ok, access_token} ->
             introspect_access_token(conn, access_token, client)
 
@@ -35,7 +35,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
         end
 
       "refresh_token" ->
-        case RefreshToken.get(token) do
+        case RefreshToken.get(token, check_active: true) do
           {:ok, refresh_token} ->
             introspect_refresh_token(conn, refresh_token, client)
 
@@ -44,12 +44,12 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
         end
 
       nil ->
-        case AccessToken.get(token) do
+        case AccessToken.get(token, check_active: true) do
           {:ok, access_token} ->
             introspect_access_token(conn, access_token, client)
 
           {:error, _} ->
-            case RefreshToken.get(token) do
+            case RefreshToken.get(token, check_active: true) do
               {:ok, refresh_token} ->
                 introspect_refresh_token(conn, refresh_token, client)
 
