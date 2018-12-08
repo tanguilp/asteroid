@@ -58,4 +58,22 @@ defmodule Asteroid.Config.DefaultCallbacks do
 
   @spec always_nil(any(), any()) :: nil
   def always_nil(_, _ \\ nil), do: nil
+
+  @doc """
+  Returns `:ok` is the client is authorized to introspect tokens on the /introspect
+  endpoint, `{:error, reason}` otherwise
+
+  An authorized client is a client that has a map `permissions` attribute containing
+  a `"introspect"` key that has the `true` value
+  """
+  @spec introspect_endpoint_authorized?(Client.t()) :: :ok | {:error, :unauthorized}
+  def introspect_endpoint_authorized?(client) do
+    client = Client.fetch_attribute(client, "permissions")
+
+    if client.attrs["permissions"]["introspect"] == true do
+      :ok
+    else
+      {:error, :unauthorized}
+    end
+  end
 end

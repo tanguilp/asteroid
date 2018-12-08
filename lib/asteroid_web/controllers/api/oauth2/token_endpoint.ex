@@ -38,19 +38,21 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       refresh_token =
         RefreshToken.new()
-        |> RefreshToken.put_claim(:iat, now())
-        |> RefreshToken.put_claim(:exp, now() + astrenv(:refresh_token_lifetime_callback).(ctx))
-        |> RefreshToken.put_claim(:client_id, client.id)
-        |> RefreshToken.put_claim(:sub, subject.id)
-        |> RefreshToken.put_claim(:iss, astrenv(:issuer_callback).(ctx))
+        |> RefreshToken.put_claim("iat", now())
+        |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
+        |> RefreshToken.put_claim("client_id", client.id)
+        |> RefreshToken.put_claim("sub", subject.id)
+        |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+        |> RefreshToken.put_claim("context", ctx)
 
       access_token =
         AccessToken.new(refresh_token: refresh_token)
-        |> AccessToken.put_claim(:iat, now())
-        |> AccessToken.put_claim(:exp, now() + astrenv(:access_token_lifetime_callback).(ctx))
-        |> AccessToken.put_claim(:client_id, client.id)
-        |> AccessToken.put_claim(:sub, subject.id)
-        |> AccessToken.put_claim(:iss, astrenv(:issuer_callback).(ctx))
+        |> AccessToken.put_claim("iat", now())
+        |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
+        |> AccessToken.put_claim("client_id", client.id)
+        |> AccessToken.put_claim("sub", subject.id)
+        |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+        |> AccessToken.put_claim("context", ctx)
 
       RefreshToken.store(refresh_token, ctx)
       AccessToken.store(access_token, ctx)
@@ -59,7 +61,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         %{
           "access_token" => AccessToken.serialize(access_token),
           "refresh_token" => RefreshToken.serialize(refresh_token),
-          "expires_in" => access_token.claims[:exp] - now(),
+          "expires_in" => access_token.claims["exp"] - now(),
           "token_type" => "bearer"
         }
         |> astrenv(:ropc_before_send_resp_callback).(ctx)

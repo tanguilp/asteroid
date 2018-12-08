@@ -194,11 +194,29 @@ config :asteroid, :ropc_before_send_resp_callback,
 config :asteroid, :ropc_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
+config :asteroid, :introspect_endpoint_authorized,
+  &Asteroid.Config.DefaultCallbacks.introspect_endpoint_authorized?/1
+
+config :asteroid, :introspect_resp_claims,
+  fn _ctx -> [
+    "scope", 
+    "client_id",
+    "username",
+    "token_type",
+    "exp",
+    "iat",
+    "nbf",
+    "sub",
+    "aud",
+    "iss",
+    "jti"
+  ] end
+
 config :asteroid, :introspect_before_send_resp_callback,
-  &Asteroid.Config.DefaultCallbacks.put_chuck_norris_quote_on_failure/1
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :introspect_before_send_conn_callback,
-  &Asteroid.Config.DefaultCallbacks.id/1
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :refresh_token_before_store_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
