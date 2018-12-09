@@ -42,8 +42,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
         |> RefreshToken.put_claim("client_id", client.id)
         |> RefreshToken.put_claim("sub", subject.id)
-        |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+        |> RefreshToken.put_claim("scope", scope)
         |> RefreshToken.put_claim("context", ctx)
+        |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
 
       access_token =
         AccessToken.new(refresh_token: refresh_token)
@@ -51,8 +52,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
         |> AccessToken.put_claim("client_id", client.id)
         |> AccessToken.put_claim("sub", subject.id)
-        |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+        |> RefreshToken.put_claim("scope", scope)
         |> AccessToken.put_claim("context", ctx)
+        |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
 
       RefreshToken.store(refresh_token, ctx)
       AccessToken.store(access_token, ctx)
@@ -98,6 +100,91 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                    error_description: "Missing username or password parameter")
   end
 
+  def handle(%Plug.Conn{body_params:
+    %{"grant_type" => "refresh_token",
+      "refresh_token" => refresh_token_param,
+    }} = conn, _params)
+  when refresh_token_param != nil do
+    scope_param = conn.body_params["scope"]
+
+    with :ok <- grant_type_enabled?(:refresh_token),
+         {:ok, client} <- OAuth2.Client.get_client(conn, true),
+         :ok <- client_grant_type_authorized?(client, :refresh_token),
+         {:ok, scope} <- get_scope(scope_param),
+         :ok <- client_scope_authorized?(client, scope),
+         {:ok, refresh_token} <- RefreshToken.get(refresh_token_param, check_active: true),
+         :ok <- refresh_token_granted_to_client?(refresh_token, client),
+         {:ok, subject} <- get_subject_from_refresh_token(refresh_token)
+    do
+      if Scope.Set.subset?(scope, refresh_token.claims["scope"]) do
+        ctx = %Asteroid.Context{
+          request: %{
+            :endpoint => :token,
+            :flow => refresh_token.claims["context"].request[:flow],
+            :grant_type => :refresh_token,
+            :scope => scope
+          },
+          client: client,
+          subject: subject,
+          device: nil
+        }
+
+        access_token =
+          AccessToken.new(refresh_token: refresh_token)
+          |> AccessToken.put_claim("iat", now())
+          |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
+          |> AccessToken.put_claim("client_id", client.id)
+          |> AccessToken.put_claim("sub", subject.id)
+          |> RefreshToken.put_claim("scope", scope)
+          |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+          |> AccessToken.put_claim("context", ctx)
+
+        AccessToken.store(access_token, ctx)
+
+        resp =
+          %{
+            "access_token" => AccessToken.serialize(access_token),
+            "expires_in" => access_token.claims["exp"] - now(),
+            "token_type" => "bearer"
+          }
+          |> astrenv(:refresh_token_before_send_resp_callback).(ctx)
+
+        conn
+        |> put_status(200)
+        |> astrenv(:refresh_token_before_send_conn_callback).(ctx)
+        |> json(resp)
+      else
+        error_resp(conn,
+                   error: "invalid_scope",
+                   error_description: "Requested scopes exceed scope granted to the refresh token"
+        )
+      end
+    else
+      {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
+        OAuth2.Client.AuthenticationError.response(conn, error, nil) #FIXME: nil = ctx?
+
+      {:error, :grant_type_disabled} ->
+        error_resp(conn, error: :unsupported_grant_type,
+                   error_description: "Grant type password not enabled")
+
+      {:error, :grant_type_not_authorized_for_client} ->
+        error_resp(conn, error: :unauthorized_client,
+                   error_description: "Client is not authorized to use this grant type")
+
+      {:error, :malformed} ->
+        error_resp(conn, error: :invalid_scope,
+                   error_description: "Scope param is malformed")
+
+      {:error, :unauthorized_scope} ->
+        error_resp(conn, error: :unauthorized_scope,
+                    error_description: "The client has not been granted this scope")
+
+      {:error, reason} ->
+        error_resp(conn, error: :server_error,
+                    error_description: "#{inspect reason}")
+    end
+  end
+
   # unrecognized or unsupported grant
 
   def handle(%Plug.Conn{body_params: %{"grant_type" => grant}} = conn, _params) do
@@ -113,22 +200,18 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   end
 
   @spec grant_type_enabled?(Asteroid.GrantType.t()) :: :ok | {:error, :grant_type_disabled}
-  defp grant_type_enabled?(:password) do
-    if Application.get_env(:asteroid, :flow_ropc_enabled, false) do
-      :ok
-    else
-      {:error, :grant_type_disabled}
-    end
+  defp grant_type_enabled?(_) do
+    :ok
   end
 
   @spec client_grant_type_authorized?(Asteroid.Client.client_param(), Asteroid.GrantType.t()) ::
     :ok | {:error, :grant_type_not_authorized_for_client}
-  defp  client_grant_type_authorized?(_client, :password) do
+  defp  client_grant_type_authorized?(_client, _grant_type) do
     :ok
   end
 
   @spec get_scope(String.t() | nil)
-    :: {:ok, Scope.Set.t() | nil} | {:error, :malformed_scope_param}
+    :: {:ok, Scope.Set.t()} | {:error, :malformed_scope_param}
 
   def get_scope(nil), do: {:ok, Scope.Set.new()}
 
@@ -149,6 +232,31 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       :ok
     else
       {:error, :unauthorized_scope}
+    end
+  end
+    
+  @spec get_subject_from_refresh_token(RefreshToken.t())
+    :: {:ok, Subject.t()} | {:error, any()}
+
+  def get_subject_from_refresh_token(%RefreshToken{claims: %{"sub" => sub}}) do
+    case Subject.new_from_id(sub) do
+      {:ok, subject} ->
+        {:ok, subject}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def get_subject_from_refresh_token(_), do: {:ok, nil}
+
+  @spec refresh_token_granted_to_client?(RefreshToken.t(), Client.t())
+    :: :ok | {:error, any()}
+  def refresh_token_granted_to_client?(refresh_token, client) do
+    if refresh_token.claims["client_id"] == client.id do
+      :ok
+    else
+      {:error, :client_id_no_match}
     end
   end
 end

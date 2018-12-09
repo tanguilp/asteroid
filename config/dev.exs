@@ -171,8 +171,6 @@ config :asteroid, :plugs_oauth2_endpoint_introspect,
       error_response_verbosity: :debug}
   ]
 
-config :asteroid, :flow_ropc_enabled, true
-
 config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
 
 config :asteroid, :ropc_username_password_verify_callback,
@@ -222,4 +220,11 @@ config :asteroid, :refresh_token_before_store_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :access_token_before_store_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+#FIXME: rename those callbacks
+config :asteroid, :refresh_token_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
