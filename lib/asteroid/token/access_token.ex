@@ -20,7 +20,7 @@ defmodule Asteroid.Token.AccessToken do
   @spec new(Keyword.t()) :: t()
   def new(opts \\ []) do
     %__MODULE__{
-      id: secure_random_b64(),
+      id: secure_random_b64(20),
       refresh_token_id: (if opts[:refresh_token], do: opts[:refresh_token].id, else: nil),
       claims: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
