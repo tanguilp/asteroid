@@ -1,0 +1,9 @@
+site_name: Asteroid
+
+theme:
+  name: 'material'
+  palette:
+    primary: 'indigo'
+    accent: 'pink'
+  logo: 'img/asteroid.svg'
+  favicon: 'img/favicon.ico'

@@ -2,13 +2,14 @@ defmodule Asteroid.Context do
   @moduledoc """
   """
 
-  defstruct [:request, :client, :subject, :device]
+  defstruct [:request, :client, :subject, :device, :scope]
 
   @type t :: %__MODULE__{
     request: map(),
     client: Asteroid.Client.t(),
-    subject: Asteroid.Subject.t(),
-    device: Asteroid.Device.t()
+    subject: Asteroid.Subject.t() | nil,
+    device: Asteroid.Device.t() | nil,
+    scope: MapSet.t()
   }
 
   @doc """

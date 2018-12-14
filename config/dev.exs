@@ -66,10 +66,8 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
-config :apisex_auth_basic,
-  clients: %{
-    "Asteroid"=> [{"client_private", "1235813"}]
-  }
+config :mnesia,
+   dir: 'Mnesia.#{node()}-#{Mix.env}'
 
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
@@ -175,6 +173,14 @@ config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
 
 config :asteroid, :ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
+
+config :asteroid, :ropc_issue_refresh_token_callback,
+  &Asteroid.Config.DefaultCallbacks.ropc_issue_refresh_token_callback/1
+
+config :asteroid, :ropc_issue_refresh_token, true
+
+config :asteroid, :ropc_scope_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :refresh_token_lifetime_callback,
   &Asteroid.Config.DefaultCallbacks.refresh_token_lifetime_callback/1

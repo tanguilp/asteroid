@@ -8,14 +8,20 @@ defmodule Asteroid.Config.DefaultCallbacks do
 
   @spec test_ropc_username_password_callback(Plug.Conn.t(), String.t(), String.t())
     :: {:ok, Asteroid.Subject.t()} | {:error, atom()}
-  def test_ropc_username_password_callback(_conn, _username, _password) do
-    {:ok,
-      %Subject{id: "11dcfa0a-80b4-4e82-9218-055f3fbcd6f0",
-        attrs: %{
-          :name =>"John Doe",
-          :given_name => "John",
-          :family_name => "Smith"
-        }}}
+  def test_ropc_username_password_callback(_conn, username, password) do
+    case Subject.new_from_id(username) do
+      {:ok, sub} ->
+        sub = Subject.fetch_attribute(sub, "password")
+
+        if sub.attrs["password"] == password do
+          {:ok, sub}
+        else
+          {:error, :invalid_password}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   @spec refresh_token_lifetime_callback(Asteroid.Context.t()) :: non_neg_integer()
@@ -75,5 +81,10 @@ defmodule Asteroid.Config.DefaultCallbacks do
     else
       {:error, :unauthorized}
     end
+  end
+
+  @spec ropc_issue_refresh_token_callback(Context.t()) :: boolean
+  def ropc_issue_refresh_token_callback(ctx) do
+    Application.get_env(:asteroid, :ropc_issue_refresh_token, false)
   end
 end

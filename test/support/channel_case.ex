@@ -13,25 +13,25 @@ defmodule AsteroidWeb.ChannelCase do
   of the test unless the test case is marked as async.
   """
 
-  use ExUnit.CaseTemplate
+  #use ExUnit.CaseTemplate
 
-  using do
-    quote do
-      # Import conveniences for testing with channels
-      use Phoenix.ChannelTest
+  #using do
+  #  quote do
+  #  # Import conveniences for testing with channels
+  #    use Phoenix.ChannelTest
 
-      # The default endpoint for testing
-      @endpoint AsteroidWeb.Endpoint
-    end
-  end
+  #    # The default endpoint for testing
+  #    @endpoint AsteroidWeb.Endpoint
+  #  end
+  #end
 
-  setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Asteroid.Repo)
+  #setup tags do
+  #  :ok = Ecto.Adapters.SQL.Sandbox.checkout(Asteroid.Repo)
 
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(Asteroid.Repo, {:shared, self()})
-    end
+  #  unless tags[:async] do
+  #    Ecto.Adapters.SQL.Sandbox.mode(Asteroid.Repo, {:shared, self()})
+  #  end
 
-    :ok
-  end
+  #  :ok
+  #end
 end

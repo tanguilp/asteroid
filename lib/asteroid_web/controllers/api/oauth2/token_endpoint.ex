@@ -19,8 +19,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     with :ok <- grant_type_enabled?(:password),
          {:ok, client} <- OAuth2.Client.get_client(conn, true),
          :ok <- client_grant_type_authorized?(client, :password),
-         {:ok, scope} <- get_scope(scope_param),
-         :ok <- client_scope_authorized?(client, scope),
+         {:ok, requested_scope} <- get_scope(scope_param),
+         :ok <- client_scope_authorized?(client, requested_scope),
          {:ok, subject} <-
            astrenv(:ropc_username_password_verify_callback).(conn, username, password)
     do
@@ -29,25 +29,39 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           :endpoint => :token,
           :flow => :ropc,
           :grant_type => :password,
-          :scope => scope
+          :scope => requested_scope
         },
         client: client,
         subject: subject,
-        device: nil
+        device: nil,
+        scope: nil
       }
 
-      refresh_token =
-        RefreshToken.new()
-        |> RefreshToken.put_claim("iat", now())
-        |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
-        |> RefreshToken.put_claim("client_id", client.id)
-        |> RefreshToken.put_claim("sub", subject.id)
-        |> RefreshToken.put_claim("scope", scope)
-        |> RefreshToken.put_claim("context", ctx)
-        |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+      scope = astrenv(:ropc_scope_callback).(requested_scope, ctx)
+
+      ctx = %{ctx | scope: scope}
+
+      maybe_refresh_token =
+        if astrenv(:ropc_issue_refresh_token_callback).(ctx) do
+          RefreshToken.new()
+          |> RefreshToken.put_claim("iat", now())
+          |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
+          |> RefreshToken.put_claim("client_id", client.id)
+          |> RefreshToken.put_claim("sub", subject.id)
+          |> RefreshToken.put_claim("scope", scope)
+          |> RefreshToken.put_claim("context", ctx)
+          |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+          |> RefreshToken.store(ctx)
+        else
+          nil
+        end
 
       access_token =
-        AccessToken.new(refresh_token: refresh_token)
+        if maybe_refresh_token do
+          AccessToken.new(refresh_token: maybe_refresh_token)
+        else
+          AccessToken.new()
+        end
         |> AccessToken.put_claim("iat", now())
         |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
         |> AccessToken.put_claim("client_id", client.id)
@@ -56,16 +70,16 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> AccessToken.put_claim("context", ctx)
         |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
 
-      RefreshToken.store(refresh_token, ctx)
       AccessToken.store(access_token, ctx)
 
       resp =
         %{
           "access_token" => AccessToken.serialize(access_token),
-          "refresh_token" => RefreshToken.serialize(refresh_token),
           "expires_in" => access_token.claims["exp"] - now(),
           "token_type" => "bearer"
         }
+        |> maybe_put_refresh_token(maybe_refresh_token)
+        |> put_scope_if_changed(requested_scope, ctx.scope)
         |> astrenv(:ropc_before_send_resp_callback).(ctx)
 
       conn
@@ -89,8 +103,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                    error_description: "Scope param is malformed")
 
       {:error, :unauthorized_scope} ->
-        error_resp(conn, error: :unauthorized_scope,
+        error_resp(conn, error: :invalid_scope,
                     error_description: "The client has not been granted this scope")
+
+      {:error, :invalid_password} ->
+        error_resp(conn, error: :invalid_grant,
+                    error_description: "Username or password is incorrect")
     end
   end
 
@@ -193,6 +211,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                    error_description: "Invalid grant #{grant}")
   end
 
+  def handle(conn, _params) do
+    error_resp(conn,
+               error: "invalid_request",
+               error_description: "Missing `grant_type` parameter"
+    )
+  end
+
   defp error_resp(conn, error_status \\ 400, error_data) do
     conn
     |> put_status(error_status)
@@ -257,6 +282,22 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       :ok
     else
       {:error, :client_id_no_match}
+    end
+  end
+
+  @spec maybe_put_refresh_token(map(), RefreshToken.t() | nil) :: map()
+  def maybe_put_refresh_token(m, %RefreshToken{} = refresh_token) do
+    Map.put(m, "refresh_token", RefreshToken.serialize(refresh_token))
+  end
+
+  def maybe_put_refresh_token(m, nil), do: m
+
+  @spec put_scope_if_changed(map(), Scope.Set.t(), Scope.Set.t()) :: map()
+  def put_scope_if_changed(m, requested_scope, scope) do
+    if requested_scope == scope do
+      m
+    else
+      Map.put(m, "scope", Enum.join(scope, " "))
     end
   end
 end

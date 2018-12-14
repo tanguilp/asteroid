@@ -31,7 +31,7 @@ defmodule Asteroid.Token.AccessToken do
   def get(access_token_id, opts \\ []) do
     case astrenv(:store_access_token)[:impl].get(access_token_id) do
       {:ok, access_token} ->
-        if not opts[:check_active] or active?(access_token) do
+        if opts[:check_active] != true or active?(access_token) do
           {:ok, access_token}
         else
           {:error, :inactive_token}

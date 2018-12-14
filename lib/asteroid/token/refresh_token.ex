@@ -29,7 +29,7 @@ defmodule Asteroid.Token.RefreshToken do
   def get(refresh_token_id, opts \\ []) do
     case astrenv(:store_refresh_token)[:impl].get(refresh_token_id) do
       {:ok, refresh_token} ->
-        if not opts[:check_active] or active?(refresh_token) do
+        if opts[:check_active] != true or active?(refresh_token) do
           {:ok, refresh_token}
         else
           {:error, :inactive_token}
