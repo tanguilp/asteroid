@@ -111,21 +111,29 @@ config :asteroid, :plugs_oauth2_endpoint_token,
           [response: {:error, :invalid_token}]
         },
       set_error_response: &APISexAuthBearer.save_authentication_failure_response/3,
-      error_response_verbosity: :debug},
-    {APISexFilterThrottler,
-      key: &APISexFilterThrottler.Functions.throttle_by_ip_path/1,
-      scale: 60_000,
-      limit: 50,
-      exec_cond: &Asteroid.Config.DefaultCallbacks.conn_not_authenticated?/1,
       error_response_verbosity: :debug}
   ]
 
 config :asteroid, :plugs_oauth2_endpoint_introspect,
   [
     {APISexAuthBasic,
+      realm: "always erroneous client password",
+      callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
+      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APISexAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
       set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APISexAuthBearer,
+      realm: "Asteroid",
+      bearer_validator:
+        {
+          APISexAuthBearer.Validator.Identity,
+          [response: {:error, :invalid_token}]
+        },
+      set_error_response: &APISexAuthBearer.save_authentication_failure_response/3,
       error_response_verbosity: :debug}
   ]
 
@@ -163,7 +171,7 @@ config :asteroid, :introspect_endpoint_authorized,
 
 config :asteroid, :introspect_resp_claims,
   fn _ctx -> [
-    "scope", 
+    "scope",
     "client_id",
     "username",
     "token_type",

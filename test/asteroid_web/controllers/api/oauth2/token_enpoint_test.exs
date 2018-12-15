@@ -139,6 +139,22 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_client"
   end
 
+  test "public client with invalid client_id", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "password",
+      "username" => "user_1",
+      "password" => "asteroidftw",
+      "client_id" => "nю-client"
+    }
+
+    response =
+      conn
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
   test "grant type not authorized for client", %{conn: conn} do
     req_body = %{
       "grant_type" => "password",
@@ -176,10 +192,42 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   # ROPC tests
   ##########################################################################
 
-  test "ropc ropc missing parameter", %{conn: conn} do
+  test "ropc missing parameter", %{conn: conn} do
     req_body = %{
       "grant_type" => "password",
       "password" => "asteroidftw"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
+  test "ropc invalid username param", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "password",
+      "username" => "not\nweel-formed username",
+      "password" => "asteroidftw"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
+  test "ropc invalid password param", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "password",
+      "username" => "user_1",
+      "password" => "aster\roidftw"
     }
 
     response =
@@ -214,12 +262,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "password" => "asteroidftw"
     }
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, _} = AccessToken.get(response["access_token"])
@@ -237,12 +288,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "scope" => Enum.join(req_scope, " ")
     }
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -289,14 +343,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     Application.put_env(:asteroid, :ropc_scope_callback,
                         &Asteroid.CallbackTest.add_scp99_scope/2)
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
     Application.put_env(:asteroid, :ropc_scope_callback, ropc_scope_callback_origin)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -340,12 +397,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "grant_type" => "client_credentials"
     }
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -362,14 +422,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     Application.put_env(:asteroid, :client_credentials_issue_refresh_token, true)
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
     Application.put_env(:asteroid, :client_credentials_issue_refresh_token, false)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -389,12 +452,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "scope" => Enum.join(req_scope, " ")
     }
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
+    response = json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -419,15 +485,18 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     Application.put_env(:asteroid, :client_credentials_scope_callback,
                         &Asteroid.CallbackTest.add_scp99_scope/2)
 
-    response =
+    conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-      |> json_response(200)
 
     Application.put_env(:asteroid, :client_credentials_scope_callback,
                         client_credentials_scope_callback_origin)
 
+    response= json_response(conn, 200)
+
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
+    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])

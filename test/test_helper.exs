@@ -15,6 +15,8 @@ Client.new_from_id("client_confidential_1")
   "refresh_token"
 ]))
 |> Client.put_attribute("scope", MapSet.new(["scp1", "scp2", "scp3", "scp4", "scp5", "scp6"]))
+|> Client.put_attribute("permissions", %{"introspect" => true})
+|> Client.put_attribute("resource_server_name", "https://client1.api")
 |> Client.store()
 
 Client.new_from_id("client_confidential_2")
