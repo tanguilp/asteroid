@@ -194,3 +194,11 @@ config :asteroid, :refresh_token_before_send_resp_callback,
 
 config :asteroid, :refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :client_credentials_issue_refresh_token_callback,
+  &Asteroid.Config.DefaultCallbacks.client_credentials_issue_refresh_token_callback/1
+
+config :asteroid, :client_credentials_issue_refresh_token, false
+
+config :asteroid, :client_credentials_scope_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2

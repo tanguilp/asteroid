@@ -176,7 +176,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   # ROPC tests
   ##########################################################################
 
-  test "ropc missing parameter", %{conn: conn} do
+  test "ropc ropc missing parameter", %{conn: conn} do
     req_body = %{
       "grant_type" => "password",
       "password" => "asteroidftw"
@@ -191,7 +191,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_request"
   end
 
-  test "invalid username & password", %{conn: conn} do
+  test "ropc invalid username & password", %{conn: conn} do
     req_body = %{
       "grant_type" => "password",
       "username" => "user_does_not_exist",
@@ -207,7 +207,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_grant"
   end
 
-  test "valid username", %{conn: conn} do
+  test "ropc valid username", %{conn: conn} do
     req_body = %{
       "grant_type" => "password",
       "username" => "user_1",
@@ -227,7 +227,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["scope"] == nil
   end
 
-  test "valid username and scopes", %{conn: conn} do
+  test "ropc valid username and scopes", %{conn: conn} do
     req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
 
     req_body = %{
@@ -256,7 +256,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["scope"] == nil
   end
 
-  test "valid username and invalid scopes", %{conn: conn} do
+  test "ropc valid username and invalid scopes", %{conn: conn} do
     req_scope = MapSet.new(["scp3", "scp7", "scp6", "scp1"])
 
     req_body = %{
@@ -275,7 +275,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_scope"
   end
 
-  test "additional scope added by callback", %{conn: conn} do
+  test "ropc additional scope added by callback", %{conn: conn} do
     req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
 
     req_body = %{
@@ -308,6 +308,150 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert refresh_token.claims["client_id"] == "client_confidential_1"
     assert access_token.claims["client_id"] == "client_confidential_1"
     assert Scope.Set.from_scope_param!(response["scope"]) == MapSet.put(req_scope, "scp99")
+  end
+
+  ##########################################################################
+  # Client Credentials tests
+  ##########################################################################
+
+  test "client credentials public client with no credentials: authentication is mandatory", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
+
+    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="always erroneous client password")
+
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="Asteroid")
+
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Bearer realm="Asteroid")
+
+    response = json_response(conn, 401)
+
+    assert response["error"] == "invalid_client"
+  end
+
+  test "client credentials valid client authentication, token issued", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert access_token.claims["sub"] == nil
+    assert access_token.claims["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+    assert response["refresh_token"] == nil
+  end
+
+  test "client credentials valid client authentication, token issued (incl. refresh token)", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
+
+    Application.put_env(:asteroid, :client_credentials_issue_refresh_token, true)
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    Application.put_env(:asteroid, :client_credentials_issue_refresh_token, false)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert refresh_token.claims["sub"] == nil
+    assert access_token.claims["sub"] == nil
+    assert refresh_token.claims["client_id"] == "client_confidential_1"
+    assert access_token.claims["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+  end
+
+  test "client credentials valid client authentication, token issued with scopes", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
+
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert access_token.claims["sub"] == nil
+    assert access_token.claims["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+    assert response["refresh_token"] == nil
+    assert access_token.claims["scope"] == req_scope
+    assert response["scope"] == nil
+  end
+
+  test "client credentials additional scope added by callback", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
+
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
+
+    client_credentials_scope_callback_origin =
+      Application.get_env(:asteroid, :client_credentials_scope_callback)
+    Application.put_env(:asteroid, :client_credentials_scope_callback,
+                        &Asteroid.CallbackTest.add_scp99_scope/2)
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    Application.put_env(:asteroid, :client_credentials_scope_callback,
+                        client_credentials_scope_callback_origin)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    refute access_token.claims["scope"] == req_scope
+    assert access_token.claims["sub"] == nil
+    assert access_token.claims["client_id"] == "client_confidential_1"
+    assert Scope.Set.from_scope_param!(response["scope"]) == MapSet.put(req_scope, "scp99")
+  end
+
+  test "client credentials valid client authentication, invalid scope", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp7", "scp6", "scp1"])
+
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_scope"
   end
 
   ##########################################################################

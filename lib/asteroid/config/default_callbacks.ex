@@ -87,4 +87,9 @@ defmodule Asteroid.Config.DefaultCallbacks do
   def ropc_issue_refresh_token_callback(ctx) do
     Application.get_env(:asteroid, :ropc_issue_refresh_token, false)
   end
+
+  @spec client_credentials_issue_refresh_token_callback(Context.t()) :: boolean
+  def client_credentials_issue_refresh_token_callback(ctx) do
+    Application.get_env(:asteroid, :client_credentials_issue_refresh_token, false)
+  end
 end
