@@ -1,5 +1,6 @@
 defmodule Asteroid.Config.DefaultCallbacks do
-  alias Asteroid.{Client, Subject}
+  import Asteroid.Utils
+  alias Asteroid.{Client, Subject, Context}
 
   @spec issuer(Asteroid.Context.t()) :: String.t()
   def issuer(_) do
@@ -83,13 +84,29 @@ defmodule Asteroid.Config.DefaultCallbacks do
     end
   end
 
-  @spec ropc_issue_refresh_token_callback(Context.t()) :: boolean
-  def ropc_issue_refresh_token_callback(ctx) do
-    Application.get_env(:asteroid, :ropc_issue_refresh_token, false)
-  end
+  @doc """
+  Returns `true` if a refresh token shall be issued, `false` otherwise
 
-  @spec client_credentials_issue_refresh_token_callback(Context.t()) :: boolean
-  def client_credentials_issue_refresh_token_callback(ctx) do
-    Application.get_env(:asteroid, :client_credentials_issue_refresh_token, false)
+  Conditions for releasing a refresh token are:
+  - the flow allows it (e.g ROPC does but implicit does not)
+  - the flow option is configured to `true`:
+    - `ropc_issue_refresh_token`
+    - `client_credentials_issue_refresh_token`
+  - the client's `"grant_types"` attribute contains the `"refresh_token"` value
+  """
+  @spec issue_refresh_token_callback(Context.t()) :: boolean
+  def issue_refresh_token_callback(%Context{request: %{flow: flow}, client: client}) do
+    if astrenv(String.to_atom(Atom.to_string(flow) <> "_" <> "issue_refresh_token"), false) do
+      client = Client.fetch_attribute(client, "grant_types")
+
+      if "refresh_token" in client.attrs["grant_types"] do
+        true
+      else
+        false
+      end
+    else
+      false
+    end
+    Application.get_env(:asteroid, :ropc_issue_refresh_token, false)
   end
 end

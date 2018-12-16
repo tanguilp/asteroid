@@ -42,7 +42,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       ctx = %{ctx | scope: scope}
 
       maybe_refresh_token =
-        if astrenv(:ropc_issue_refresh_token_callback).(ctx) do
+        if astrenv(:issue_refresh_token_callback).(ctx) do
           RefreshToken.new()
           |> RefreshToken.put_claim("iat", now())
           |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))

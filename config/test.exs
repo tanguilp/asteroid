@@ -142,8 +142,8 @@ config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
 config :asteroid, :ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
-config :asteroid, :ropc_issue_refresh_token_callback,
-  &Asteroid.Config.DefaultCallbacks.ropc_issue_refresh_token_callback/1
+config :asteroid, :issue_refresh_token_callback,
+  &Asteroid.Config.DefaultCallbacks.issue_refresh_token_callback/1
 
 config :asteroid, :ropc_issue_refresh_token, true
 
@@ -204,9 +204,6 @@ config :asteroid, :refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :ropc_issue_new_refresh_token, false
-
-config :asteroid, :client_credentials_issue_refresh_token_callback,
-  &Asteroid.Config.DefaultCallbacks.client_credentials_issue_refresh_token_callback/1
 
 config :asteroid, :client_credentials_issue_refresh_token, false
 
