@@ -198,6 +198,8 @@ config :asteroid, :ropc_before_send_resp_callback,
 config :asteroid, :ropc_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
+config :asteroid, :ropc_issue_new_refresh_token, false
+
 config :asteroid, :introspect_endpoint_authorized,
   &Asteroid.Config.DefaultCallbacks.introspect_endpoint_authorized?/1
 

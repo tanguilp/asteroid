@@ -35,6 +35,11 @@ Client.new_from_id("client_public_1")
 |> elem(1)
 |> Client.put_attribute("client_id", "client_public_1")
 |> Client.put_attribute("scope", MapSet.new(["scp1", "scp2", "scp3", "scp4", "scp5", "scp6"]))
+|> Client.put_attribute("grant_types", MapSet.new([
+  "authorization_code",
+  "implicit",
+  "refresh_token"
+]))
 |> Client.store()
 
 Client.new_from_id("client_public_2")
