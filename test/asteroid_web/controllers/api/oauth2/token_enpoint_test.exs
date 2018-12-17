@@ -271,8 +271,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response = json_response(conn, 200)
 
-    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
-    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == ["no-store"]
+    assert Plug.Conn.get_resp_header(conn, "pragma") == ["no-cache"]
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, _} = AccessToken.get(response["access_token"])
@@ -297,8 +297,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response = json_response(conn, 200)
 
-    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
-    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == ["no-store"]
+    assert Plug.Conn.get_resp_header(conn, "pragma") == ["no-cache"]
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -354,8 +354,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response = json_response(conn, 200)
 
-    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
-    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == ["no-store"]
+    assert Plug.Conn.get_resp_header(conn, "pragma") == ["no-cache"]
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])

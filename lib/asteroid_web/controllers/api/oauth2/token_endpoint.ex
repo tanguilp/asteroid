@@ -17,6 +17,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     scope_param = conn.body_params["scope"]
 
     with :ok <- grant_type_enabled?(:password),
+         :ok <- valid_username_param?(username),
+         :ok <- valid_password_param?(password),
          {:ok, client} <- OAuth2.Client.get_client(conn, true),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "password"),
          {:ok, requested_scope} <- get_scope(scope_param),
@@ -84,6 +86,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       conn
       |> put_status(200)
+      |> put_resp_header("cache-control", "no-store")
+      |> put_resp_header("pragma", "no-cache")
       |> astrenv(:ropc_before_send_conn_callback).(ctx)
       |> json(resp)
     else
@@ -172,6 +176,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
         conn
         |> put_status(200)
+        |> put_resp_header("cache-control", "no-store")
+        |> put_resp_header("pragma", "no-cache")
         |> astrenv(:refresh_token_before_send_conn_callback).(ctx)
         |> json(resp)
       else
@@ -299,6 +305,28 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       m
     else
       Map.put(m, "scope", Enum.join(scope, " "))
+    end
+  end
+
+  @spec valid_username_param?(String.t()) ::
+    :ok | {:error, %OAuth2.Request.MalformedParamError{}}
+  defp valid_username_param?(username) do
+    if OAuth2Utils.valid_username_param?(username) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "username",
+                                                            parameter_value: username)}
+    end
+  end
+
+  @spec valid_password_param?(String.t()) ::
+    :ok | {:error, %OAuth2.Request.MalformedParamError{}}
+  defp valid_password_param?(password) do
+    if OAuth2Utils.valid_password_param?(password) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "password",
+                                                            parameter_value: "[HIDDEN]")}
     end
   end
 end
