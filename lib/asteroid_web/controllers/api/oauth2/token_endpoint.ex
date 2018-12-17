@@ -18,7 +18,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
     with :ok <- grant_type_enabled?(:password),
          {:ok, client} <- OAuth2.Client.get_client(conn, true),
-         :ok <- client_grant_type_authorized?(client, :password),
+         :ok <- OAuth2.Client.grant_type_authorized?(client, "password"),
          {:ok, requested_scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, requested_scope),
          {:ok, subject} <-
@@ -130,7 +130,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
     with :ok <- grant_type_enabled?(:refresh_token),
          {:ok, client} <- OAuth2.Client.get_client(conn, true),
-         :ok <- client_grant_type_authorized?(client, :refresh_token),
+         :ok <- OAuth2.Client.grant_type_authorized?(client, :refresh_token),
          {:ok, scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, scope),
          {:ok, refresh_token} <- RefreshToken.get(refresh_token_param, check_active: true),
@@ -235,14 +235,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     :ok
   end
 
-  @spec client_grant_type_authorized?(Asteroid.Client.client_param(), Asteroid.GrantType.t()) ::
-    :ok | {:error, :grant_type_not_authorized_for_client}
-  defp  client_grant_type_authorized?(_client, _grant_type) do
-    :ok
-  end
-
   @spec get_scope(String.t() | nil)
-    :: {:ok, Scope.Set.t()} | {:error, :malformed_scope_param}
+    :: {:ok, Scope.Set.t()} | {:error, Exception.t()}
 
   def get_scope(nil), do: {:ok, Scope.Set.new()}
 
@@ -250,7 +244,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     if Scope.oauth2_scope_param?(scope_param) do
       {:ok, Scope.Set.from_scope_param!(scope_param)}
     else
-      {:error, :malformed_scope_param}
+      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "scope",
+                                                            parameter_value: scope_param)}
     end
   end
 

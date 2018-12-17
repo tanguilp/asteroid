@@ -13,10 +13,31 @@ defmodule Asteroid.OAuth2.Client do
     def message(%__MODULE__{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}" 
+          "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}"
 
         :normal ->
           "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}"
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
+  defmodule AuthorizationError do
+    @moduledoc """
+    Error raised when an client is not authorized to perform an action
+    """
+
+    defexception [:reason]
+
+    def message(%__MODULE__{reason: :unauthorized_grant_type}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "The grant type is not authorized for this client"
+
+        :normal ->
+          "The grant type is not authorized for this client"
 
         :minimal ->
           ""
@@ -74,7 +95,7 @@ defmodule Asteroid.OAuth2.Client do
 
       client_id ->
         if OAuth2Utils.valid_client_id_param?(client_id) do
-          case Client.new_from_id(client_id) do
+          case Client.new_from_id(client_id) do #FIXME => by attribute
             {:ok, client} ->
               if public?(client) do
                 if not has_credentials?(client) do
@@ -88,7 +109,7 @@ defmodule Asteroid.OAuth2.Client do
                   :unauthenticated_request)}
               end
 
-            error ->
+            {:error, _} ->
               {:error, __MODULE__.AuthenticationError.exception(reason: :unkown_client)}
           end
         else
@@ -97,6 +118,25 @@ defmodule Asteroid.OAuth2.Client do
         end
     end
   end
+
+  @doc """
+  Determines whether a client is authorized to use a given grant type
+
+  To be authorized to use a given grant type, the client's `"grant_types"` attribute
+  must contain the given `grant_type`
+  """
+  @spec grant_type_authorized?(Asteroid.Client.client_param(), String.t()) ::
+    :ok | {:error, %__MODULE__.AuthorizationError{}}
+  def  grant_type_authorized?(client, grant_type) do
+    client = Client.fetch_attribute(client, "grant_types")
+
+    if grant_type in client.attrs["grant_types"] do
+      :ok
+    else
+      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_grant_type)}
+    end
+  end
+
 
   @doc """
   Returns `true` if the client is a public client, `false` otherwise

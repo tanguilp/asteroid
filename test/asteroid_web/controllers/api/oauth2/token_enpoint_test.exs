@@ -183,7 +183,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
