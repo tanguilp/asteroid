@@ -88,7 +88,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> json(resp)
     else
       {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.AuthenticationError.response(conn, error, nil) #FIXME: nil = ctx?
+        OAuth2.Client.error_response(conn, error)
+
+      {:error, %Asteroid.OAuth2.Request.MalformedParamError{} = error} ->
+        OAuth2.Request.error_response(conn, error)
 
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
@@ -178,8 +181,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         )
       end
     else
-      {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.AuthenticationError.response(conn, error, nil) #FIXME: nil = ctx?
+      {:error, %OAuth2.Client.AuthenticationError{} = error} ->
+        OAuth2.Client.error_response(conn, error)
+
+      {:error, %OAuth2.Request.MalformedParamError{} = error} ->
+        OAuth2.Request.error_response(conn, error)
 
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
@@ -207,7 +213,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   def handle(%Plug.Conn{body_params: %{"grant_type" => grant}} = conn, _params) do
     error_resp(conn,
-                   error: "invalid_grant",
+                   error: "unsupported_grant_type",
                    error_description: "Invalid grant #{grant}")
   end
 

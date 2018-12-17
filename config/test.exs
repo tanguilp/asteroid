@@ -139,6 +139,8 @@ config :asteroid, :plugs_oauth2_endpoint_introspect,
 
 config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
 
+config :asteroid, :api_error_response_verbosity, :debug
+
 config :asteroid, :ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 

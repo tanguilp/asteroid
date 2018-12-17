@@ -13,7 +13,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       do_handle(conn, params, client)
     else
       {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.AuthenticationError.response(conn, error, nil) #FIXME: nil = ctx?
+        OAuth2.Client.error_response(conn, error)
 
       {:error, :unauthorized} ->
         error_resp(conn, 403,

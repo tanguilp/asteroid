@@ -1,5 +1,28 @@
 defmodule Asteroid.OAuth2.Client do
   alias Asteroid.{Client, Context}
+  alias Asteroid.OAuth2
+  import Asteroid.Utils
+
+  defmodule AuthenticationError do
+    @moduledoc """
+    Error raised when an client authentication error occurs
+    """
+
+    defexception [:reason]
+
+    def message(%__MODULE__{reason: reason}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}" 
+
+        :normal ->
+          "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}"
+
+        :minimal ->
+          ""
+      end
+    end
+  end
 
   @spec get_client(Plug.Conn.t(), boolean()) ::
     {:ok, String.t} |
@@ -10,20 +33,20 @@ defmodule Asteroid.OAuth2.Client do
       {:ok, client} ->
         {:ok, client}
 
-      {:error, :client_not_found} ->
-        {:error, __MODULE__.AuthenticationError.exception(:client_not_found)}
+      {:error, %__MODULE__.AuthenticationError{reason: :unkown_client}} = error ->
+        error
 
-      {:error, :unauthenticated_client} ->
+      {:error, exception} ->
         if allow_unauthenticated_public_clients do
           case get_unauthenticated_client(conn) do
             {:ok, client} ->
               {:ok, client}
 
-            {:error, reason} ->
-              {:error, __MODULE__.AuthenticationError.exception(reason)}
+            error ->
+              error
           end
         else
-          {:error, __MODULE__.AuthenticationError.exception(:unauthenticated_client)}
+          {:error, exception}
         end
     end
   end
@@ -35,12 +58,11 @@ defmodule Asteroid.OAuth2.Client do
         {:ok, client} ->
           {:ok, client}
 
-        error ->
-          #FIXME
-          error
+        {:error, _} ->
+          {:error, __MODULE__.AuthenticationError.exception(reason: :unkown_client)}
       end
     else
-      {:error, :unauthenticated_client}
+      {:error, __MODULE__.AuthenticationError.exception(reason: :unauthenticated_request)}
     end
   end
 
@@ -48,23 +70,30 @@ defmodule Asteroid.OAuth2.Client do
   defp get_unauthenticated_client(conn) do
     case conn.body_params["client_id"] do
       nil ->
-        {:error, :unauthenticated_client}
+        {:error, __MODULE__.AuthenticationError.exception(reason: :unauthenticated_request)}
 
       client_id ->
-        case Client.new_from_id(client_id) do
-          {:ok, client} ->
-            if public?(client) do
-              if not has_credentials?(client) do
-                {:ok, client}
+        if OAuth2Utils.valid_client_id_param?(client_id) do
+          case Client.new_from_id(client_id) do
+            {:ok, client} ->
+              if public?(client) do
+                if not has_credentials?(client) do
+                  {:ok, client}
+                else
+                  {:error, __MODULE__.AuthenticationError.exception(reason:
+                    :public_client_has_credentials_and_must_authenticate)}
+                end
               else
-                {:error, :unauthenticated_public_client_has_credentials}
+                {:error, __MODULE__.AuthenticationError.exception(reason:
+                  :unauthenticated_request)}
               end
-            else
-              {:error, :unauthenticated_client}
-            end
 
-          error ->
-            error
+            error ->
+              {:error, __MODULE__.AuthenticationError.exception(reason: :unkown_client)}
+          end
+        else
+          {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "client_id",
+                                                                parameter_value: client_id)}
         end
     end
   end
@@ -103,66 +132,69 @@ defmodule Asteroid.OAuth2.Client do
     client.attrs["client_secret"] != nil
   end
 
-  defmodule AuthenticationError do
-    @moduledoc """
-    """
+  @spec error_response(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t
+  def error_response(conn, error) do
+    response =
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          %{
+            "error" => "invalid_client",
+            "error_description" =>
+            Exception.message(error) <> " "
+              <> "("
+              <> inspect(APISex.AuthFailureResponseData.get(conn), limit: :infinity)
+              <> ")"
+          }
 
-    defexception [:reason, :data]
-
-    def exception(reason, data \\ %{}) do
-      %__MODULE__{reason: reason, data: data}
-    end
-
-    @spec response(Plug.Conn.t(), Client.t(), Context.t()) :: Plug.Conn.t
-    def response(conn, error, _ctx) do
-      resp = %{
-        "error" => "invalid_client",
-        "error_description" => "#{inspect(error.reason)}"
-      }
-
-      conn
-      |> Plug.Conn.put_status(401)
-      |> set_www_authenticate_header()
-      |> Phoenix.Controller.json(resp)
-    end
-
-    @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
-    defp set_www_authenticate_header(conn) do
-      apisex_errors = APISex.AuthFailureResponseData.get(conn)
-
-      failed_auth = Enum.find(
-        apisex_errors,
-        fn apisex_error ->
-          apisex_error.reason != :credentials_not_found and
-          is_tuple(apisex_error.www_authenticate_header)
-        end
-      )
-
-      case failed_auth do
-        # client tried to authenticate, as per RFC:
-        #   If the
-        #   client attempted to authenticate via the "Authorization"
-        #   request header field, the authorization server MUST
-        #   respond with an HTTP 401 (Unauthorized) status code and
-        #   include the "WWW-Authenticate" response header field
-        #   matching the authentication scheme used by the client.
-        %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->
-          APISex.set_WWWauthenticate_challenge(conn, scheme, params)
-
-        # no failed authn at all or one that can return www-authenticate header
-        nil ->
-          Enum.reduce(
-            apisex_errors,
-            conn,
-            fn
-              %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}}, conn ->
-                APISex.set_WWWauthenticate_challenge(conn, scheme, params)
-
-              _, conn ->
-                conn
-            end
-          )
+        _ ->
+          %{
+            "error" => "invalid_client",
+            "error_description" => Exception.message(error)
+          }
       end
+
+    conn
+    |> Plug.Conn.put_status(401)
+    |> set_www_authenticate_header()
+    |> Phoenix.Controller.json(response)
+  end
+
+  @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
+  defp set_www_authenticate_header(conn) do
+    apisex_errors = APISex.AuthFailureResponseData.get(conn)
+
+    failed_auth = Enum.find(
+      apisex_errors,
+      fn apisex_error ->
+        apisex_error.reason != :credentials_not_found and
+        is_tuple(apisex_error.www_authenticate_header)
+      end
+    )
+
+    case failed_auth do
+      # client tried to authenticate, as per RFC:
+      #   If the
+      #   client attempted to authenticate via the "Authorization"
+      #   request header field, the authorization server MUST
+      #   respond with an HTTP 401 (Unauthorized) status code and
+      #   include the "WWW-Authenticate" response header field
+      #   matching the authentication scheme used by the client.
+      %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->
+        APISex.set_WWWauthenticate_challenge(conn, scheme, params)
+
+      # no failed authn at all or one that can return www-authenticate header
+      nil ->
+        Enum.reduce(
+          apisex_errors,
+          conn,
+          fn
+            %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}}, conn ->
+              APISex.set_WWWauthenticate_challenge(conn, scheme, params)
+
+            _, conn ->
+              conn
+          end
+        )
     end
   end
 end

@@ -18,13 +18,14 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   end
 
   test "invalid content-type", %{conn: conn} do
-    response =
+    assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), "Some plain text")
       |> json_response(400)
+    end
 
-    assert response["error"] == "invalid_request"
+    #FIXME: check json returned value
   end
 
   test "invalid grant_type", %{conn: conn} do

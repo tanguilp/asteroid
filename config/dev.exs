@@ -152,6 +152,15 @@ config :asteroid, :plugs_oauth2_endpoint_token,
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
       set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
+    {APISexAuthBearer,
+      realm: "Asteroid",
+      bearer_validator:
+        {
+          APISexAuthBearer.Validator.Identity,
+          [response: {:error, :invalid_token}]
+        },
+      set_error_response: &APISexAuthBearer.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
     {APISexFilterThrottler,
       key: &APISexFilterThrottler.Functions.throttle_by_ip_path/1,
       scale: 60_000,
@@ -170,6 +179,8 @@ config :asteroid, :plugs_oauth2_endpoint_introspect,
   ]
 
 config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
+
+config :asteroid, :api_error_response_verbosity, :debug
 
 config :asteroid, :ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3

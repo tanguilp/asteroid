@@ -1,5 +1,6 @@
 defmodule AsteroidWeb.Router do
   use AsteroidWeb, :router
+  use Plug.ErrorHandler
   import Asteroid.Utils
 
   pipeline :browser do
@@ -49,8 +50,12 @@ defmodule AsteroidWeb.Router do
     end
   end
 
-  defp printconn(conn, _opts) do
-    IO.inspect(conn)
+  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
     conn
+    |> put_status(400)
+    |> json(%{
+      "error" => "invalid_request",
+      "error_description" => Exception.message(reason)
+    })
   end
 end
