@@ -74,8 +74,8 @@ defmodule Asteroid.OAuth2.Client do
 
   @spec get_authenticated_client(Plug.Conn.t()) :: {:ok, Client.t()} | {:error, atom()}
   defp get_authenticated_client(conn) do
-    if APISex.authenticated?(conn) do
-      case Client.new_from_id(APISex.client(conn)) do
+    if APIac.authenticated?(conn) do
+      case Client.new_from_id(APIac.client(conn)) do
         {:ok, client} ->
           {:ok, client}
 
@@ -146,7 +146,7 @@ defmodule Asteroid.OAuth2.Client do
   def public?(client) do
     client = Client.fetch_attribute(client, "client_type")
 
-    client.attrs["client_type"] == :public
+    client.attrs["client_type"] == "public"
   end
 
   @doc """
@@ -157,7 +157,7 @@ defmodule Asteroid.OAuth2.Client do
   def confidential?(client) do
     client = Client.fetch_attribute(client, "client_type")
 
-    client.attrs["client_type"] == :confidential
+    client.attrs["client_type"] == "confidential"
   end
 
   @doc """
@@ -182,7 +182,7 @@ defmodule Asteroid.OAuth2.Client do
             "error_description" =>
             Exception.message(error) <> " "
               <> "("
-              <> inspect(APISex.AuthFailureResponseData.get(conn), limit: :infinity)
+              <> inspect(APIac.AuthFailureResponseData.get(conn), limit: :infinity)
               <> ")"
           }
 
@@ -201,7 +201,7 @@ defmodule Asteroid.OAuth2.Client do
 
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
   defp set_www_authenticate_header(conn) do
-    apisex_errors = APISex.AuthFailureResponseData.get(conn)
+    apisex_errors = APIac.AuthFailureResponseData.get(conn)
 
     failed_auth = Enum.find(
       apisex_errors,
@@ -219,8 +219,8 @@ defmodule Asteroid.OAuth2.Client do
       #   respond with an HTTP 401 (Unauthorized) status code and
       #   include the "WWW-Authenticate" response header field
       #   matching the authentication scheme used by the client.
-      %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->
-        APISex.set_WWWauthenticate_challenge(conn, scheme, params)
+      %APIac.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->
+        APIac.set_WWWauthenticate_challenge(conn, scheme, params)
 
       # no failed authn at all or one that can return www-authenticate header
       nil ->
@@ -228,8 +228,8 @@ defmodule Asteroid.OAuth2.Client do
           apisex_errors,
           conn,
           fn
-            %APISex.AuthFailureResponseData{www_authenticate_header: {scheme, params}}, conn ->
-              APISex.set_WWWauthenticate_challenge(conn, scheme, params)
+            %APIac.AuthFailureResponseData{www_authenticate_header: {scheme, params}}, conn ->
+              APIac.set_WWWauthenticate_challenge(conn, scheme, params)
 
             _, conn ->
               conn

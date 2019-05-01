@@ -588,7 +588,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> RefreshToken.put_claim("exp", now() + 3600)
       |> RefreshToken.put_claim("iat", now())
       |> RefreshToken.put_claim("iss", "https://example.net")
-      |> RefreshToken.store(%Asteroid.Context{})
+      |> RefreshToken.put_claim("context", %Asteroid.Context{request: %{flow: :ropc}})
+      |> RefreshToken.store(%Asteroid.Context{request: %{flow: :ropc}})
 
     req_body = %{
       "grant_type" => "refresh_token",
@@ -602,8 +603,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response = json_response(conn, 200)
 
-    assert Plug.Conn.get_resp_header(conn, "cache-control") == "no-store"
-    assert Plug.Conn.get_resp_header(conn, "pragma", "no-cache")
+    assert Plug.Conn.get_resp_header(conn, "cache-control") == ["no-store"]
+    assert Plug.Conn.get_resp_header(conn, "pragma") == ["no-cache"]
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -611,6 +612,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert access_token.claims["sub"] == "user_1"
   end
 
+  #FIXME: start here
   test "refresh token valid request public client", %{conn: conn} do
     refresh_token =
       RefreshToken.new()
@@ -618,11 +620,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> RefreshToken.put_claim("exp", now() + 3600)
       |> RefreshToken.put_claim("iat", now())
       |> RefreshToken.put_claim("iss", "https://example.net")
-      |> RefreshToken.store(%Asteroid.Context{})
+      |> RefreshToken.store(%Asteroid.Context{request: %{flow: :ropc}})
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id
+      "refresh_token" => refresh_token.id,
+      "client_id" => "client_public_1"
     }
 
     conn =

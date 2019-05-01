@@ -122,7 +122,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   def handle(%Plug.Conn{body_params: %{"grant_type" => "password"}} = conn, _params) do
     error_resp(conn,
                    error: "invalid_request",
-                   error_description: "Missing username or password parameter")
+                   error_description: "Missing `username` or `password` parameter")
   end
 
   def handle(%Plug.Conn{body_params:
@@ -133,15 +133,16 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     scope_param = conn.body_params["scope"]
 
     with :ok <- grant_type_enabled?(:refresh_token),
+         :ok <- valid_refresh_token_param?(refresh_token_param),
          {:ok, client} <- OAuth2.Client.get_client(conn, true),
-         :ok <- OAuth2.Client.grant_type_authorized?(client, :refresh_token),
+         :ok <- OAuth2.Client.grant_type_authorized?(client, "refresh_token"),
          {:ok, scope} <- get_scope(scope_param),
          :ok <- client_scope_authorized?(client, scope),
          {:ok, refresh_token} <- RefreshToken.get(refresh_token_param, check_active: true),
          :ok <- refresh_token_granted_to_client?(refresh_token, client),
          {:ok, subject} <- get_subject_from_refresh_token(refresh_token)
     do
-      if Scope.Set.subset?(scope, refresh_token.claims["scope"]) do
+      if Scope.Set.subset?(scope, refresh_token.claims["scope"] || MapSet.new()) do
         ctx = %Asteroid.Context{
           request: %{
             :endpoint => :token,
@@ -213,6 +214,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         error_resp(conn, error: :server_error,
                     error_description: "#{inspect reason}")
     end
+  end
+
+  def handle(%Plug.Conn{body_params: %{"grant_type" => "refresh_token"}} = conn, _params)
+  do
+    error_resp(conn,
+                   error: "invalid_request",
+                   error_description: "Missing `refresh_token` parameter")
   end
 
   # unrecognized or unsupported grant
@@ -326,6 +334,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       :ok
     else
       {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "password",
+                                                            parameter_value: "[HIDDEN]")}
+    end
+  end
+
+  @spec valid_refresh_token_param?(String.t()) ::
+    :ok | {:error, %OAuth2.Request.MalformedParamError{}}
+  defp valid_refresh_token_param?(refresh_token) do
+    if OAuth2Utils.valid_refresh_token_param?(refresh_token) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "refresh_token",
                                                             parameter_value: "[HIDDEN]")}
     end
   end

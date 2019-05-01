@@ -10,7 +10,8 @@ defmodule Asteroid.MixProject do
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      docs: docs()
     ]
   end
 
@@ -33,13 +34,13 @@ defmodule Asteroid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:apisex, github: "tanguilp/apisex", tag: "master"},
-      {:apisex_auth_basic, github: "tanguilp/apisex_auth_basic", tag: "master"},
-      {:apisex_auth_bearer, github: "tanguilp/apisex_auth_bearer", tag: "master"},
-      {:apisex_auth_mtls, github: "tanguilp/apisex_auth_mtls", tag: "master"},
-      {:apisex_filter_ip_blacklist, github: "tanguilp/apisex_filter_ip_blacklist", tag: "master"},
-      {:apisex_filter_ip_whitelist, github: "tanguilp/apisex_filter_ip_whitelist", tag: "master"},
-      {:apisex_filter_throttler, github: "tanguilp/apisex_filter_throttler", tag: "master"},
+      {:apiac, github: "tanguilp/apiac", tag: "0.2.0"},
+      {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic", tag: "0.2.0"},
+      {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer", tag: "0.2.0"},
+      {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls", tag: "0.2.0"},
+      {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist", tag: "0.2.0"},
+      {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist", tag: "0.2.0"},
+      {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler", tag: "0.2.0"},
       {:oauth2_utils, github: "tanguilp/oauth2_utils", tag: "master"},
       {:ecto_sql, "~> 3.0"},
       {:gettext, "~> 0.11"},
@@ -51,7 +52,7 @@ defmodule Asteroid.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
       {:postgrex, ">= 0.0.0"},
-      {:singleton, "~> 1.0.0"},
+      {:singleton, "~> 1.2.0"},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false}
     ]
@@ -69,6 +70,17 @@ defmodule Asteroid.MixProject do
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       #test: ["ecto.create --quiet", "ecto.migrate", "test"]
       test: ["test"]
+    ]
+  end
+
+  defp docs() do
+    [
+      main: "getting-started",
+      extras: [
+        "guides/getting-started.md",
+        "guides/attribute-repositories.md",
+        "guides/token-backends.md"
+      ]
     ]
   end
 end
