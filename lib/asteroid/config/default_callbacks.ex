@@ -39,7 +39,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   @spec id_first_param(any(), any()) :: any()
   def id_first_param(param, _), do: param
 
-  @spec get_client_secret(APISex.realm(), APISex.client()) :: binary() | nil
+  @spec get_client_secret(APIac.realm(), APIac.client()) :: binary() | nil
   def get_client_secret(_realm, client_id) do
     client =
       Client.new_from_id(client_id)
@@ -50,7 +50,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   end
 
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
-  def conn_not_authenticated?(conn), do: not APISex.authenticated?(conn)
+  def conn_not_authenticated?(conn), do: not APIac.authenticated?(conn)
 
   def put_chuck_norris_quote_on_failure(%{"active" => false} = resp) do
     chuck_norris_quote = 

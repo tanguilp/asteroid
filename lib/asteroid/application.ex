@@ -19,16 +19,18 @@ defmodule Asteroid.Application do
       # {Asteroid.Worker, arg},
     ]
 
-    AttrRep.auto_install_from_config()
-    AttrRep.auto_start_from_config()
+    with :ok <- AttrRep.auto_install_from_config(),
+         :ok <- AttrRep.auto_start_from_config()
+    do
 
-    Token.auto_install_from_config()
-    Token.auto_start_from_config()
+      #Token.auto_install_from_config()
+      #Token.auto_start_from_config()
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
-    Supervisor.start_link(children, opts)
+      # See https://hexdocs.pm/elixir/Supervisor.html
+      # for other strategies and supported options
+      opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
+      Supervisor.start_link(children, opts)
+    end
   end
 
   # Tell Phoenix to update the endpoint configuration

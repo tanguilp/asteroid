@@ -107,62 +107,63 @@ config :asteroid, :store_refresh_token, [
 
 config :asteroid, :attribute_repositories,
 [
-  client: [
-    impl: Asteroid.AttributeRepository.Impl.Mnesia,
-    autoinstall: true,
-    autostart: true,
-    attribute_autoload: ["client_id", "client_type", "scope"],
-    opts:
-    [
-      table: :client,
-      mnesia_create_table:
-      [
-        disc_copies: [node()]
-      ]
-    ]
+  user: [
+    module: AttributeRepositoryLdap,
+    init_opts: [
+      name: :slapd,
+      max_overflow: 10,
+      ldap_args: [hosts: ['localhost'], base: 'ou=people,dc=example,dc=org']
+    ],
+    run_opts: [instance: :slapd, base_dn: 'ou=people,dc=example,dc=org'],
+    auto_install: false # AttributeRepositoryLdap has no install callback implemented
   ],
-  subject: [
-    impl: Asteroid.AttributeRepository.Impl.Mnesia,
-    autoinstall: true,
-    autostart: true,
-    history: true,
-    attribute_autoload: ["sub", "given_name", "family_name", "gender"],
-    history: true,
-    opts:
-    [
-      table: :subject,
-      mnesia_create_table:
-      [
-        disc_copies: [node()]
-      ]
-    ]
+  client: [
+    module: AttributeRepositoryMnesia,
+    init_opts: [mnesia_config: [disc_copies: [node()]]],
+    run_opts: [instance: :client]
+  ],
+  device: [
+    module: AttributeRepositoryRiak,
+    run_opts: [instance: :device, bucket_type: "device"],
+    auto_start: false
   ]
 ]
 
+config :pooler,
+  pools: [
+    [
+      name: :riak,
+      group: :riak,
+      max_count: 10,
+      init_count: 5,
+      start_mfa: {Riak.Connection, :start_link, ['127.0.0.1', 8087]}
+    ]
+  ]
+
 config :asteroid, :plugs_oauth2_endpoint_token,
   [
-    #{APISexFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
-    {APISexAuthBasic,
+    #{APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
+    {APIacAuthBasic,
       realm: "always erroneous client password",
       callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
-      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
-    {APISexAuthBasic,
+    {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
-      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
-    {APISexAuthBearer,
+    {APIacAuthBearer,
       realm: "Asteroid",
       bearer_validator:
         {
-          APISexAuthBearer.Validator.Identity,
+          APIacAuthBearer.Validator.Identity,
           [response: {:error, :invalid_token}]
         },
-      set_error_response: &APISexAuthBearer.save_authentication_failure_response/3,
+      set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
-    {APISexFilterThrottler,
-      key: &APISexFilterThrottler.Functions.throttle_by_ip_path/1,
+    {APIacFilterThrottler,
+      key: &APIacFilterThrottler.Functions.throttle_by_ip_path/1,
       scale: 60_000,
       limit: 50,
       exec_cond: &Asteroid.Config.DefaultCallbacks.conn_not_authenticated?/1,
@@ -171,10 +172,10 @@ config :asteroid, :plugs_oauth2_endpoint_token,
 
 config :asteroid, :plugs_oauth2_endpoint_introspect,
   [
-    {APISexAuthBasic,
+    {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
-      set_error_response: &APISexAuthBasic.save_authentication_failure_response/3,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug}
   ]
 
