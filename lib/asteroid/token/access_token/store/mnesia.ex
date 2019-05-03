@@ -62,7 +62,7 @@ defmodule Asteroid.AccessToken.Store.Mnesia do
           %AccessToken{
             id: id,
             refresh_token_id: refresh_token_id,
-            claims: claims
+            data: claims
           }
         }
 

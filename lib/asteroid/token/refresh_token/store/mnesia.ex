@@ -58,7 +58,7 @@ defmodule Asteroid.RefreshToken.Store.Mnesia do
         {:ok,
           %RefreshToken{
             id: id,
-            claims: claims
+            data: claims
           }
         }
 
@@ -71,7 +71,7 @@ defmodule Asteroid.RefreshToken.Store.Mnesia do
   def put(refresh_token) do
     Logger.debug("#{__MODULE__}: put refresh token `#{inspect refresh_token}`")
     :mnesia.transaction(fn ->
-      :mnesia.write({:refresh_token, refresh_token.id, refresh_token.claims})
+      :mnesia.write({:refresh_token, refresh_token.id, refresh_token.data})
     end)
 
     refresh_token

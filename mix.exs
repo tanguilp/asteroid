@@ -10,7 +10,7 @@ defmodule Asteroid.MixProject do
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps(),
+      deps: deps(Mix.env()),
       docs: docs()
     ]
   end
@@ -32,7 +32,7 @@ defmodule Asteroid.MixProject do
   # Specifies your project dependencies.
   #
   # Type `mix help deps` for examples and options.
-  defp deps do
+  defp deps(_) do
     [
       {:apiac, github: "tanguilp/apiac", tag: "0.2.0"},
       {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic", tag: "0.2.0"},
@@ -45,7 +45,9 @@ defmodule Asteroid.MixProject do
       {:attribute_repository_ldap, path: "../attribute_repository_ldap"},
       {:attribute_repository_mnesia, path: "../attribute_repository_mnesia"},
       {:attribute_repository_riak, path: "../attribute_repository_riak"},
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ecto_sql, "~> 3.0"},
+      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},
@@ -55,9 +57,8 @@ defmodule Asteroid.MixProject do
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
       {:postgrex, ">= 0.0.0"},
-      {:singleton, "~> 1.2.0"},
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false}
+      {:riak, github: "tanguilp/riak-elixir-client"},
+      {:singleton, "~> 1.2.0"}
     ]
   end
 
@@ -82,7 +83,7 @@ defmodule Asteroid.MixProject do
       extras: [
         "guides/getting-started.md",
         "guides/attribute-repositories.md",
-        "guides/token-backends.md"
+        "guides/token-stores.md"
       ]
     ]
   end

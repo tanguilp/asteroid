@@ -3,7 +3,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   import Asteroid.Utils
   alias OAuth2Utils.Scope
   alias Asteroid.Token.{RefreshToken, AccessToken}
-  alias Asteroid.{Client, Subject, Context}
+  alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
   # OAuth2 ROPC flow (resource owner password credentials)
@@ -45,7 +45,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       maybe_refresh_token =
         if astrenv(:issue_refresh_token_callback).(ctx) do
-          RefreshToken.new()
+          RefreshToken.gen_new()
           |> RefreshToken.put_claim("iat", now())
           |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
           |> RefreshToken.put_claim("client_id", client.id)
@@ -60,9 +60,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token =
         if maybe_refresh_token do
-          AccessToken.new(refresh_token: maybe_refresh_token)
+          AccessToken.gen_new(refresh_token: maybe_refresh_token)
         else
-          AccessToken.new()
+          AccessToken.gen_new()
         end
         |> AccessToken.put_claim("iat", now())
         |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
@@ -77,7 +77,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       resp =
         %{
           "access_token" => AccessToken.serialize(access_token),
-          "expires_in" => access_token.claims["exp"] - now(),
+          "expires_in" => access_token.data["exp"] - now(),
           "token_type" => "bearer"
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
@@ -142,11 +142,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          :ok <- refresh_token_granted_to_client?(refresh_token, client),
          {:ok, subject} <- get_subject_from_refresh_token(refresh_token)
     do
-      if Scope.Set.subset?(scope, refresh_token.claims["scope"] || MapSet.new()) do
+      if Scope.Set.subset?(scope, refresh_token.data["scope"] || MapSet.new()) do
         ctx = %Asteroid.Context{
           request: %{
             :endpoint => :token,
-            :flow => refresh_token.claims["context"].request[:flow],
+            :flow => refresh_token.data["context"].request[:flow],
             :grant_type => :refresh_token,
             :scope => scope
           },
@@ -156,7 +156,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         }
 
         access_token =
-          AccessToken.new(refresh_token: refresh_token)
+          AccessToken.gen_new(refresh_token: refresh_token)
           |> AccessToken.put_claim("iat", now())
           |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
           |> AccessToken.put_claim("client_id", client.id)
@@ -170,7 +170,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         resp =
           %{
             "access_token" => AccessToken.serialize(access_token),
-            "expires_in" => access_token.claims["exp"] - now(),
+            "expires_in" => access_token.data["exp"] - now(),
             "token_type" => "bearer"
           }
           |> astrenv(:refresh_token_before_send_resp_callback).(ctx)
@@ -278,7 +278,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   @spec get_subject_from_refresh_token(RefreshToken.t())
     :: {:ok, Subject.t()} | {:error, any()}
 
-  def get_subject_from_refresh_token(%RefreshToken{claims: %{"sub" => sub}}) do
+  def get_subject_from_refresh_token(%RefreshToken{data: %{"sub" => sub}}) do
     case Subject.new_from_id(sub) do
       {:ok, subject} ->
         {:ok, subject}
@@ -293,7 +293,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   @spec refresh_token_granted_to_client?(RefreshToken.t(), Client.t())
     :: :ok | {:error, any()}
   def refresh_token_granted_to_client?(refresh_token, client) do
-    if refresh_token.claims["client_id"] == client.id do
+    if refresh_token.data["client_id"] == client.id do
       :ok
     else
       {:error, :client_id_no_match}

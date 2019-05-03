@@ -9,8 +9,10 @@ defmodule Asteroid.Subject do
   defstruct id: "",
             attrs: %{}
 
+  @type id :: binary()
+
   @type t :: %__MODULE__{
-    id: binary(),
+    id: id(),
     attrs: map()
   }
 

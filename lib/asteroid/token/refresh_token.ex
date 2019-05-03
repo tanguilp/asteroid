@@ -2,25 +2,46 @@ defmodule Asteroid.Token.RefreshToken do
   import Asteroid.Utils
 
   @moduledoc """
+  Refresh token structure
+
+  ## Field naming
+  The `data` field holds the token data. The following field names are standard and are used
+  by Asteroid:
+  - `"exp"`: the expiration unix timestamp of the refresh token
+  - `"sub"`: the `t:Asteroid.Subject.id()` of the refresh token
+  - `"client_id"`: the `t:Asteroid.Client.id()` of the refresh token
+  - `"device_id"`: the `t:Asteroid.Device.id()` of the refresh token
   """
   @enforce_keys [:id]
-  defstruct [:id, :claims, :serialization_format]
+  defstruct [:id, :data, :serialization_format]
 
   @type id :: binary()
 
   @type t :: %__MODULE__{
     id: __MODULE__.id(),
     serialization_format: Asteroid.Token.serialization_format(),
-    claims: map()
+    data: map()
   }
+
+  @spec new(Keyword.t()) :: t()
+
+  def new(opts) do
+    %__MODULE__{
+      id: opts[:id] || (raise "Missing refresh token id"),
+      data: opts[:data] || %{},
+      serialization_format: opts[:serialization_format] || :opaque
+    }
+  end
 
   @doc """
   """
-  @spec new(Keyword.t()) :: t()
-  def new(opts \\ []) do
+
+  @spec gen_new(Keyword.t()) :: t()
+
+  def gen_new(opts \\ []) do
     %__MODULE__{
       id: secure_random_b64(),
-      claims: %{},
+      data: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
     }
   end
@@ -47,7 +68,7 @@ defmodule Asteroid.Token.RefreshToken do
   def put_claim(refresh_token, _key, nil), do: refresh_token
 
   def put_claim(refresh_token, key, val) do
-    %{refresh_token | claims: Map.put(refresh_token.claims, key, val)}
+    %{refresh_token | data: Map.put(refresh_token.data, key, val)}
   end
 
   @spec store(t(), Asteroid.Context.t()) :: t()
@@ -67,18 +88,18 @@ defmodule Asteroid.Token.RefreshToken do
   @doc """
   Returns `true` if the token is active, `false` otherwise
 
-  The following claims, *when set*, are used to determine that a token is active:
+  The following data, *when set*, are used to determine that a token is active:
   - `"nbf"`: must be lower than current time
   - `"exp"`: must be higher than current time
   - `"revoked"`: must be the boolean `false`
   """
   @spec active?(t()) :: boolean()
-  def active?(access_token) do
-    (is_nil(access_token.claims["nbf"]) or access_token.claims["nbf"] < now())
+  def active?(refresh_token) do
+    (is_nil(refresh_token.data["nbf"]) or refresh_token.data["nbf"] < now())
     and
-    (is_nil(access_token.claims["exp"]) or access_token.claims["exp"] > now())
+    (is_nil(refresh_token.data["exp"]) or refresh_token.data["exp"] > now())
     and
-    (is_nil(access_token.claims["revoked"]) or access_token.claims["revoked"] == false)
+    (is_nil(refresh_token.data["revoked"]) or refresh_token.data["revoked"] == false)
     #FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
     #   o  If the token has been signed, the authorization server MUST
     #  validate the signature.

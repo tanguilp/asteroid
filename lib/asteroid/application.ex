@@ -5,8 +5,9 @@ defmodule Asteroid.Application do
 
   use Application
 
-  alias Asteroid.AttributeRepository, as: AttrRep
+  alias Asteroid.AttributeRepository
   alias Asteroid.Token
+  alias Asteroid.TokenStore
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -19,8 +20,10 @@ defmodule Asteroid.Application do
       # {Asteroid.Worker, arg},
     ]
 
-    with :ok <- AttrRep.auto_install_from_config(),
-         :ok <- AttrRep.auto_start_from_config()
+    with :ok <- AttributeRepository.auto_install_from_config(),
+         :ok <- AttributeRepository.auto_start_from_config(),
+         :ok <- TokenStore.auto_install_from_config(),
+         :ok <- TokenStore.auto_start_from_config()
     do
 
       #Token.auto_install_from_config()

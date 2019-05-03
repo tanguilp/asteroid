@@ -80,16 +80,16 @@ config :asteroid, Asteroid.Repo,
   hostname: "localhost",
   pool_size: 10
 
-config :asteroid, :store_access_token, [
-  impl: Asteroid.AccessToken.Store.Mnesia,
-  autostart: true,
-  autostart: true,
-  install_config: [
-    disc_copies: [node()]
-  ],
-  run_config: [
-    cleaning_interval: 60
-  ]
+config :asteroid, :token_store_access_token, [
+  #module: Asteroid.TokenStore.AccessToken.Riak,
+  #opts: [bucket_type: "ephemeral_token"]
+  module: Asteroid.TokenStore.AccessToken.Mnesia
+]
+
+config :asteroid, :token_store_refresh_token, [
+  #module: Asteroid.TokenStore.RefreshToken.Mnesia
+  module: Asteroid.TokenStore.RefreshToken.Riak,
+  opts: [bucket_type: "token"]
 ]
 
 config :asteroid, :store_refresh_token, [

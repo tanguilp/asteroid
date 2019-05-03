@@ -4,8 +4,10 @@ defmodule Asteroid.Device do
 
   defstruct [:id, :claims]
 
+  @type id :: binary()
+
   @type t :: %__MODULE__{
-    id: binary(),
+    id: id(),
     claims: map()
   }
 end

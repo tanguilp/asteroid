@@ -16,7 +16,7 @@ a key-value list of instance names and configuration options for each attribute 
 The key is the instance name which will be further use to interact with a given attribute
 repository. The values are the following key-value configuration options:
 - `:module`: the name of the module implementing the `AttributeRepository` behaviours. No
-default
+default, **mandatory**
 - `:init_opts`: initialisation options that will be passed to the install function as described
 in `t:AttributeRepository.init_opts/1`. Defaults to `[]`
 - `:run_opts`: run options that will be passed to the all `AttributeRepository` functions (
@@ -85,4 +85,5 @@ to `false`):
     - calling the `AttributeRepositoryModule.start_link/1` if it exists, so as to create a
     supervised process
     - otherwise calling the `AttributeRepositoryModule.start/1`
+
 Should any function fail, Asteroid will immediately stop.
