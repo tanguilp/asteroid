@@ -6,7 +6,6 @@ defmodule Asteroid.Application do
   use Application
 
   alias Asteroid.AttributeRepository
-  alias Asteroid.Token
   alias Asteroid.TokenStore
 
   def start(_type, _args) do
@@ -25,10 +24,6 @@ defmodule Asteroid.Application do
          :ok <- TokenStore.auto_install_from_config(),
          :ok <- TokenStore.auto_start_from_config()
     do
-
-      #Token.auto_install_from_config()
-      #Token.auto_start_from_config()
-
       # See https://hexdocs.pm/elixir/Supervisor.html
       # for other strategies and supported options
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]

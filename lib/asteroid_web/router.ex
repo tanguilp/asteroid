@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.Router do
+  @moduledoc false
+
   use AsteroidWeb, :router
   use Plug.ErrorHandler
   import Asteroid.Utils

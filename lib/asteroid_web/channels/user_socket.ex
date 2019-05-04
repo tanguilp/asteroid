@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.UserSocket do
+  @moduledoc false
+
   use Phoenix.Socket
 
   ## Channels

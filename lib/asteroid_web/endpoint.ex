@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.Endpoint do
+  @moduledoc false
+
   use Phoenix.Endpoint, otp_app: :asteroid
 
   socket "/socket", AsteroidWeb.UserSocket,

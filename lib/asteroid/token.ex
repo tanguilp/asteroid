@@ -1,53 +1,41 @@
 defmodule Asteroid.Token do
   require Logger
-  import Asteroid.Utils
 
   @moduledoc """
   """
 
-  @token_types [:access_token, :refresh_token]
-
   @typedoc """
-  The different formats a token may have once serialized
+  The different formats a token may have once serialized, i.e. send on the wire (in opposition
+  to the token internally used by Asteroid)
   """
+
   @type serialization_format ::
     :opaque
     | :jwt
     | :saml1
     | :saml2
 
-  @spec auto_install_from_config() :: :ok
-  def auto_install_from_config() do
-    for token_type <- @token_types do
-      config_key = String.to_atom("store_" <> Atom.to_string(token_type))
+  @typedoc """
+  Serialized token, as sent on the wire
 
-      case astrenv(config_key, nil) do
-        nil ->
-          Logger.warn("No configuration for `#{token_type}` store")
+  For instance, an refresh token as used internally by Asteroid would look like:
 
-        conf ->
-          if conf[:autostart] == true do
-            conf[:impl].install()
-          end
-      end
-    end
-  end
+  ```elixir
+  %Asteroid.Token.RefreshToken{
+    data: %{},
+    id: "F1XFSdm11N2XJ9OOPT7__Y0NqedjPwKgdT-ifQeuS3c",
+    serialization_format: :opaque
+  }
+  ```
 
-  @spec auto_start_from_config() :: :ok
-  def auto_start_from_config() do
-    for token_type <- @token_types do
-      config_key = String.to_atom("store_" <> Atom.to_string(token_type))
+  One serialized, for instance sent by the `/token endpoint`, it looks like:
+  ```elixir
+  "F1XFSdm11N2XJ9OOPT7__Y0NqedjPwKgdT-ifQeuS3c"
+  ```
 
-      case astrenv(config_key, nil) do
-        nil ->
-          Logger.warn("No configuration for `#{token_type}` store")
+  which is its id. If the serialization format had been `:jwt`, the serialized form would result
+  in a JWT.
+  """
 
-        conf ->
-          if conf[:autostart] == true do
-            conf[:impl].start()
-          end
-      end
-    end
-  end
-
+  @type serialized_token :: String.t()
 end

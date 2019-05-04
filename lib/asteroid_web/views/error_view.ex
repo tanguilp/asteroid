@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.ErrorView do
+  @moduledoc false
+
   use AsteroidWeb, :view
 
   # If you want to customize a particular status code

@@ -80,6 +80,19 @@ defmodule Asteroid.MixProject do
   defp docs() do
     [
       main: "getting-started",
+      groups_for_modules: [
+        "Basic resources": [Asteroid.Client, Asteroid.Subject, Asteroid.Device],
+        "Tokens": [Asteroid.Token, Asteroid.Token.AccessToken, Asteroid.Token.RefreshToken],
+        "Token stores": [
+          Asteroid.TokenStore,
+          Asteroid.TokenStore.AccessToken,
+          Asteroid.TokenStore.AccessToken.Mnesia,
+          Asteroid.TokenStore.AccessToken.Riak,
+          Asteroid.TokenStore.RefreshToken,
+          Asteroid.TokenStore.RefreshToken.Mnesia,
+          Asteroid.TokenStore.RefreshToken.Riak
+        ]
+      ],
       extras: [
         "guides/getting-started.md",
         "guides/attribute-repositories.md",

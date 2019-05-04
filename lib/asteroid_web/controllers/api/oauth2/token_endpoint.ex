@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
+  @moduledoc false
+
   use AsteroidWeb, :controller
   import Asteroid.Utils
   alias OAuth2Utils.Scope
@@ -46,13 +48,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       maybe_refresh_token =
         if astrenv(:issue_refresh_token_callback).(ctx) do
           RefreshToken.gen_new()
-          |> RefreshToken.put_claim("iat", now())
-          |> RefreshToken.put_claim("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
-          |> RefreshToken.put_claim("client_id", client.id)
-          |> RefreshToken.put_claim("sub", subject.id)
-          |> RefreshToken.put_claim("scope", scope)
-          |> RefreshToken.put_claim("context", ctx)
-          |> RefreshToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+          |> RefreshToken.put_value("iat", now())
+          |> RefreshToken.put_value("exp", now() + astrenv(:refresh_token_lifetime_callback).(ctx))
+          |> RefreshToken.put_value("client_id", client.id)
+          |> RefreshToken.put_value("sub", subject.id)
+          |> RefreshToken.put_value("scope", scope)
+          |> RefreshToken.put_value("context", ctx)
+          |> RefreshToken.put_value("iss", astrenv(:issuer_callback).(ctx))
           |> RefreshToken.store(ctx)
         else
           nil
@@ -60,17 +62,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token =
         if maybe_refresh_token do
-          AccessToken.gen_new(refresh_token: maybe_refresh_token)
+          AccessToken.gen_new(refresh_token: maybe_refresh_token.id)
         else
           AccessToken.gen_new()
         end
-        |> AccessToken.put_claim("iat", now())
-        |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
-        |> AccessToken.put_claim("client_id", client.id)
-        |> AccessToken.put_claim("sub", subject.id)
-        |> RefreshToken.put_claim("scope", scope)
-        |> AccessToken.put_claim("context", ctx)
-        |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
+        |> AccessToken.put_value("iat", now())
+        |> AccessToken.put_value("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
+        |> AccessToken.put_value("client_id", client.id)
+        |> AccessToken.put_value("sub", subject.id)
+        |> AccessToken.put_value("scope", scope)
+        |> AccessToken.put_value("context", ctx)
+        |> AccessToken.put_value("iss", astrenv(:issuer_callback).(ctx))
 
       AccessToken.store(access_token, ctx)
 
@@ -157,13 +159,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
         access_token =
           AccessToken.gen_new(refresh_token: refresh_token)
-          |> AccessToken.put_claim("iat", now())
-          |> AccessToken.put_claim("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
-          |> AccessToken.put_claim("client_id", client.id)
-          |> AccessToken.put_claim("sub", subject.id)
-          |> RefreshToken.put_claim("scope", scope)
-          |> AccessToken.put_claim("iss", astrenv(:issuer_callback).(ctx))
-          |> AccessToken.put_claim("context", ctx)
+          |> AccessToken.put_value("iat", now())
+          |> AccessToken.put_value("exp", now() + astrenv(:access_token_lifetime_callback).(ctx))
+          |> AccessToken.put_value("client_id", client.id)
+          |> AccessToken.put_value("sub", subject.id)
+          |> AccessToken.put_value("scope", scope)
+          |> AccessToken.put_value("iss", astrenv(:issuer_callback).(ctx))
+          |> AccessToken.put_value("context", ctx)
 
         AccessToken.store(access_token, ctx)
 

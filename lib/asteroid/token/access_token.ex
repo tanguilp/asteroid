@@ -12,7 +12,9 @@ defmodule Asteroid.Token.AccessToken do
   - `"client_id"`: the `t:Asteroid.Client.id()` of the access token
   - `"device_id"`: the `t:Asteroid.Device.id()` of the access token
   """
-  @enforce_keys [:id]
+
+  @enforce_keys [:id, :serialization_format, :data]
+
   defstruct [:id, :refresh_token_id, :serialization_format, :data]
 
   @type id :: binary()
@@ -20,9 +22,21 @@ defmodule Asteroid.Token.AccessToken do
   @type t :: %__MODULE__{
     id: __MODULE__.id(),
     refresh_token_id: binary() | nil,
-    #serialization_format: Asteroid.Token.serialization_format(),
+    serialization_format: Asteroid.Token.serialization_format(),
     data: map()
   }
+
+  @doc ~s"""
+  Creates a new access token
+
+  ## Options
+  - `:id`: `String.t()` id, **mandatory**
+  - `:refresh_token_id`: the `t:Asteroid.Token.RefreshToken.id/0` of the refresh token associated
+  to this access token if any. Defaults to `nil`
+  - `:data`: a data `map()`
+  - `:serialization_format`: an `t:Asteroid.Token.serialization_format/0` atom, defaults to
+  `:opaque`
+  """
 
   @spec new(Keyword.t()) :: t()
 
@@ -36,26 +50,53 @@ defmodule Asteroid.Token.AccessToken do
   end
 
   @doc """
+  Generates a new access token
+
+  ## Options
+  - `:refresh_token_id`: the `t:Asteroid.Token.RefreshToken.id/0` of the refresh token associated
+  to this access token if any. Defaults to `nil`
+  - `:serialization_format`: an `t:Asteroid.Token.serialization_format/0` atom, defaults to
+  `:opaque`
   """
+
   @spec gen_new(Keyword.t()) :: t()
   def gen_new(opts \\ []) do
     %__MODULE__{
       id: secure_random_b64(20),
-      refresh_token_id: (if opts[:refresh_token], do: opts[:refresh_token].id, else: nil),
+      refresh_token_id: opts[:refresh_token] || nil,
       data: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
     }
   end
 
+  @doc """
+  Gets a access token from the access token store
+
+  Unlike the `c:Asteroid.TokenStore.AccessToken.get/2`, this function returns
+  `{:error, :nonexistent_access_token}` if the access token is not found in the token
+  store.
+
+  ## Options
+  - `:check_active`: determines whether the validity of the access token should be checked.
+  Defaults to `true`. For validity checking details, see `active?/1`
+  """
+
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, any()}
+
   def get(access_token_id, opts \\ []) do
-    case astrenv(:store_access_token)[:impl].get(access_token_id) do
-      {:ok, access_token} ->
+    token_store_module = astrenv(:token_store_access_token)[:module]
+    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+
+    case token_store_module.get(access_token_id, token_store_opts) do
+      {:ok, access_token} when not is_nil(access_token) ->
         if opts[:check_active] != true or active?(access_token) do
           {:ok, access_token}
         else
-          {:error, :inactive_token}
+          {:error, :inactive_access_token}
         end
+
+      {:ok, nil} ->
+        {:error, :nonexistent_access_token}
 
       {:error, error} ->
         {:error, error}
@@ -63,28 +104,82 @@ defmodule Asteroid.Token.AccessToken do
   end
 
   @doc """
+  Stores an access token
   """
-  #FIXME: shouldn't the val be necessarily a String.t()?
-  @spec put_claim(t(), any(), any()) :: t()
-  def put_claim(access_token, _key, nil), do: access_token
 
-  def put_claim(access_token, key, val) do
+  @spec store(t(), Asteroid.Context.t()) :: {:ok, t()} | {:error, any()}
+
+  def store(access_token, ctx) do
+    token_store_module = astrenv(:token_store_access_token)[:module]
+    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+
+    access_token = astrenv(:access_token_before_store_callback).(access_token, ctx)
+
+    case token_store_module.put(access_token, token_store_opts) do
+      :ok ->
+        {:ok, access_token}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Deletes an access token
+  """
+
+  @spec delete(t() | id()) :: :ok | {:error, any()}
+
+  def delete(%__MODULE__{id: id}) do
+    delete(id)
+  end
+
+  def delete(access_token_id) do
+    token_store_module = astrenv(:token_store_access_token)[:module]
+    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+
+    token_store_module.delete(access_token_id, token_store_opts)
+  end
+
+  @doc """
+  Puts a value into the `data` field of access token
+
+  If the value is `nil`, the access token is not changed and the filed is not added.
+  """
+
+  @spec put_value(t(), any(), any()) :: t()
+
+  def put_value(access_token, _key, nil), do: access_token
+
+  def put_value(access_token, key, val) do
     %{access_token | data: Map.put(access_token.data, key, val)}
   end
 
-  @spec store(t(), Asteroid.Context.t()) :: t()
-  def store(access_token, ctx) do
-    access_token
-    |> astrenv(:access_token_before_store_callback).(ctx)
-    |> astrenv(:store_access_token)[:impl].put()
+  @doc """
+  Removes a value from the `data` field of a access token
 
-    access_token
+  If the value does not exist, does nothing.
+  """
+
+  @spec delete_value(t(), any()) :: t()
+
+  def delete_value(access_token, key) do
+    %{access_token | data: Map.delete(access_token.data, key)}
   end
+
+  @doc """
+  Serializes the access token, using its inner `t:Asteroid.Token.serialization_format/0`
+  information
+
+  Supports serialization to `:opaque` serialization format.
+  """
 
   @spec serialize(t()) :: String.t()
-  def serialize(access_token) do
-    access_token.id
+
+  def serialize(%__MODULE__{id: id, serialization_format: :opaque}) do
+    id
   end
+
 
   @doc """
   Returns `true` if the token is active, `false` otherwise
@@ -94,6 +189,7 @@ defmodule Asteroid.Token.AccessToken do
   - `"exp"`: must be higher than current time
   - `"revoked"`: must be the boolean `false`
   """
+
   @spec active?(t()) :: boolean()
   def active?(access_token) do
     (is_nil(access_token.data["nbf"]) or access_token.data["nbf"] < now())

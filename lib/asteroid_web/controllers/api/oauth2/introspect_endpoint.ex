@@ -1,4 +1,6 @@
 defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
+  @moduledoc false
+
   use AsteroidWeb, :controller
   import Asteroid.Utils
   alias OAuth2Utils.Scope

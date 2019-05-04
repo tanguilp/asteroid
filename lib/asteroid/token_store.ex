@@ -80,7 +80,7 @@ defmodule Asteroid.TokenStore do
 
   @spec token_store_conf_entries() :: [Keyword.t()]
 
-  def token_store_conf_entries() do
+  defp token_store_conf_entries() do
     Enum.reduce(
       @token_store_conf_keys,
       [],
