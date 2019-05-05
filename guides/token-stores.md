@@ -44,8 +44,8 @@ Token stores are each configured under their own key:
 
 |    Token type    | Configuration key            |
 |:----------------:|------------------------------|
-| Refresh token    | `:token_store_refresh_token` |
-| Access token     | `:token_store_access_token`  |
+| Refresh token    | [`:token_store_refresh_token`](Asteroid.Config.html#module-token_store_refresh_token) |
+| Access token     | [`:token_store_access_token`](Asteroid.Config.html#module-token_store_access_token)  |
 
 The options for a token store are:
 - `:module`: the name of the module implementing the token's behaviours. No default, **mandatory**
