@@ -1,6 +1,6 @@
 defmodule Asteroid.Config do
   @moduledoc """
-  Specification of configuration options and callbacks
+  Specification of configuration options and callbacks, and testouille
   """
 
   require Asteroid.Config.Builder
@@ -33,7 +33,6 @@ defmodule Asteroid.Config do
 
     field :token_store_access_token,
       config_time: :runtime
-
 
     @doc """
     Refresh token store configuration

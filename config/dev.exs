@@ -107,7 +107,7 @@ config :asteroid, :store_refresh_token, [
 
 config :asteroid, :attribute_repositories,
 [
-  user: [
+  subject: [
     module: AttributeRepositoryLdap,
     init_opts: [
       name: :slapd,
@@ -115,7 +115,8 @@ config :asteroid, :attribute_repositories,
       ldap_args: [hosts: ['localhost'], base: 'ou=people,dc=example,dc=org']
     ],
     run_opts: [instance: :slapd, base_dn: 'ou=people,dc=example,dc=org'],
-    auto_install: false # AttributeRepositoryLdap has no install callback implemented
+    auto_install: false, # AttributeRepositoryLdap has no install callback implemented
+    default_loaded_attributes: ["cn", "displayName", "givenName", "mail", "manager", "sn"]
   ],
   client: [
     module: AttributeRepositoryMnesia,

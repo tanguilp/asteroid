@@ -1,117 +1,70 @@
 defmodule Asteroid.Subject do
+  use AttributeRepository.Resource, otp_app: :asteroid
+
   @moduledoc """
-  """
+  `AttributeRepository.Resource` for subjects
 
-  import Asteroid.Utils
-  alias Asteroid.AttributeRepository, as: AttrRep
+  Subject resource are real-world physical persons, such as the reader of this documentation. It
+  refers to the OAuth2 definition of a subject.
 
-  @enforce_keys [:id]
-  defstruct id: "",
-            attrs: %{}
+  ## Configuration
 
-  @type id :: binary()
+  This modules uses the default configuration of `AttributeRepository.Resource` (see `config/1`).
 
-  @type t :: %__MODULE__{
-    id: id(),
-    attrs: map()
+  ## Security considerations
+
+  - When storing subject passwords, you shall take into account the specifics of such password
+  (reuse, non-randomness...) and use the relevant algorithms. If you don't know about this
+  topic, you should probably not try to implement it by yourself.
+
+  ## Example
+
+  ```elixir
+  iex(13)> alias Asteroid.Subject
+  Asteroid.Subject
+
+  iex> {:ok, s} = Subject.load("uid=john,ou=People,dc=example,dc=org")
+  {:ok,
+   %Asteroid.Subject{
+     attrs: %{
+       "cn" => ["John Doe"],
+       "displayName" => "John Doe",
+       "givenName" => ["John"],
+       "mail" => ["john.doe@example.com"],
+       "manager" => ["uid=toto,ou=People,dc=example,dc=org"],
+       "sn" => ["Doe"]
+     },
+     id: "uid=john,ou=People,dc=example,dc=org",
+     modifications: [],
+     newly_created: false
+   }}
+  iex> s = s
+  ...> |> Subject.add("initials", "JD")
+  ...> |> Subject.add("mail", "john.doe@example.org")
+  ...> |> Subject.remove("manager")
+  %Asteroid.Subject{
+    attrs: %{
+      "cn" => ["John Doe"],
+      "displayName" => "John Doe",
+      "givenName" => ["John"],
+      "initials" => "JD",
+      "mail" => ["john.doe@example.org", "john.doe@example.com"],
+      "sn" => ["Doe"]
+    },
+    id: "uid=john,ou=People,dc=example,dc=org",
+    modifications: [
+      {:add, "initials", "JD"},
+      {:add, "mail", "john.doe@example.org"},
+      {:delete, "manager"}
+    ],
+    newly_created: false
   }
-
-  @doc """
-  Creates a new `Asteroid.Subject.t()` with the given id
-
-  If the `:attrs_autoload` is set to `true` (default), the function will try to load
-  the default attributes from the configuration file into the object.
+  iex> Subject.store(s)
+  :ok
+  ```
   """
-  @spec new_from_id(AttrRep.id(), Keyword.t())
-    :: {:ok, t()} | {:error, :subject_not_found}
-  def new_from_id(id, opts \\ [attrs_autoload: true]) when is_binary(id) do
-    subject = %Asteroid.Subject{id: id}
 
-    if opts[:attrs_autoload] == true do
-      attribute_list = astrenv(:attribute_repositories)[:subject][:attribute_autoload]
-
-      {:ok, AttrRep.load_attributes_for_object(subject, attribute_list, :subject)}
-    else
-      {:ok, subject}
-    end
-  end
-
-  @spec new_from_attribute(AttrRep.attribute(), AttrRep.value(), Keyword.t())
-    :: {:ok, t()} | {:error, :not_found} | {:error, :multiple_values} | {:error, Exception.t()}
-  def new_from_attribute(attribute, value, opts \\ [attrs_autoload: true]) do
-    module = astrenv(:attribute_repositories)[:subject][:impl]
-    config = astrenv(:attribute_repositories)[:subject][:opts]
-
-    case module.search(attribute, value, config) do
-      {:ok, [id]} when is_binary(id) ->
-        new_from_id(id, opts)
-
-      {:ok, []} ->
-        {:error, :not_found}
-
-      {:ok, _} ->
-        {:error, :multiple_values}
-
-      {:error, error} ->
-        {:error, error}
-    end
-  end
-
-  @doc """
-  Fetches an attribute if not already loaded in the subject
-  """
-  @spec fetch_attribute(t(), AttrRep.attribute()) :: t()
-  def fetch_attribute(subject, attribute) do
-    if subject.attrs[attribute] == nil do
-      module = astrenv(:attribute_repositories)[:subject][:impl]
-      config = astrenv(:attribute_repositories)[:subject][:opts]
-
-      case module.get(subject.id, attribute, config) do
-        {:ok, value} ->
-          put_attribute(subject, attribute, value)
-
-        {:error, _} ->
-          subject
-      end
-    else
-      subject
-    end
-  end
-
-  @doc """
-  Puts an attribute in the subject, overriding any existing one
-  """
-  @spec put_attribute(t(), AttrRep.attribute(), AttrRep.value()) :: t()
-  def put_attribute(subject, attribute, value) do
-    %{subject | attrs: Map.put(subject.attrs, attribute, value)}
-  end
-
-  @doc """
-  Deletes an attribute from the subject
-  """
-  @spec delete_attribute(t(), AttrRep.attribute()) :: t()
-  def delete_attribute(subject, attribute) do
-    module = astrenv(:attribute_repositories)[:subject][:impl]
-    config = astrenv(:attribute_repositories)[:subject][:opts]
-
-    module.delete(subject.id, attribute, config)
-
-    %{subject | attrs: Map.delete(subject.attrs, attribute)}
-  end
-
-  @doc """
-  Persists the attributes of the subject in its repository and returns the
-  unmodified subject
-  """
-  @spec store(t()) :: t()
-  def store(subject) do
-    module = astrenv(:attribute_repositories)[:subject][:impl]
-    config = astrenv(:attribute_repositories)[:subject][:opts]
-
-    for {attribute, value} <- subject.attrs do
-      module.put(subject.id, attribute, value, config)
-    end
-
-    subject
+  def gen_new_id(opts) do
+    "sub-" <> super(opts)
   end
 end

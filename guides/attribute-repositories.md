@@ -26,6 +26,9 @@ function should be called at Asteroid startup. Defaults to `true`
 - `:auto_start`: `boolean()` indicating whether the `AttributeRepositoryModule.start_link/1` or
 the `AttributeRepositoryModule.start/1` function should be called at Asteroid startup.
 Defaults to `true`
+- `:default_loaded_attributes`: a `[String.t()]` of attributes to be loaded by default by
+modules using `AttributeRepository.Resource`, or `:all`. This parameter allows limiting the
+number of loaded attributes for some backends that support it (such as LDAP). Default to `:all`
 
 ### Example
 
@@ -40,7 +43,8 @@ config :asteroid, :attribute_repositories,
       ldap_args: [hosts: ['localhost'], base: 'ou=people,dc=example,dc=org']
     ],
     run_opts: [instance: :slapd, base_dn: 'ou=people,dc=example,dc=org'],
-    auto_install: false # AttributeRepositoryLdap has no install callback implemented
+    auto_install: false, # AttributeRepositoryLdap has no install callback implemented
+    default_loaded_attributes: ["cn", "displayName", "givenName", "mail", "manager", "sn"]
   ],
   client: [
     module: AttributeRepositoryMnesia,

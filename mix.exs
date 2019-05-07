@@ -42,6 +42,7 @@ defmodule Asteroid.MixProject do
       {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist", tag: "0.2.0"},
       {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler", tag: "0.2.0"},
       {:oauth2_utils, github: "tanguilp/oauth2_utils", tag: "master"},
+      {:attribute_repository, path: "../attribute_repository", override: true},
       {:attribute_repository_ldap, path: "../attribute_repository_ldap"},
       {:attribute_repository_mnesia, path: "../attribute_repository_mnesia"},
       {:attribute_repository_riak, path: "../attribute_repository_riak"},

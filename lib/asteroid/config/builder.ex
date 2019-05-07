@@ -1,6 +1,4 @@
 defmodule Asteroid.Config.Builder do
-  @moduledoc false
-
   defmodule Schema do
     defmacro field(name, options \\ []) do
       quote do
@@ -33,7 +31,7 @@ defmodule Asteroid.Config.Builder do
     end
   end
 
-  defmacro defconfig(options \\ [], do: block) do
+  defmacro defconfig(_options \\ [], do: block) do
     quote do
       import Asteroid.Config.Builder.Schema
 
@@ -102,8 +100,6 @@ defmodule Asteroid.Config.Builder do
                 _ ->
                   "*Unknown*"
               end
-
-            type = String.replace(options[:type] || "", "|", "&#124;")
 
             doc = """
             ## `:#{name}`
