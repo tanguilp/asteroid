@@ -12,7 +12,7 @@ config :asteroid,
 
 # Configures the endpoint
 config :asteroid, AsteroidWeb.Endpoint,
-  url: [host: "localhost"],
+  url: [host: "localhost", path: "/some/path/"],
   secret_key_base: "2yJLxSza2m36oPseYvVwOZuGszU72qhncOIWgu83PtIGpYXDpILdc2tkHmEiEVYz",
   render_errors: [view: AsteroidWeb.ErrorView, accepts: ~w(html json)],
   pubsub: [name: Asteroid.PubSub, adapter: Phoenix.PubSub.PG2]

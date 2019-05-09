@@ -1,23 +1,33 @@
 defmodule Asteroid.Context do
   @moduledoc """
+  OAuth2 and connection context passed to callback functions
+
+  This is basically a map containing:
+  - the current endpoint
+  - the current flow
+  - the used grant type
+  - the requested scopes
+  - the scopes released after calling the relevant callbacks
+  - the client object
+  - the subject object
+  - the device object
+  - and any other useful information
+
+  Note that for pattern matching convenience, the define fields cannot be `nil`. For example,
+  there will never be a `:subject` field in client credentials flow.
   """
 
-  defstruct [:request, :client, :subject, :device, :scope]
+  alias OAuth2Utils.Scope
 
-  @type t :: %__MODULE__{
-    request: map(),
-    client: Asteroid.Client.t(),
-    subject: Asteroid.Subject.t() | nil,
-    device: Asteroid.Device.t() | nil,
-    scope: MapSet.t()
+  @type t :: %{
+    optional(:endpoint) => Asteroid.OAuth2.endpoint(),
+    optional(:flow) => Asteroid.OAuth2.flow(),
+    optional(:grant_type) => Asteroid.OAuth2.grant_type(),
+    optional(:requested_scopes) => Scope.Set.t(),
+    optional(:scopes) => Scope.Set.t(),
+    optional(:client) => Asteroid.Client.t(),
+    optional(:subject) => Asteroid.Subject.t(),
+    optional(:device) => Asteroid.Device.t(),
+    optional(any()) => any()
   }
-
-  @doc """
-  Removes data from `Client`, `Subject` and `Device` except their id
-
-  Main use is for storage purpose
-  """
-  #@spec compact(t()) :: t()
-  #FIXME: probably need to convert to a map at a point to allow storing
-  # in Riak
 end

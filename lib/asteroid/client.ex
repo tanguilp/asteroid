@@ -17,8 +17,18 @@ defmodule Asteroid.Client do
   - `"client_id"`: the client identifier (as in OAuth2) (`String.t()`)
   - `"client_secret"`: the client secret (`String.t()`)
   - `"client_type"`: `"public"` or `"confidential"`, depending on the client's type
+  - `"grant_types"`: the list of grant types (`t:Asteroid.OAuth2.grant_type_str/0`) that the
+  client is allowed to use
   - `"redirect_uris"`: the list of OAuth2 / OpenID Connect redirect URIs (`[String.t()]`)
   - `"scope"`: a list of OAuth2 scopes that the client can use when requesting tokens
+  - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_init"`: a `boolean()` set to true if a
+  refresh token is to be issued at the first request of the ROPC flow
+  - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_refresh"`: a `boolean()` set to true if a
+  refresh token is to be issued when refresh tokens in the ROPC flow
+  - `"__asteroid_oauth2_flow_ropc_refresh_token_lifetime"`: a `non_neg_integer()` set to the
+  lifetime duration of a refresh token in the ROPC flow
+  - `"__asteroid_oauth2_flow_ropc_access_token_lifetime"`: a `non_neg_integer()` set to the
+  lifetime duration of an access token in the ROPC flow
 
   ## Configuration
 

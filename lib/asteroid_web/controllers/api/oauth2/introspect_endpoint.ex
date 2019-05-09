@@ -73,15 +73,21 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec introspect_access_token(Plug.Conn.t(), String.t(), Client.t()) :: boolean
   defp introspect_access_token(conn, access_token, client) do
-    ctx = %Asteroid.Context{
-      request: %{
-        :endpoint => :introspect,
-        :token_sort => :access_token
-      },
-      client: client,
-      subject: Subject.new_from_id(access_token.claims["sub"]),
-      device: nil
-    }
+    maybe_subject =
+      case Subject.load(access_token.data["sub"]) do
+        {:ok, subject} ->
+          subject
+
+        _ ->
+          nil
+      end
+
+    ctx =
+      %{}
+      |> Map.put(:endpoint, :introspect)
+      |> put_if_not_nil(:subject, maybe_subject)
+      |> Map.put(:client, client)
+      |> Map.put(:token_sort, :access_token) # FIXME: document it
 
     response_claims = astrenv(:introspect_resp_claims).(ctx)
 
@@ -100,15 +106,21 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec introspect_refresh_token(Plug.Conn.t(), String.t(), Client.t()) :: boolean
   defp introspect_refresh_token(conn, refresh_token, client) do
-    ctx = %Asteroid.Context{
-      request: %{
-        :endpoint => :introspect,
-        :token_sort => :refresh_token
-      },
-      client: client,
-      subject: Subject.new_from_id(refresh_token.claims["sub"]),
-      device: nil
-    }
+    maybe_subject =
+      case Subject.load(refresh_token.data["sub"]) do
+        {:ok, subject} ->
+          subject
+
+        _ ->
+          nil
+      end
+
+    ctx =
+      %{}
+      |> Map.put(:endpoint, :introspect)
+      |> put_if_not_nil(:subject, maybe_subject)
+      |> Map.put(:client, client)
+      |> Map.put(:token_sort, :refresh_token) # FIXME: document it
 
     response_claims = astrenv(:introspect_resp_claims).(ctx)
 
@@ -127,12 +139,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec token_not_found_resp(Plug.Conn.t(), Client.t()) :: any()
   defp token_not_found_resp(conn, client) do
-    ctx = %Asteroid.Context{
-      request: %{
-        :endpoint => :introspect
-      },
-      client: client
-    }
+    ctx =
+      %{}
+      |> Map.put(:endpoint, :introspect)
+      |> Map.put(:client, client)
 
     resp =
       %{"active" => false}

@@ -1,6 +1,9 @@
 defmodule Asteroid.Token.AccessToken do
   import Asteroid.Utils
 
+  alias Asteroid.Context
+  alias Asteroid.Client
+
   @moduledoc """
   Access token structure
 
@@ -10,6 +13,7 @@ defmodule Asteroid.Token.AccessToken do
   - `"exp"`: the expiration unix timestamp of the access token
   - `"sub"`: the `t:Asteroid.Subject.id()` of the access token
   - `"client_id"`: the `t:Asteroid.Client.id()` of the access token
+  - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the refresh token
   - `"device_id"`: the `t:Asteroid.Device.id()` of the access token
   """
 
@@ -63,7 +67,7 @@ defmodule Asteroid.Token.AccessToken do
   def gen_new(opts \\ []) do
     %__MODULE__{
       id: secure_random_b64(20),
-      refresh_token_id: opts[:refresh_token] || nil,
+      refresh_token_id: opts[:refresh_token],
       data: %{},
       serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
     }
@@ -107,13 +111,13 @@ defmodule Asteroid.Token.AccessToken do
   Stores an access token
   """
 
-  @spec store(t(), Asteroid.Context.t()) :: {:ok, t()} | {:error, any()}
+  @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(access_token, ctx) do
     token_store_module = astrenv(:token_store_access_token)[:module]
     token_store_opts = astrenv(:token_store_access_token)[:opts] || []
 
-    access_token = astrenv(:access_token_before_store_callback).(access_token, ctx)
+    access_token = astrenv(:token_store_access_token_before_store_callback).(access_token, ctx)
 
     case token_store_module.put(access_token, token_store_opts) do
       :ok ->
@@ -203,5 +207,36 @@ defmodule Asteroid.Token.AccessToken do
     #   o  If the token can be used only at certain resource servers, the
     #  authorization server MUST determine whether or not the token can
     #  be used at the resource server making the introspection call.
+  end
+
+  @doc """
+  Returns the access token lifetime
+
+  ## Processing rules
+  - If the client has the following field set to an integer value for the corresponding flow
+  returns that value:
+    - `"__asteroid_oauth2_flow_ropc_access_token_lifetime"`
+  - Otherwise, if the following configuration option is set to an integer for the corresponding
+  flow, returns its value:
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_access_token_lifetime)}
+  - Otherwise returns `0`
+  """
+
+  def lifetime(%{flow: :ropc, client: client}) do
+    attr = "__asteroid_oauth2_flow_ropc_refresh_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oauth2_flow_ropc_access_token_lifetime, 0)
+    end
+  end
+
+  def lifetime(_) do
+    0
   end
 end

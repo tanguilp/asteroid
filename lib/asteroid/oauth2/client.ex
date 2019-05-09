@@ -1,6 +1,8 @@
 defmodule Asteroid.OAuth2.Client do
-  alias Asteroid.{Client, Context}
+  alias Asteroid.Client
   alias Asteroid.OAuth2
+  alias OAuth2Utils.Scope
+
   import Asteroid.Utils
 
   defmodule AuthenticationError do
@@ -46,8 +48,8 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @spec get_client(Plug.Conn.t(), boolean()) ::
-    {:ok, String.t} |
-    {:error, %__MODULE__.AuthenticationError{}}
+  {:ok, Client.t()}
+  | {:error, %__MODULE__.AuthenticationError{}}
 
   def get_client(conn, allow_unauthenticated_public_clients \\ false) do
     case get_authenticated_client(conn) do
@@ -73,9 +75,10 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @spec get_authenticated_client(Plug.Conn.t()) :: {:ok, Client.t()} | {:error, atom()}
+
   defp get_authenticated_client(conn) do
     if APIac.authenticated?(conn) do
-      case Client.new_from_id(APIac.client(conn)) do
+      case Client.load(APIac.client(conn)) do
         {:ok, client} ->
           {:ok, client}
 
@@ -88,6 +91,7 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @spec get_unauthenticated_client(Plug.Conn.t()) :: {:ok, Client.t()} | {:error, atom()}
+
   defp get_unauthenticated_client(conn) do
     case conn.body_params["client_id"] do
       nil ->
@@ -95,7 +99,7 @@ defmodule Asteroid.OAuth2.Client do
 
       client_id ->
         if OAuth2Utils.valid_client_id_param?(client_id) do
-          case Client.new_from_id(client_id) do #FIXME => by attribute
+          case Client.load(client_id) do #FIXME => by attribute
             {:ok, client} ->
               if public?(client) do
                 if not has_credentials?(client) do
@@ -120,23 +124,57 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @doc """
-  Determines whether a client is authorized to use a given grant type
+  Returns `true` if the client is allowed to use the grant type, `false` otherwise
 
   To be authorized to use a given grant type, the client's `"grant_types"` attribute
-  must contain the given `grant_type`
+  must contain the given `grant_type`.
   """
-  @spec grant_type_authorized?(Asteroid.Client.client_param(), String.t()) ::
-    :ok | {:error, %__MODULE__.AuthorizationError{}}
-  def  grant_type_authorized?(client, grant_type) do
-    client = Client.fetch_attribute(client, "grant_types")
 
+  @spec grant_type_authorized?(Asteroid.Client.t(), Asteroid.OAuth2.grant_type_str()) ::
+  :ok
+  | {:error, %__MODULE__.AuthorizationError{}}
+
+  def  grant_type_authorized?(client, grant_type) do
     if grant_type in client.attrs["grant_types"] do
       :ok
     else
-      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_grant_type)}
+      # the "grant_types" attribute may not have been loaded
+      client = Client.load(client.id, attributes: ["grant_types"])
+
+      if grant_type in client.attrs["grant_types"] do
+        :ok
+
+      else
+        {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_grant_type)}
+      end
     end
   end
 
+  @doc """
+  Returns `true` if the client is authorized to use the scopes, `false` otherwise
+
+  Checks for each scope of the `ScopeSet` if it's included in the  client's `"scope"` attribute.
+  """
+
+  @spec scopes_authorized?(Asteroid.Client.t(), Scope.Set.t()) ::
+  :ok
+  | {:error, %__MODULE__.AuthorizationError{}}
+
+  def  scopes_authorized?(client, scope_set) do
+    if client.attrs["scope"] != nil and Scope.Set.subset?(scope_set, client.attrs["scope"]) do
+      :ok
+    else
+      # the "grant_types" attribute may not have been loaded
+      client = Client.load(client.id, attributes: ["grant_types"])
+
+      if client.attrs["scope"] != nil and Scope.Set.subset?(scope_set, client.attrs["scope"]) do
+        :ok
+
+      else
+        {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_scope)}
+      end
+    end
+  end
 
   @doc """
   Returns `true` if the client is a public client, `false` otherwise
@@ -144,7 +182,7 @@ defmodule Asteroid.OAuth2.Client do
 
   @spec public?(Client.t()) :: boolean()
   def public?(client) do
-    client = Client.fetch_attribute(client, "client_type")
+    client = Client.fetch_attributes(client, ["client_type"])
 
     client.attrs["client_type"] == "public"
   end
@@ -155,7 +193,7 @@ defmodule Asteroid.OAuth2.Client do
 
   @spec confidential?(Client.t()) :: boolean()
   def confidential?(client) do
-    client = Client.fetch_attribute(client, "client_type")
+    client = Client.fetch_attributes(client, ["client_type"])
 
     client.attrs["client_type"] == "confidential"
   end
@@ -167,7 +205,7 @@ defmodule Asteroid.OAuth2.Client do
   """
   @spec has_credentials?(Client.t()) :: boolean()
   def has_credentials?(client) do
-    client = Client.fetch_attribute(client, "client_secret")
+    client = Client.fetch_attributes(client, ["client_secret"])
 
     client.attrs["client_secret"] != nil
   end

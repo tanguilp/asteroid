@@ -18,14 +18,20 @@ defmodule AsteroidWeb.Router do
     plug Plug.Parsers, parsers: [:urlencoded]
   end
 
+  pipeline :oauth2 do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   pipeline :oauth2_endpoint_token do
-    for {plug_module, plug_options} <- astrenv(:plugs_oauth2_endpoint_token, []) do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_token_plugs, []) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_introspect do
-    for {plug_module, plug_options} <- astrenv(:plugs_oauth2_endpoint_introspect, []) do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_introspect_plugs, []) do
       plug plug_module, plug_options
     end
   end
@@ -38,6 +44,7 @@ defmodule AsteroidWeb.Router do
 
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
     pipe_through :api
+    pipe_through :oauth2
 
     scope "/token" do
       pipe_through :oauth2_endpoint_token

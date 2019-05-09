@@ -1,6 +1,9 @@
 defmodule Asteroid.Token.RefreshToken do
   import Asteroid.Utils
 
+  alias Asteroid.Context
+  alias Asteroid.Client
+
   @moduledoc """
   Refresh token structure
 
@@ -11,6 +14,9 @@ defmodule Asteroid.Token.RefreshToken do
   - `"sub"`: the `t:Asteroid.Subject.id/0` of the refresh token
   - `"client_id"`: the `t:Asteroid.Client.id/0` of the refresh token
   - `"device_id"`: the `t:Asteroid.Device.id/0` of the refresh token
+  - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the refresh token
+  - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` during which the
+  refresh token was granted
   """
 
   @enforce_keys [:id, :serialization_format, :data]
@@ -101,13 +107,14 @@ defmodule Asteroid.Token.RefreshToken do
   Stores a refresh token
   """
 
-  @spec store(t(), Asteroid.Context.t()) :: {:ok, t()} | {:error, any()}
+  @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
-  def store(refresh_token, ctx) do
+  def store(refresh_token, ctx \\ %{}) do
     token_store_module = astrenv(:token_store_refresh_token)[:module]
     token_store_opts = astrenv(:token_store_refresh_token)[:opts] || []
 
-    refresh_token = astrenv(:refresh_token_before_store_callback).(refresh_token, ctx)
+    refresh_token =
+      astrenv(:token_store_refresh_token_before_store_callback).(refresh_token, ctx)
 
     case token_store_module.put(refresh_token, token_store_opts) do
       :ok ->
@@ -202,5 +209,81 @@ defmodule Asteroid.Token.RefreshToken do
     #   o  If the token can be used only at certain resource servers, the
     #  authorization server MUST determine whether or not the token can
     #  be used at the resource server making the introspection call.
+  end
+
+  @doc """
+  Returns `true` if a refresh token is to be issued, `false` otherwise
+
+  ## Processing rules
+  - If the client has the following field set to `true` for the corresponding flow and
+  grant type, returns `true`:
+    - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_init"`
+    - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_refresh"`
+  - Otherwise, if the following configuration option is set to `true` for the corresponding flow
+  and grant type, returns `true`:
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_issue_refresh_token_init)}
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_issue_refresh_token_refresh)}
+  - Otherwise returns `false`
+  """
+
+  @spec issue_refresh_token?(Context.t()) :: boolean()
+
+  def issue_refresh_token?(%{flow: :ropc, grant_type: :password, client: client}) do
+    attr = "__asteroid_oauth2_flow_ropc_issue_refresh_token_init"
+
+    client = Client.fetch_attributes(client.id, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oauth2_flow_ropc_issue_refresh_token_init, false)
+    end
+  end
+
+  def issue_refresh_token?(%{flow: :ropc, grant_type: :refresh_token, client: client}) do
+    attr = "__asteroid_oauth2_flow_ropc_issue_refresh_token_refresh"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oauth2_flow_ropc_issue_refresh_token_refresh, false)
+    end
+  end
+
+  def issue_refresh_token?(_) do
+    false
+  end
+
+  @doc """
+  Returns the refresh token lifetime
+
+  ## Processing rules
+  - If the client has the following field set to an integer value for the corresponding flow
+  returns that value:
+    - `"__asteroid_oauth2_flow_ropc_refresh_token_lifetime"`
+  - Otherwise, if the following configuration option is set to an integer for the corresponding
+  flow, returns its value:
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_refresh_token_lifetime)}
+  - Otherwise returns `0`
+  """
+
+  def lifetime(%{flow: :ropc, client: client}) do
+    attr = "__asteroid_oauth2_flow_ropc_refresh_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oauth2_flow_ropc_refresh_token_lifetime, 0)
+    end
+  end
+
+  def lifetime(_) do
+    0
   end
 end

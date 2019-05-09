@@ -83,10 +83,24 @@ defmodule Asteroid.Config.Builder do
 
     Mix.env(current_env)
 
+    field_list =
+      config_fields
+      |> Enum.sort_by(
+        fn %{name: name} -> name end,
+        &</2
+      )
+      |> Enum.reduce(
+        "Options:\n",
+        fn
+          %{name: name}, acc ->
+            acc <> "- [`:#{name}`](#module-#{to_string(name)})\n"
+        end
+      )
+
     acc =
       Enum.reduce(
         config_fields,
-        "",
+        field_list,
         fn
           %{name: name, documentation: documentation, options: options}, acc ->
             config_time =
@@ -120,7 +134,7 @@ defmodule Asteroid.Config.Builder do
                 uses =
                   options[:uses]
                   |> Enum.map(&to_string/1)
-                  |> Enum.map(fn str -> "[" <> str <> "](#module-" <> str <> ")" end)
+                  |> Enum.map(fn str -> "[`:" <> str <> "`](#module-" <> str <> ")" end)
                   |> Enum.join("<br/>")
 
                 doc <> "| Uses: | #{uses} |\n"
@@ -133,7 +147,7 @@ defmodule Asteroid.Config.Builder do
                 used_by =
                   options[:used_by]
                   |> Enum.map(&to_string/1)
-                  |> Enum.map(fn str -> "[" <> str <> "](#module-" <> str <> ")" end)
+                  |> Enum.map(fn str -> "[`:" <> str <> "`](#module-" <> str <> ")" end)
                   |> Enum.join("<br/>")
 
                 doc <> "| Used by:| #{used_by}|\n"

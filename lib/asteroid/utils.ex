@@ -29,4 +29,9 @@ defmodule Asteroid.Utils do
         val
     end
   end
+
+  @spec put_if_not_nil(map(), Map.key(), Map.value()) :: map()
+
+  def put_if_not_nil(map, _, nil), do: map
+  def put_if_not_nil(map, key, value), do: Map.put(map, key, value)
 end

@@ -34,14 +34,14 @@ defmodule Asteroid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps(_) do
     [
-      {:apiac, github: "tanguilp/apiac", tag: "0.2.0"},
-      {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic", tag: "0.2.0"},
-      {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer", tag: "0.2.0"},
-      {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls", tag: "0.2.0"},
-      {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist", tag: "0.2.0"},
-      {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist", tag: "0.2.0"},
-      {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler", tag: "0.2.0"},
-      {:oauth2_utils, github: "tanguilp/oauth2_utils", tag: "master"},
+      {:apiac, path: "../apiac", override: true},
+      {:apiac_auth_basic, path: "../apiac_auth_basic"},
+      {:apiac_auth_bearer, path: "../apiac_auth_bearer"},
+      {:apiac_auth_mtls, path: "../apiac_auth_mtls"},
+      {:apiac_filter_ip_blacklist, path: "../apiac_filter_ip_blacklist"},
+      {:apiac_filter_ip_whitelist, path: "../apiac_filter_ip_whitelist"},
+      {:apiac_filter_throttler, path: "../apiac_filter_throttler"},
+      {:oauth2_utils, path: "../oauth2_utils", override: true},
       {:attribute_repository, path: "../attribute_repository", override: true},
       {:attribute_repository_ldap, path: "../attribute_repository_ldap"},
       {:attribute_repository_mnesia, path: "../attribute_repository_mnesia"},
@@ -97,7 +97,8 @@ defmodule Asteroid.MixProject do
       extras: [
         "guides/getting-started.md",
         "guides/attribute-repositories.md",
-        "guides/token-stores.md"
+        "guides/token-stores.md",
+        "guides/protecting-apis.md"
       ]
     ]
   end
