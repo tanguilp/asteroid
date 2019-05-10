@@ -195,40 +195,31 @@ config :asteroid, :oauth2_flow_ropc_scope_config,
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
 
-config :asteroid, :oauth2_grant_type_password_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_password_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :oauth2_grant_type_password_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_password_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :oauth2_grant_type_refresh_token_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :oauth2_grant_type_refresh_token_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :introspect_endpoint_authorized,
-  &Asteroid.Config.DefaultCallbacks.introspect_endpoint_authorized?/1
+config :asteroid, :oauth2_endpoint_introspect_client_authorized,
+  &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1
 
-config :asteroid, :introspect_resp_claims,
-  fn _ctx -> [
-    "scope",
-    "client_id",
-    "username",
-    "token_type",
-    "exp",
-    "iat",
-    "nbf",
-    "sub",
-    "aud",
-    "iss",
-    "jti"
-  ] end
+config :asteroid, :oauth2_endpoint_introspect_claims_resp,
+  ["scope", "client_id", "username", "token_type", "exp", "iat", "nbf", "sub", "aud", "iss", "jti"]
 
-config :asteroid, :introspect_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_introspect_claims_resp_callback,
+  &Asteroid.OAuth2.Callback.endpoint_introspect_claims_resp/1
+
+config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :introspect_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 # Refresh tokens

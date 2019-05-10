@@ -88,13 +88,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
-        |> astrenv(:oauth2_grant_type_password_before_send_resp_callback).(ctx)
+        |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
 
       conn
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_grant_type_password_before_send_conn_callback).(ctx)
+      |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_conn_callback).(ctx)
       |> json(resp)
     else
       {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
@@ -211,14 +211,14 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           }
           |> maybe_put_refresh_token(maybe_refresh_token)
           |> put_scope_if_changed(requested_scopes, granted_scopes)
-          |> astrenv(:oauth2_grant_type_refresh_token_before_send_resp_callback).(ctx)
+          |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback).(ctx)
 
 
         conn
         |> put_status(200)
         |> put_resp_header("cache-control", "no-store")
         |> put_resp_header("pragma", "no-cache")
-        |> astrenv(:oauth2_grant_type_refresh_token_before_send_conn_callback).(ctx)
+        |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback).(ctx)
         |> json(resp)
       else
         error_resp(conn,

@@ -161,18 +161,12 @@ defmodule Asteroid.OAuth2.Client do
   | {:error, %__MODULE__.AuthorizationError{}}
 
   def  scopes_authorized?(client, scope_set) do
+    client = Client.fetch_attributes(client, ["scope"])
+
     if client.attrs["scope"] != nil and Scope.Set.subset?(scope_set, client.attrs["scope"]) do
       :ok
     else
-      # the "grant_types" attribute may not have been loaded
-      client = Client.load(client.id, attributes: ["grant_types"])
-
-      if client.attrs["scope"] != nil and Scope.Set.subset?(scope_set, client.attrs["scope"]) do
-        :ok
-
-      else
-        {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_scope)}
-      end
+      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_scope)}
     end
   end
 
@@ -273,6 +267,27 @@ defmodule Asteroid.OAuth2.Client do
               conn
           end
         )
+    end
+  end
+
+  @doc """
+  Returns `:ok` is the client is authorized to introspect tokens on the `"/introspect"`
+  endpoint, `{:error, :unauthorized}` otherwise
+
+  An authorized client is a client that has been granted the use of the `"asteroid.introspect"`
+  scope. See [Configuring clients - Asteroid scopes](configuring-clients.html#asteroid-scopes)
+  for information on scopes.
+  """
+
+  @spec endpoint_introspect_authorized?(Client.t()) :: boolean()
+
+  def endpoint_introspect_authorized?(client) do
+    client = Client.fetch_attributes(client, ["scope"])
+
+    if "asteroid.introspect" in (client.attrs["scope"] || []) do
+      :ok
+    else
+      {:error, :unauthorized}
     end
   end
 end

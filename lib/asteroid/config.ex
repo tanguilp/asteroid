@@ -1,6 +1,6 @@
 defmodule Asteroid.Config do
   @moduledoc """
-  Specification of configuration options and callbacks, and testouille
+  Specification of configuration options and callbacks
   """
 
   require Asteroid.Config.Builder
@@ -278,10 +278,10 @@ defmodule Asteroid.Config do
     Callback invoked on the json response when the grant_type is "password"
     """
 
-    @type oauth2_grant_type_password_before_send_resp_callback ::
+    @type oauth2_endpoint_token_grant_type_password_before_send_resp_callback ::
     (map(), Asteroid.Context.t() -> map())
 
-    field :oauth2_grant_type_password_before_send_resp_callback,
+    field :oauth2_endpoint_token_grant_type_password_before_send_resp_callback,
     config_time: :runtime
 
     @doc """
@@ -291,29 +291,82 @@ defmodule Asteroid.Config do
     @type oauth2_grant_type_password_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
-    field :oauth2_grant_type_password_before_send_conn_callback,
+    field :oauth2_endpoint_token_grant_type_password_before_send_conn_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked on the json response when the grant_type is "refresh_token"
     """
 
-    @type oauth2_grant_type_refresh_token_before_send_resp_callback ::
+    @type oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback ::
     (map(), Asteroid.Context.t() -> map())
 
-    field :oauth2_grant_type_refresh_token_before_send_resp_callback,
+    field :oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is "refresh_token"
     """
 
-    @type oauth2_grant_type_refresh_token_before_send_conn_callback ::
+    @type oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
-    field :oauth2_grant_type_refresh_token_before_send_conn_callback,
+    field :oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback,
     config_time: :runtime
 
+    @doc """
+    Callback invoked to determine if a client is authorized to introspect tokens on the
+    `"/introspect"` endpoint
+    """
+
+    @type oauth2_endpoint_introspect_client_authorized ::
+    (Asteroid.Client.t() -> boolean())
+
+    field :oauth2_endpoint_introspect_client_authorized,
+    config_time: :runtime
+
+    @doc """
+    Defines the default claims to be returned from the `"/introspect"` endpoint
+
+    Note that client's configuration takes precedence over this configuration option.
+    """
+
+    @type oauth2_endpoint_introspect_claims_resp :: [String.t()]
+
+    field :oauth2_endpoint_introspect_claims_resp,
+    config_time: :runtime,
+    used_by: [:oauth2_endpoint_introspect_claims_resp_callback]
+
+    @doc """
+    Callback invoked to determine the claims to be returned from the `"/introspect"` endpoint
+    """
+
+    @type oauth2_endpoint_introspect_claims_resp_callback ::
+    (Asteroid.Client.t() -> [String.t()])
+
+    field :oauth2_endpoint_introspect_claims_resp_callback,
+    config_time: :runtime,
+    uses: [:oauth2_endpoint_introspect_claims_resp]
+
+    @doc """
+    Callback invoked on the json response on the `"/introspect"` endpoint
+    """
+
+    @type oauth2_endpoint_introspect_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_introspect_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `"/introspect"` endpoint
+    """
+
+    @type oauth2_endpoint_introspect_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_introspect_before_send_conn_callback,
+    config_time: :runtime
   end
 
   @doc """

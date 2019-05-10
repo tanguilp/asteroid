@@ -3,14 +3,13 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   use AsteroidWeb, :controller
   import Asteroid.Utils
-  alias OAuth2Utils.Scope
   alias Asteroid.Token.{RefreshToken, AccessToken}
-  alias Asteroid.{Client, Subject, Context}
+  alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
   def handle(conn, params) do
     with {:ok, client} <- OAuth2.Client.get_client(conn, false),
-         :ok <- astrenv(:introspect_endpoint_authorized).(client)
+         :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client)
     do
       do_handle(conn, params, client)
     else
@@ -27,33 +26,30 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   def do_handle(%Plug.Conn{body_params: %{"token" => token}} = conn, _params, client) do
     case conn.body_params["token_type_hint"] do
-      "access_token" ->
-        case AccessToken.get(token, check_active: true) do
+      token_type_hint when token_type_hint in [nil, "access_token"] ->
+        case AccessToken.get(token) do
           {:ok, access_token} ->
             introspect_access_token(conn, access_token, client)
 
           {:error, _} ->
-            token_not_found_resp(conn, client)
+            case RefreshToken.get(token) do
+              {:ok, refresh_token} ->
+                introspect_refresh_token(conn, refresh_token, client)
+
+              {:error, _} ->
+                token_not_found_resp(conn, client)
+            end
         end
 
       "refresh_token" ->
-        case RefreshToken.get(token, check_active: true) do
+        case RefreshToken.get(token) do
           {:ok, refresh_token} ->
             introspect_refresh_token(conn, refresh_token, client)
 
           {:error, _} ->
-            token_not_found_resp(conn, client)
-        end
-
-      nil ->
-        case AccessToken.get(token, check_active: true) do
-          {:ok, access_token} ->
-            introspect_access_token(conn, access_token, client)
-
-          {:error, _} ->
-            case RefreshToken.get(token, check_active: true) do
+            case AccessToken.get(token) do
               {:ok, refresh_token} ->
-                introspect_refresh_token(conn, refresh_token, client)
+                introspect_access_token(conn, refresh_token, client)
 
               {:error, _} ->
                 token_not_found_resp(conn, client)
@@ -72,6 +68,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   end
 
   @spec introspect_access_token(Plug.Conn.t(), String.t(), Client.t()) :: boolean
+
   defp introspect_access_token(conn, access_token, client) do
     maybe_subject =
       case Subject.load(access_token.data["sub"]) do
@@ -89,18 +86,18 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :access_token) # FIXME: document it
 
-    response_claims = astrenv(:introspect_resp_claims).(ctx)
+    response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
     resp = 
-      access_token.claims
+      access_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
-      |> Enum.into(%{}) # since Enum.filter/2 retunrs a list
+      |> Enum.into(%{})
       |> Map.put("active", "true")
-      |> astrenv(:introspect_before_send_resp_callback).(ctx)
+      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:introspect_before_send_conn_callback).(ctx)
+    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 
@@ -129,15 +126,16 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> Enum.filter(fn {k, _} -> k in response_claims end)
       |> Enum.into(%{}) # since Enum.filter/2 retunrs a list
       |> Map.put("active", "true")
-      |> astrenv(:introspect_before_send_resp_callback).(ctx)
+      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:introspect_before_send_conn_callback).(ctx)
+    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 
-  @spec token_not_found_resp(Plug.Conn.t(), Client.t()) :: any()
+  @spec token_not_found_resp(Plug.Conn.t(), Client.t()) :: Plug.Conn.t()
+
   defp token_not_found_resp(conn, client) do
     ctx =
       %{}
@@ -146,15 +144,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
     resp =
       %{"active" => false}
-      |> astrenv(:introspect_before_send_resp_callback).(ctx)
+      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:introspect_before_send_conn_callback).(ctx)
+    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 
-  defp error_resp(conn, error_status \\ 400, error_data) do
+  defp error_resp(conn, error_status, error_data) do
     conn
     |> put_status(error_status)
     |> json(Enum.into(error_data, %{}))

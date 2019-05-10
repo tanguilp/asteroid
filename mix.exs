@@ -98,7 +98,8 @@ defmodule Asteroid.MixProject do
         "guides/getting-started.md",
         "guides/attribute-repositories.md",
         "guides/token-stores.md",
-        "guides/protecting-apis.md"
+        "guides/protecting-apis.md",
+        "guides/configuring-clients.md"
       ]
     ]
   end
