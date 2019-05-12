@@ -23,7 +23,7 @@ defmodule Asteroid.OAuth2.Callback do
     if is_list(client.attrs["__asteroid_endpoint_introspect_claims_resp"]) do
       client.attrs["__asteroid_endpoint_introspect_claims_resp"]
     else
-      endpoint_introspect_claims_resp(nil)
+      endpoint_introspect_claims_resp(%{})
     end
   end
 

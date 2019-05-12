@@ -113,7 +113,7 @@ config :asteroid, :attribute_repositories,
   ],
   client: [
     module: AttributeRepositoryMnesia,
-    init_opts: [mnesia_config: [disc_copies: [node()]]],
+    init_opts: [instance: :client, mnesia_config: [disc_copies: [node()]]],
     run_opts: [instance: :client]
   ],
   device: [
@@ -176,8 +176,6 @@ config :asteroid, :oauth2_grant_types_enabled, [
   :authorization_code, :password, :client_credentials, :refresh_token
 ]
 
-config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
-
 config :asteroid, :api_error_response_verbosity, :debug
 
 config :asteroid, :oauth2_ropc_username_password_verify_callback,
@@ -238,13 +236,6 @@ config :asteroid, :oauth2_refresh_token_lifetime_callback,
   &Asteroid.Token.RefreshToken.lifetime/1
 
 config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1 week
-
-#FIXME: rename those callbacks
-config :asteroid, :refresh_token_before_send_resp_callback,
-  &Asteroid.Config.DefaultCallbacks.id_first_param/2
-
-config :asteroid, :refresh_token_before_send_conn_callback,
-  &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 # access tokens
 

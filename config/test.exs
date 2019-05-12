@@ -52,39 +52,36 @@ config :asteroid, :attribute_repositories,
 [
   subject: [
     module: AttributeRepositoryMnesia,
-    run_opts: [instance: :subject]
+    run_opts: [instance: :subject],
+    init_opts: [instance: :subject]
   ],
   client: [
     module: AttributeRepositoryMnesia,
-    run_opts: [instance: :client]
+    run_opts: [instance: :client],
+    init_opts: [instance: :client]
   ],
   device: [
     module: AttributeRepositoryMnesia,
-    run_opts: [instance: :device]
+    run_opts: [instance: :device],
+    init_opts: [instance: :device]
   ]
 ]
 
 config :asteroid, :api_oauth2_plugs,
   [
-    {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
-    {APIacAuthBasic,
-      realm: "Asteroid",
-      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
-      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
-      error_response_verbosity: :debug}
+    {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]}
   ]
 
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
-    {APIacFilterThrottler,
-      key: &APIacFilterThrottler.Functions.throttle_by_ip_path/1,
-      scale: 60_000,
-      limit: 50,
-      exec_cond: &Asteroid.Config.DefaultCallbacks.conn_not_authenticated?/1,
-      error_response_verbosity: :debug},
     {APIacAuthBasic,
       realm: "always erroneous client password",
       callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
       set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
     {APIacAuthBearer,
@@ -95,82 +92,101 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
           [response: {:error, :invalid_token}]
         },
       set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
-      error_response_verbosity: :debug}
+error_response_verbosity: :debug}
   ]
 
 config :asteroid, :api_oauth2_endpoint_introspect_plugs,
   [
+    {APIacAuthBasic,
+      realm: "always erroneous client password",
+      callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator:
+        {
+          APIacAuthBearer.Validator.Identity,
+          [response: {:error, :invalid_token}]
+        },
+      set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
+error_response_verbosity: :debug}
   ]
 
-config :asteroid, :issuer_callback, &Asteroid.Config.DefaultCallbacks.issuer/1
+config :asteroid, :oauth2_grant_types_enabled, [
+  :authorization_code, :password, :client_credentials, :refresh_token
+]
 
 config :asteroid, :api_error_response_verbosity, :debug
 
-config :asteroid, :ropc_username_password_verify_callback,
+config :asteroid, :oauth2_ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
-config :asteroid, :issue_refresh_token_callback,
-  &Asteroid.Config.DefaultCallbacks.issue_refresh_token_callback/1
+config :asteroid, :oauth2_flow_ropc_scope_config,
+  %{
+  }
 
-config :asteroid, :ropc_issue_refresh_token, true
+config :asteroid, :oauth2_scope_callback,
+  &Asteroid.OAuth2.Scope.grant_for_flow/2
 
-config :asteroid, :ropc_scope_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_password_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :refresh_token_lifetime_callback,
-  &Asteroid.Config.DefaultCallbacks.refresh_token_lifetime_callback/1
-
-config :asteroid, :refresh_token_lifetime_ropc, 60 * 60 * 24 * 7 # 1 week
-
-config :asteroid, :access_token_lifetime_callback,
-  &Asteroid.Config.DefaultCallbacks.access_token_lifetime_callback/1
-
-config :asteroid, :access_token_lifetime_ropc, 60 * 10
-
-config :asteroid, :ropc_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_password_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :ropc_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :ropc_issue_new_refresh_token, false
-
-config :asteroid, :introspect_endpoint_authorized,
-  &Asteroid.Config.DefaultCallbacks.introspect_endpoint_authorized?/1
-
-config :asteroid, :introspect_resp_claims,
-  fn _ctx -> [
-    "scope",
-    "client_id",
-    "username",
-    "token_type",
-    "exp",
-    "iat",
-    "nbf",
-    "sub",
-    "aud",
-    "iss",
-    "jti"
-  ] end
-
-config :asteroid, :introspect_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :introspect_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_introspect_client_authorized,
+  &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1
+
+config :asteroid, :oauth2_endpoint_introspect_claims_resp,
+  ["scope", "client_id", "username", "token_type", "exp", "iat", "nbf", "sub", "aud", "iss", "jti"]
+
+config :asteroid, :oauth2_endpoint_introspect_claims_resp_callback,
+  &Asteroid.OAuth2.Callback.endpoint_introspect_claims_resp/1
+
+config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :refresh_token_before_store_callback,
+config :asteroid, :oauth2_endpoint_introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :access_token_before_store_callback,
+# Refresh tokens
+
+config :asteroid, :token_store_refresh_token_before_store_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-#FIXME: rename those callbacks
-config :asteroid, :refresh_token_before_send_resp_callback,
+config :asteroid, :oauth2_issue_refresh_token_callback,
+  &Asteroid.Token.RefreshToken.issue_refresh_token?/1
+
+config :asteroid, :oauth2_flow_ropc_issue_refresh_token_init, true
+
+config :asteroid, :oauth2_flow_ropc_issue_refresh_token_refresh, false
+
+config :asteroid, :oauth2_refresh_token_lifetime_callback,
+  &Asteroid.Token.RefreshToken.lifetime/1
+
+config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1 week
+
+# access tokens
+
+config :asteroid, :token_store_access_token_before_store_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :refresh_token_before_send_conn_callback,
-  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+config :asteroid, :oauth2_access_token_lifetime_callback,
+  &Asteroid.Token.AccessToken.lifetime/1
+
+config :asteroid, :oauth2_flow_ropc_access_token_lifetime, 60 * 10
 
 config :asteroid, :client_credentials_issue_refresh_token, false
 

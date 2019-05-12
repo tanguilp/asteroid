@@ -42,11 +42,17 @@ defmodule Asteroid.Config.DefaultCallbacks do
 
   def id_first_param(param, _), do: param
 
+  # FIXME: move to Asteroid.Client ?
+
   @spec get_client_secret(APIac.realm(), APIac.client()) :: binary() | nil
   def get_client_secret(_realm, client_id) do
-    {:ok, client} = Client.load(client_id, attributes: ["client_secret"])
+    case Client.load(client_id, attributes: ["client_secret"]) do
+      {:ok, client} ->
+        client.attrs["client_secret"]
 
-    client.attrs["client_secret"]
+      {:error, _} ->
+        nil
+    end
   end
 
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()

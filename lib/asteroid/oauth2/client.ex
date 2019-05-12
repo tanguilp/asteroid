@@ -74,7 +74,9 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
-  @spec get_authenticated_client(Plug.Conn.t()) :: {:ok, Client.t()} | {:error, atom()}
+  @spec get_authenticated_client(Plug.Conn.t()) ::
+  {:ok, Client.t()}
+  | {:error, %__MODULE__.AuthenticationError{}}
 
   defp get_authenticated_client(conn) do
     if APIac.authenticated?(conn) do
@@ -90,7 +92,9 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
-  @spec get_unauthenticated_client(Plug.Conn.t()) :: {:ok, Client.t()} | {:error, atom()}
+  @spec get_unauthenticated_client(Plug.Conn.t()) ::
+  {:ok, Client.t()}
+  | {:error, %__MODULE__.AuthenticationError{}}
 
   defp get_unauthenticated_client(conn) do
     case conn.body_params["client_id"] do
@@ -99,7 +103,7 @@ defmodule Asteroid.OAuth2.Client do
 
       client_id ->
         if OAuth2Utils.valid_client_id_param?(client_id) do
-          case Client.load(client_id) do #FIXME => by attribute
+          case Client.load(client_id) do
             {:ok, client} ->
               if public?(client) do
                 if not has_credentials?(client) do
@@ -135,18 +139,12 @@ defmodule Asteroid.OAuth2.Client do
   | {:error, %__MODULE__.AuthorizationError{}}
 
   def  grant_type_authorized?(client, grant_type) do
+    client = Client.fetch_attributes(client, ["grant_types"])
+
     if grant_type in client.attrs["grant_types"] do
       :ok
     else
-      # the "grant_types" attribute may not have been loaded
-      client = Client.load(client.id, attributes: ["grant_types"])
-
-      if grant_type in client.attrs["grant_types"] do
-        :ok
-
-      else
-        {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_grant_type)}
-      end
+      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_grant_type)}
     end
   end
 
@@ -205,7 +203,8 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @spec error_response(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t
-  def error_response(conn, error) do
+
+  def error_response(conn, %__MODULE__.AuthenticationError{} = error) do
     response =
       case astrenv(:api_error_response_verbosity) do
         :debug ->
@@ -231,6 +230,31 @@ defmodule Asteroid.OAuth2.Client do
     |> Phoenix.Controller.json(response)
   end
 
+  def error_response(conn, %__MODULE__.AuthorizationError{} = error) do
+    response =
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          %{
+            "error" => "unauthorized_client",
+            "error_description" =>
+            Exception.message(error) <> " "
+              <> "("
+              <> inspect(APIac.AuthFailureResponseData.get(conn), limit: :infinity)
+              <> ")"
+          }
+
+        _ ->
+          %{
+            "error" => "unauthorized_client",
+            "error_description" => Exception.message(error)
+          }
+      end
+
+    conn
+    |> Plug.Conn.put_status(400)
+    |> set_www_authenticate_header()
+    |> Phoenix.Controller.json(response)
+  end
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
   defp set_www_authenticate_header(conn) do
     apisex_errors = APIac.AuthFailureResponseData.get(conn)
@@ -279,7 +303,7 @@ defmodule Asteroid.OAuth2.Client do
   for information on scopes.
   """
 
-  @spec endpoint_introspect_authorized?(Client.t()) :: boolean()
+  @spec endpoint_introspect_authorized?(Client.t()) :: :ok | {:error, :unauthorized}
 
   def endpoint_introspect_authorized?(client) do
     client = Client.fetch_attributes(client, ["scope"])

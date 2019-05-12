@@ -7,8 +7,9 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
-  def handle(conn, params) do
+  def handle(%Plug.Conn{body_params: %{"token" => token}} = conn, params) do
     with {:ok, client} <- OAuth2.Client.get_client(conn, false),
+         :ok <- valid_token_parameter?(token),
          :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client)
     do
       do_handle(conn, params, client)
@@ -16,12 +17,20 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
         OAuth2.Client.error_response(conn, error)
 
+      {:error, %Asteroid.OAuth2.Request.MalformedParamError{} = error} ->
+        OAuth2.Request.error_response(conn, error)
+
       {:error, :unauthorized} ->
         error_resp(conn, 403,
                    %{"error" => "unauthorized_client",
                      "error_description" => "Client does not have the relevant permission"
                    })
     end
+  end
+
+  def handle(conn, _) do
+    error_resp(conn, 400, error: :invalid_request,
+               error_description: "Missing `token` parameter")
   end
 
   def do_handle(%Plug.Conn{body_params: %{"token" => token}} = conn, _params, client) do
@@ -62,12 +71,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
     end
   end
 
-  def do_handle(conn, _) do
-    error_resp(conn, 400, error: :invalid_request,
-               error_description: "Missing `token` parameter")
-  end
-
-  @spec introspect_access_token(Plug.Conn.t(), String.t(), Client.t()) :: boolean
+  @spec introspect_access_token(Plug.Conn.t(), AccessToken.t(), Client.t()) :: Plug.Conn.t()
 
   defp introspect_access_token(conn, access_token, client) do
     maybe_subject =
@@ -88,11 +92,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
     response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
-    resp = 
+    resp =
       access_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
       |> Enum.into(%{})
-      |> Map.put("active", "true")
+      |> Map.put("active", true)
       |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
@@ -101,7 +105,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
     |> json(resp)
   end
 
-  @spec introspect_refresh_token(Plug.Conn.t(), String.t(), Client.t()) :: boolean
+  @spec introspect_refresh_token(Plug.Conn.t(), RefreshToken.t(), Client.t()) :: Plug.Conn.t()
   defp introspect_refresh_token(conn, refresh_token, client) do
     maybe_subject =
       case Subject.load(refresh_token.data["sub"]) do
@@ -119,19 +123,33 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :refresh_token) # FIXME: document it
 
-    response_claims = astrenv(:introspect_resp_claims).(ctx)
+    response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
-    resp = 
-      refresh_token.claims
+    resp =
+      refresh_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
       |> Enum.into(%{}) # since Enum.filter/2 retunrs a list
-      |> Map.put("active", "true")
+      |> Map.put("active", true)
       |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
     |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
+  end
+
+  @spec valid_token_parameter?(String.t()) ::
+  :ok
+  | {:error, %OAuth2.Request.MalformedParamError{}}
+
+  defp valid_token_parameter?(token) do
+    if OAuth2Utils.valid_access_token_param?(token) or
+      OAuth2Utils.valid_refresh_token_param?(token) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "token",
+                                                            parameter_value: token)}
+    end
   end
 
   @spec token_not_found_resp(Plug.Conn.t(), Client.t()) :: Plug.Conn.t()

@@ -15,6 +15,11 @@ defmodule Asteroid.Token.AccessToken do
   - `"client_id"`: the `t:Asteroid.Client.id()` of the access token
   - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the refresh token
   - `"device_id"`: the `t:Asteroid.Device.id()` of the access token
+  - `"status"`: a `String.t()` for the status of the token. A token that has been revoked is not
+  necessarily still present in the token store (e.g. for stateful tokens it will be probably
+  deleted). Optionally one of:
+    - `"active"`: active token
+    - `"revoked"`: revoked token
   """
 
   @enforce_keys [:id, :serialization_format, :data]
@@ -87,7 +92,7 @@ defmodule Asteroid.Token.AccessToken do
 
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, any()}
 
-  def get(access_token_id, opts \\ []) do
+  def get(access_token_id, opts \\ [check_active: true]) do
     token_store_module = astrenv(:token_store_access_token)[:module]
     token_store_opts = astrenv(:token_store_access_token)[:opts] || []
 
@@ -200,7 +205,7 @@ defmodule Asteroid.Token.AccessToken do
     and
     (is_nil(access_token.data["exp"]) or access_token.data["exp"] > now())
     and
-    (is_nil(access_token.data["revoked"]) or access_token.data["revoked"] == false)
+    (is_nil(access_token.data["status"]) or access_token.data["status"] != "revoked")
     #FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
     #   o  If the token has been signed, the authorization server MUST
     #  validate the signature.
@@ -223,7 +228,7 @@ defmodule Asteroid.Token.AccessToken do
   """
 
   def lifetime(%{flow: :ropc, client: client}) do
-    attr = "__asteroid_oauth2_flow_ropc_refresh_token_lifetime"
+    attr = "__asteroid_oauth2_flow_ropc_access_token_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
 

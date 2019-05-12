@@ -35,10 +35,14 @@ defmodule Asteroid.OAuth2 do
 
   @type endpoint :: :authorize | :token | :introspect | :revoke
 
-  @spec grant_type_enabled?(grant_type()) :: boolean
+  @spec grant_type_enabled?(grant_type()) :: :ok | {:error, :grant_type_disabled}
 
   def grant_type_enabled?(grant_type) do
-    grant_type in astrenv(:oauth2_grant_types_enabled, [])
+    if grant_type in astrenv(:oauth2_grant_types_enabled, []) do
+      :ok
+    else
+      {:error, :grant_type_disabled}
+    end
   end
 
   @doc """

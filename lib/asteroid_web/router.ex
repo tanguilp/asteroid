@@ -3,6 +3,7 @@ defmodule AsteroidWeb.Router do
 
   use AsteroidWeb, :router
   use Plug.ErrorHandler
+
   import Asteroid.Utils
 
   pipeline :browser do
@@ -59,7 +60,7 @@ defmodule AsteroidWeb.Router do
     end
   end
 
-  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
+  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack} = error) do
     conn
     |> put_status(400)
     |> json(%{

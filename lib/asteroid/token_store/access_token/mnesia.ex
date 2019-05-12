@@ -235,12 +235,14 @@ defmodule Asteroid.TokenStore.AccessToken.Mnesia do
   @impl true
 
   def delete_from_refresh_token_id(refresh_token_id, opts) do
+    {:ok, access_token_ids} = get_from_refresh_token_id(refresh_token_id, opts)
+    
     res =
-      for access_token_id <- get_from_refresh_token_id(refresh_token_id, opts) do
+      for access_token_id <- access_token_ids do
         delete(access_token_id, opts)
       end
 
-    if Enum.any?(
+    if Enum.all?(
          res,
          fn
            :ok ->

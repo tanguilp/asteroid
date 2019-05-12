@@ -14,19 +14,31 @@ defmodule Asteroid.Utils do
     |> Base.url_encode64(padding: false)
   end
 
+  @doc """
+  Returns the configuration option value
+
+  In tests, checks first the process dictionnary for the value and fallbacks to the standard
+  configuration, so that one can set configuration at the testing process level using:
+
+  ```elixir
+  Process.put(:configuration_option, value)
+  ```
+  """
   @spec astrenv(atom()) :: any()
-  def astrenv(key) do
-    Application.get_env(:asteroid, key)
-  end
 
-  @spec astrenv(atom(), any()) :: any()
-  def astrenv(key, default) do
-    case Application.get_env(:asteroid, key) do
-      nil ->
-        default
+  if Mix.env() == :test do
+    def astrenv(key, default_value \\ nil) do
+      case Process.get(key) do
+        nil ->
+          Application.get_env(:asteroid, key, default_value)
 
-      val ->
-        val
+        value ->
+          value
+      end
+    end
+  else
+    def astrenv(key, default_value \\ nil) do
+      Application.get_env(:asteroid, key, default_value)
     end
   end
 

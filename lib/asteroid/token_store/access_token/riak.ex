@@ -263,7 +263,7 @@ defmodule Asteroid.TokenStore.AccessToken.Riak do
             delete(access_token_id, opts)
           end
 
-        if Enum.any?(
+        if Enum.all?(
              res,
              fn
                :ok ->

@@ -17,7 +17,7 @@ defmodule Asteroid.OAuth2.Scope do
   ## ROPC
 
   The functions adds the scopes marked as `auto: true` in accordance to the
-  [`:oauth2_flow_ropc_scope_config`](TODO)
+  #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_scope_config)}
   configuration option, only during the initial request (when the username and password
   parameters are provided).
 
@@ -32,11 +32,11 @@ defmodule Asteroid.OAuth2.Scope do
       astrenv(:oauth2_flow_ropc_scope_config) || [],
       scopes,
       fn
-        {scope, scope_config} ->
+        {scope, scope_config}, acc ->
           if scope_config[:auto] do
-            Scope.Set.put(scopes, scope)
+            Scope.Set.put(acc, scope)
           else
-            scopes
+            acc
           end
       end
     )
