@@ -8,7 +8,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   alias Asteroid.OAuth2
 
   def handle(%Plug.Conn{body_params: %{"token" => token}} = conn, params) do
-    with {:ok, client} <- OAuth2.Client.get_client(conn, false),
+    with {:ok, client} <- OAuth2.Client.get_authenticated_client(conn),
          :ok <- valid_token_parameter?(token),
          :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client)
     do

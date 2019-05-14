@@ -184,7 +184,10 @@ defmodule Asteroid.Config do
 
     field :oauth2_scope_callback,
       config_time: :runtime,
-      uses: [:oauth2_flow_ropc_scope_config]
+      uses: [
+        :oauth2_flow_ropc_scope_config,
+        :oauth2_flow_client_credentials_scope_config
+      ]
 
     @doc """
     Defines whether a refresh token should be issued when initiating an ROPC flow
@@ -219,7 +222,9 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     uses: [
       :oauth2_flow_ropc_issue_refresh_token_init,
-      :oauth2_flow_ropc_issue_refresh_token_refresh
+      :oauth2_flow_ropc_issue_refresh_token_refresh,
+      :oauth2_flow_client_credentials_issue_refresh_token_init,
+      :oauth2_flow_client_credentials_issue_refresh_token_refresh
     ]
 
     @doc """
@@ -245,7 +250,8 @@ defmodule Asteroid.Config do
     field :oauth2_refresh_token_lifetime_callback,
     config_time: :runtime,
     uses: [
-      :oauth2_flow_ropc_refresh_token_lifetime
+      :oauth2_flow_ropc_refresh_token_lifetime,
+      :oauth2_flow_client_credentials_refresh_token_lifetime
     ]
 
     @doc """
@@ -271,7 +277,8 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_lifetime_callback,
     config_time: :runtime,
     uses: [
-      :oauth2_flow_ropc_access_token_lifetime
+      :oauth2_flow_ropc_access_token_lifetime,
+      :oauth2_flow_client_credentials_access_token_lifetime
     ]
 
     @doc """
@@ -288,7 +295,7 @@ defmodule Asteroid.Config do
     Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is "password"
     """
 
-    @type oauth2_grant_type_password_before_send_conn_callback ::
+    @type oauth2_endpoint_token_grant_type_password_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
     field :oauth2_endpoint_token_grant_type_password_before_send_conn_callback,
@@ -367,6 +374,85 @@ defmodule Asteroid.Config do
 
     field :oauth2_endpoint_introspect_before_send_conn_callback,
     config_time: :runtime
+
+    @doc """
+    Scope configuration for the client credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_scope_config :: scope_config()
+
+    field :oauth2_flow_client_credentials_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when initiating a client credentials
+    flow
+
+    Note that you should note, according to the specification, release a refresh token in
+    this flow.
+    """
+
+    @type oauth2_flow_client_credentials_issue_refresh_token_init :: boolean()
+
+    field :oauth2_flow_client_credentials_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens
+    """
+
+    @type oauth2_flow_client_credentials_issue_refresh_token_refresh :: boolean()
+
+    field :oauth2_flow_client_credentials_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token in the clienjt credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_refresh_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_client_credentials_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the client credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_access_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_client_credentials_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback invoked on the json response when the grant_type is `"client_credentials"`
+    """
+
+    @type oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is
+    `"client_credentials"`
+    """
+
+    @type oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback,
+    config_time: :runtime
+
+    ### end of configuration options
   end
 
   @doc """

@@ -375,158 +375,172 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   # Client Credentials tests
   ##########################################################################
 
-  #test "client credentials public client with no credentials: authentication is mandatory", %{conn: conn} do
-  #  req_body = %{
-  #    "grant_type" => "client_credentials"
-  #  }
+  test "client credentials public client with no credentials: authentication is mandatory", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
 
-  #  conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-  #    ~s(Basic realm="always erroneous client password")
+    response = json_response(conn, 401)
 
-  #  assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-  #    ~s(Basic realm="Asteroid")
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="always erroneous client password")
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="Asteroid")
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Bearer realm="Asteroid")
+    assert response["error"] == "invalid_client"
+  end
 
-  #  assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-  #    ~s(Bearer realm="Asteroid")
+  test "client credentials confidential client with invalid credentials: authentication is mandatory", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
 
-  #  response = json_response(conn, 401)
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "invalid"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  assert response["error"] == "invalid_client"
-  #end
+    response = json_response(conn, 401)
 
-  #test "client credentials valid client authentication, token issued", %{conn: conn} do
-  #  req_body = %{
-  #    "grant_type" => "client_credentials"
-  #  }
+    # here we should only have one value in this header because the authentication failed, we
+    # are not in the case there is NO authentication attempt
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="Asteroid")
+    assert response["error"] == "invalid_client"
+  end
 
-  #  conn =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+  test "client credentials valid confidential client authentication, token issued", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
 
-  #  response = json_response(conn, 200)
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
-  #  assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
-  #  assert response["token_type"] == "bearer"
-  #  assert is_integer(response["expires_in"])
-  #  assert {:ok, access_token} = AccessToken.get(response["access_token"])
-  #  assert access_token.data["sub"] == nil
-  #  assert access_token.data["client_id"] == "client_confidential_1"
-  #  assert response["scope"] == nil
-  #  assert response["refresh_token"] == nil
-  #end
+    response = json_response(conn, 200)
 
-  #test "client credentials valid client authentication, token issued (incl. refresh token)", %{conn: conn} do
-  #  req_body = %{
-  #    "grant_type" => "client_credentials"
-  #  }
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert access_token.data["sub"] == nil
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+    assert response["refresh_token"] == nil
+  end
 
-  #  Application.put_env(:asteroid, :client_credentials_issue_refresh_token, true)
+  test "client credentials valid client authentication, token issued (incl. refresh token)", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
 
-  #  conn =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    Process.put(:oauth2_flow_client_credentials_issue_refresh_token_init, true)
+    Process.put(:oauth2_flow_client_credentials_refresh_token_lifetime, 60 * 60)
 
-  #  Application.put_env(:asteroid, :client_credentials_issue_refresh_token, false)
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  response = json_response(conn, 200)
+    response = json_response(conn, 200)
 
-  #  assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
-  #  assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
-  #  assert response["token_type"] == "bearer"
-  #  assert is_integer(response["expires_in"])
-  #  assert {:ok, access_token} = AccessToken.get(response["access_token"])
-  #  assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
-  #  assert refresh_token.data["sub"] == nil
-  #  assert access_token.data["sub"] == nil
-  #  assert refresh_token.data["client_id"] == "client_confidential_1"
-  #  assert access_token.data["client_id"] == "client_confidential_1"
-  #  assert response["scope"] == nil
-  #end
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert refresh_token.data["sub"] == nil
+    assert access_token.data["sub"] == nil
+    assert refresh_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+  end
 
-  #test "client credentials valid client authentication, token issued with scopes", %{conn: conn} do
-  #  req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
+  test "client credentials valid client authentication, access token issued with scopes", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
 
-  #  req_body = %{
-  #    "grant_type" => "client_credentials",
-  #    "scope" => Enum.join(req_scope, " ")
-  #  }
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
 
-  #  conn =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  response = json_response(conn, 200)
+    response = json_response(conn, 200)
 
-  #  assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
-  #  assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
-  #  assert response["token_type"] == "bearer"
-  #  assert is_integer(response["expires_in"])
-  #  assert {:ok, access_token} = AccessToken.get(response["access_token"])
-  #  assert access_token.data["sub"] == nil
-  #  assert access_token.data["client_id"] == "client_confidential_1"
-  #  assert response["scope"] == nil
-  #  assert response["refresh_token"] == nil
-  #  assert access_token.data["scope"] == req_scope
-  #  assert response["scope"] == nil
-  #end
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert access_token.data["sub"] == nil
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert response["scope"] == nil
+    assert response["refresh_token"] == nil
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]), req_scope)
+    assert response["scope"] == nil
+  end
 
-  #test "client credentials additional scope added by callback", %{conn: conn} do
-  #  req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
+  test "client credentials additional scope added by callback", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp5", "scp6", "scp1"])
 
-  #  req_body = %{
-  #    "grant_type" => "client_credentials",
-  #    "scope" => Enum.join(req_scope, " ")
-  #  }
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
 
-  #  client_credentials_scope_callback_origin =
-  #    Application.get_env(:asteroid, :client_credentials_scope_callback)
-  #  Application.put_env(:asteroid, :client_credentials_scope_callback,
-  #                      &Asteroid.CallbackTest.add_scp99_scope/2)
+    f = fn
+      scopes, _ctx ->
+        Scope.Set.put(scopes, "scp99")
+    end
 
-  #  conn =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    Process.put(:oauth2_scope_callback, f)
 
-  #  Application.put_env(:asteroid, :client_credentials_scope_callback,
-  #                      client_credentials_scope_callback_origin)
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-  #  response= json_response(conn, 200)
+    response = json_response(conn, 200)
 
-  #  assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
-  #  assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
-  #  assert response["token_type"] == "bearer"
-  #  assert is_integer(response["expires_in"])
-  #  assert {:ok, access_token} = AccessToken.get(response["access_token"])
-  #  refute access_token.data["scope"] == req_scope
-  #  assert access_token.data["sub"] == nil
-  #  assert access_token.data["client_id"] == "client_confidential_1"
-  #  assert Scope.Set.equal?(Scope.Set.from_scope_param!(response["scope"]),
-  #                          Scope.Set.put(req_scope, "scp99"))
-  #end
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert access_token.data["scope"] != nil
+    assert access_token.data["sub"] == nil
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert Scope.Set.equal?(Scope.Set.from_scope_param!(response["scope"]),
+                            Scope.Set.put(req_scope, "scp99"))
+  end
 
-  #test "client credentials valid client authentication, invalid scope", %{conn: conn} do
-  #  req_scope = MapSet.new(["scp3", "scp7", "scp6", "scp1"])
+  test "client credentials valid client authentication, invalid scope", %{conn: conn} do
+    req_scope = MapSet.new(["scp3", "scp7", "scp6", "scp1"])
 
-  #  req_body = %{
-  #    "grant_type" => "client_credentials",
-  #    "scope" => Enum.join(req_scope, " ")
-  #  }
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
 
-  #  response =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
-  #    |> json_response(400)
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
 
-  #  assert response["error"] == "invalid_scope"
-  #end
+    assert response["error"] == "invalid_scope"
+  end
 
   ##########################################################################
   # Refresh token grant types

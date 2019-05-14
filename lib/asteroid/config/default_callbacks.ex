@@ -45,6 +45,7 @@ defmodule Asteroid.Config.DefaultCallbacks do
   # FIXME: move to Asteroid.Client ?
 
   @spec get_client_secret(APIac.realm(), APIac.client()) :: binary() | nil
+
   def get_client_secret(_realm, client_id) do
     case Client.load(client_id, attributes: ["client_secret"]) do
       {:ok, client} ->

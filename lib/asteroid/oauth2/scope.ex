@@ -23,6 +23,16 @@ defmodule Asteroid.OAuth2.Scope do
 
   On further token renewal requests the released scopes are the ones requested and already
   granted during the initial request.
+
+  ## Client credentials
+
+  The functions adds the scopes marked as `auto: true` in accordance to the
+  #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_scope_config)}
+  configuration option, only during the initial request.
+
+  On further token renewal requests the released scopes are the ones requested and already
+  granted during the initial request, although you should probably not use refresh tokens
+  in such a flow.
   """
 
   @spec grant_for_flow(Scope.Set.t(), Context.t()) :: Scope.Set.t()
@@ -30,6 +40,21 @@ defmodule Asteroid.OAuth2.Scope do
   def grant_for_flow(scopes, %{flow: :ropc, grant_type: :password}) do
     Enum.reduce(
       astrenv(:oauth2_flow_ropc_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
+  def grant_for_flow(scopes, %{flow: :client_credentials, grant_type: :client_credentials}) do
+    Enum.reduce(
+      astrenv(:oauth2_flow_client_credentials_scope_config) || [],
       scopes,
       fn
         {scope, scope_config}, acc ->

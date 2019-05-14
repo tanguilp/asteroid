@@ -31,6 +31,14 @@ defmodule Asteroid.Client do
   lifetime duration of a refresh token in the ROPC flow
   - `"__asteroid_oauth2_flow_ropc_access_token_lifetime"`: a `non_neg_integer()` set to the
   lifetime duration of an access token in the ROPC flow
+  - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_init"`: a `boolean()` set to
+  `true` if a refresh token is to be issued at the first request of the client credentials flow
+  - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_refresh"`: a `boolean()` set
+  to `true` if a refresh token is to be issued when refresh tokens in the client_credentials flow
+  - `"__asteroid_oauth2_flow_client_credentials_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the client credentials flow
+  - `"__asteroid_oauth2_flow_client_credentials_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the client credentials flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
 
@@ -42,5 +50,7 @@ defmodule Asteroid.Client do
 
   - When using client secrets, make sure to 1) generate their secrets randomly and 2) store them
   in an appropriate manner. See the [expwd](https://github.com/tanguilp/expwd) library.
+  - You **SHOULD NOT** issue client secrets to public clients
+  [RFC6749 - 10.1.  Client Authentication](https://tools.ietf.org/html/rfc6749#section-10.1)
   """
 end

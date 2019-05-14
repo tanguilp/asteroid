@@ -47,11 +47,18 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
-  @spec get_client(Plug.Conn.t(), boolean()) ::
+  @doc """
+  Returns the authenticated or **unauthenticated** client of a request
+
+  To make sure that the client is authenticated, one shall use the `get_authenticated_client/1`
+  function instead.
+  """
+
+  @spec get_client(Plug.Conn.t()) ::
   {:ok, Client.t()}
   | {:error, %__MODULE__.AuthenticationError{}}
 
-  def get_client(conn, allow_unauthenticated_public_clients \\ false) do
+  def get_client(conn) do
     case get_authenticated_client(conn) do
       {:ok, client} ->
         {:ok, client}
@@ -59,26 +66,20 @@ defmodule Asteroid.OAuth2.Client do
       {:error, %__MODULE__.AuthenticationError{reason: :unkown_client}} = error ->
         error
 
-      {:error, exception} ->
-        if allow_unauthenticated_public_clients do
-          case get_unauthenticated_client(conn) do
-            {:ok, client} ->
-              {:ok, client}
-
-            error ->
-              error
-          end
-        else
-          {:error, exception}
-        end
+      {:error, _} ->
+        get_unauthenticated_client(conn)
     end
   end
+
+  @doc """
+  Returns the APIac authenticated client, or an error if none was found
+  """
 
   @spec get_authenticated_client(Plug.Conn.t()) ::
   {:ok, Client.t()}
   | {:error, %__MODULE__.AuthenticationError{}}
 
-  defp get_authenticated_client(conn) do
+  def get_authenticated_client(conn) do
     if APIac.authenticated?(conn) do
       case Client.load(APIac.client(conn)) do
         {:ok, client} ->
@@ -92,11 +93,20 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
+  @doc """
+  Returns the unauthenticated client of a request
+
+  It does so by reading the `"client_id"` body parameter and trying to find the associated
+  **public** client in the client's attribute repository. If it is found and it has no
+  credentials (calling the `has_credentials?/1` function), it returns the client. Otherwise
+  an error is returned.
+  """
+
   @spec get_unauthenticated_client(Plug.Conn.t()) ::
   {:ok, Client.t()}
   | {:error, %__MODULE__.AuthenticationError{}}
 
-  defp get_unauthenticated_client(conn) do
+  def get_unauthenticated_client(conn) do
     case conn.body_params["client_id"] do
       nil ->
         {:error, __MODULE__.AuthenticationError.exception(reason: :unauthenticated_request)}
@@ -151,7 +161,8 @@ defmodule Asteroid.OAuth2.Client do
   @doc """
   Returns `true` if the client is authorized to use the scopes, `false` otherwise
 
-  Checks for each scope of the `ScopeSet` if it's included in the  client's `"scope"` attribute.
+  Checks for each scope of the `Scope.Set.t()` if it's included in the  client's `"scope"`
+  attribute.
   """
 
   @spec scopes_authorized?(Asteroid.Client.t(), Scope.Set.t()) ::
@@ -161,7 +172,7 @@ defmodule Asteroid.OAuth2.Client do
   def  scopes_authorized?(client, scope_set) do
     client = Client.fetch_attributes(client, ["scope"])
 
-    if client.attrs["scope"] != nil and Scope.Set.subset?(scope_set, client.attrs["scope"]) do
+    if Scope.Set.subset?(scope_set, Scope.Set.new(client.attrs["scope"] || [])) do
       :ok
     else
       {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_scope)}
@@ -230,6 +241,32 @@ defmodule Asteroid.OAuth2.Client do
     |> Phoenix.Controller.json(response)
   end
 
+  def error_response(conn, %__MODULE__.AuthorizationError{reason: :unauthorized_scope} = error) do
+    response =
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          %{
+            "error" => "invalid_scope",
+            "error_description" =>
+            Exception.message(error) <> " "
+              <> "("
+              <> inspect(APIac.AuthFailureResponseData.get(conn), limit: :infinity)
+              <> ")"
+          }
+
+        _ ->
+          %{
+            "error" => "invalid_scope",
+            "error_description" => Exception.message(error)
+          }
+      end
+
+    conn
+    |> Plug.Conn.put_status(400)
+    |> set_www_authenticate_header()
+    |> Phoenix.Controller.json(response)
+  end
+
   def error_response(conn, %__MODULE__.AuthorizationError{} = error) do
     response =
       case astrenv(:api_error_response_verbosity) do
@@ -255,6 +292,7 @@ defmodule Asteroid.OAuth2.Client do
     |> set_www_authenticate_header()
     |> Phoenix.Controller.json(response)
   end
+
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
   defp set_www_authenticate_header(conn) do
     apisex_errors = APIac.AuthFailureResponseData.get(conn)

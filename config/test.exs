@@ -161,6 +161,24 @@ config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
 config :asteroid, :oauth2_endpoint_introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
+# Flow: client credentials
+
+config :asteroid, :oauth2_flow_client_credentials_scope_config,
+  %{
+  }
+
+config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_init, false
+
+config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_refresh, false
+
+config :asteroid, :oauth2_flow_client_credentials_access_token_lifetime, 60 * 10
+
+config :asteroid, :oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
 # Refresh tokens
 
 config :asteroid, :token_store_refresh_token_before_store_callback,
