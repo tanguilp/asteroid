@@ -6,7 +6,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
-  alias Asteroid.Token.{RefreshToken, AccessToken}
+  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
@@ -42,7 +42,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
-      ctx = Map.put(ctx, :scopes, granted_scopes)
+      ctx = Map.put(ctx, :granted_scopes, granted_scopes)
 
       maybe_refresh_token =
         if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
@@ -103,6 +103,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = error} ->
         OAuth2.Client.error_response(conn, error)
 
+      {:error, %Asteroid.OAuth2.Client.UnauthorizedScopeError{} = e} ->
+        error_resp(conn, error: :invalid_scope, error_description: Exception.message(e))
+
       {:error, %Asteroid.OAuth2.Request.MalformedParamError{} = error} ->
         OAuth2.Request.error_response(conn, error)
 
@@ -117,10 +120,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, :malformed} ->
         error_resp(conn, error: :invalid_scope,
                    error_description: "Scope param is malformed")
-
-      {:error, :unauthorized_scope} ->
-        error_resp(conn, error: :invalid_scope,
-                    error_description: "The client has not been granted this scope")
 
       {:error, %AttributeRepository.Read.NotFoundError{}} ->
         error_resp(conn, error: :invalid_grant,
@@ -157,7 +156,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
-      ctx = Map.put(ctx, :scopes, granted_scopes)
+      ctx = Map.put(ctx, :granted_scopes, granted_scopes)
 
       maybe_refresh_token =
         if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
@@ -216,6 +215,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = error} ->
         OAuth2.Client.error_response(conn, error)
 
+      {:error, %Asteroid.OAuth2.Client.UnauthorizedScopeError{} = e} ->
+        error_resp(conn, error: :invalid_scope, error_description: Exception.message(e))
+
       {:error, %Asteroid.OAuth2.Request.MalformedParamError{} = error} ->
         OAuth2.Request.error_response(conn, error)
 
@@ -230,10 +232,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, :malformed} ->
         error_resp(conn, error: :invalid_scope,
                    error_description: "Scope param is malformed")
-
-      {:error, :unauthorized_scope} ->
-        error_resp(conn, error: :invalid_scope,
-                    error_description: "The client has not been granted this scope")
     end
   end
 
@@ -249,6 +247,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, client} <- OAuth2.Client.get_client(conn),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "refresh_token"),
          {:ok, requested_scopes} <- get_scope(scope_param),
+         # we let this check in case of dynamic change of the client's configuration
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, refresh_token} <- RefreshToken.get(refresh_token_param),
          :ok <- refresh_token_granted_to_client?(refresh_token, client)
@@ -358,6 +357,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, %OAuth2.Request.MalformedParamError{} = error} ->
         OAuth2.Request.error_response(conn, error)
 
+      {:error, %Asteroid.OAuth2.Client.UnauthorizedScopeError{} = e} ->
+        error_resp(conn, error: :invalid_scope, error_description: Exception.message(e))
+
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
                    error_description: "Grant type refresh token not enabled")
@@ -377,10 +379,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         error_resp(conn, error: :invalid_grant,
                     error_description: "Invalid refresh token")
 
-      {:error, :unauthorized_scope} ->
-        error_resp(conn, error: :unauthorized_scope,
-                    error_description: "The client has not been granted this scope")
-
       {:error, reason} ->
         error_resp(conn, error: :server_error,
                     error_description: "#{inspect reason}")
@@ -394,6 +392,120 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                error_description: "Missing `refresh_token` parameter")
   end
 
+  # authorization code
+
+  def handle(%Plug.Conn{body_params:
+    %{"grant_type" => "authorization_code",
+      "code" => code,
+      "redirect_uri" => redirect_uri
+    }} = conn, _params)
+  do
+    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:code),
+         {:ok, client} <- OAuth2.Client.get_client(conn),
+         :ok <- OAuth2.Client.grant_type_authorized?(client, "authorization_code"),
+         {:ok, authz_code} <- AuthorizationCode.get(code),
+         :ok <- authorization_code_granted_to_client?(authz_code, client),
+         :ok <- redirect_uris_match?(authz_code, redirect_uri),
+         {:ok, subject} <- Subject.load(authz_code.data["sub"])
+    do
+      ctx =
+        %{}
+        |> Map.put(:endpoint, :token)
+        |> Map.put(:flow, :authorization_code)
+        |> Map.put(:grant_type, :authorization_code)
+        |> Map.put(:granted_scopes, Scope.Set.new(authz_code.data["scope"] || []))
+        |> Map.put(:subject, subject)
+        |> Map.put(:client, client)
+
+      maybe_refresh_token =
+        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+          {:ok, refresh_token} =
+            Enum.reduce(
+              authz_code.data,
+              RefreshToken.gen_new(),
+              fn
+                {k, v}, acc ->
+                  RefreshToken.put_value(acc, k, v)
+              end
+            )
+            |> RefreshToken.put_value("iat", now())
+            |> RefreshToken.put_value("exp",
+                now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx))
+            |> RefreshToken.store(ctx)
+
+          refresh_token
+        else
+          nil
+        end
+
+      access_token =
+        Enum.reduce(
+          authz_code.data,
+          if maybe_refresh_token do
+            AccessToken.gen_new(refresh_token: maybe_refresh_token.id)
+          else
+            AccessToken.gen_new()
+          end,
+          fn
+            {k, v}, acc ->
+              AccessToken.put_value(acc, k, v)
+          end
+        )
+        |> AccessToken.put_value("iat", now())
+        |> AccessToken.put_value("exp",
+            now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
+
+      # FIXME: handle failure case?
+      {:ok, access_token} = AccessToken.store(access_token, ctx)
+
+      resp =
+        %{
+          "access_token" => AccessToken.serialize(access_token),
+          "expires_in" => access_token.data["exp"] - now(),
+          "token_type" => "bearer"
+        }
+        |> maybe_put_refresh_token(maybe_refresh_token)
+        |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback).(ctx)
+
+      conn
+      |> put_status(200)
+      |> put_resp_header("cache-control", "no-store")
+      |> put_resp_header("pragma", "no-cache")
+      |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback).(ctx)
+      |> json(resp)
+    else
+      {:error, %OAuth2.Client.AuthenticationError{} = error} ->
+        OAuth2.Client.error_response(conn, error)
+
+      {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = error} ->
+        OAuth2.Client.error_response(conn, error)
+
+      {:error, :grant_type_disabled} ->
+        error_resp(conn, error: :unsupported_grant_type,
+                   error_description: "Grant type authorization code not enabled")
+
+      {:error, :inactive_authorization_code} ->
+        error_resp(conn, error: :invalid_grant,  error_description: "Invalid authorization code")
+
+      {:error, :nonexistent_authorization_code} ->
+        error_resp(conn, error: :invalid_grant,  error_description: "Invalid authorization code")
+
+      {:error, :client_id_no_match} ->
+        error_resp(conn, error: :invalid_grant,  error_description: "Invalid authorization code")
+
+      {:error, :redirect_uri_no_match} ->
+        error_resp(conn, error: :invalid_grant,  error_description: "Invalid redirect uri")
+
+      {:error, reason} ->
+        error_resp(conn, error: :server_error, error_description: inspect(reason))
+    end
+  end
+
+  def handle(%Plug.Conn{body_params: %{"grant_type" => "authorization_code"}} = conn, _params) do
+    error_resp(conn,
+               error: "invalid_request",
+               error_description: "Missing a mandatory parameter")
+  end
   # unrecognized or unsupported grant
 
   def handle(%Plug.Conn{body_params: %{"grant_type" => grant}} = conn, _params) do
@@ -435,6 +547,30 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       :ok
     else
       {:error, :client_id_no_match}
+    end
+  end
+
+  @spec authorization_code_granted_to_client?(AuthorizationCode.t(), Client.t()) ::
+  :ok
+  | {:error, any()}
+
+  def authorization_code_granted_to_client?(authz_code, client) do
+    if authz_code.data["client_id"] == client.id do
+      :ok
+    else
+      {:error, :client_id_no_match}
+    end
+  end
+
+  @spec redirect_uris_match?(AuthorizationCode.t(), OAuth2.RedirectUri.t()) ::
+  :ok
+  | {:error, :redirect_uri_no_match}
+
+  defp redirect_uris_match?(authz_code, redirect_uri) do
+    if authz_code.data["redirect_uri"] == redirect_uri do
+      :ok
+    else
+      {:error, :redirect_uri_no_match}
     end
   end
 

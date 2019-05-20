@@ -257,6 +257,19 @@ defmodule Asteroid.Token.AccessToken do
     end
   end
 
+  def lifetime(%{flow: :authorization_code, client: client}) do
+    attr = "__asteroid_oauth2_flow_authorization_code_access_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oauth2_flow_authorization_code_access_token_lifetime, 0)
+    end
+  end
   def lifetime(_) do
     0
   end

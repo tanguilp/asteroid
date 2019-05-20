@@ -19,6 +19,8 @@ defmodule Asteroid.Client do
   - `"client_type"`: `"public"` or `"confidential"`, depending on the client's type
   - `"grant_types"`: the list of grant types (`t:Asteroid.OAuth2.grant_type_str/0`) that the
   client is allowed to use
+  - `"response_types"`: the list of response types (`t:Asteroid.OAuth2.response_type_str/0`) that
+  the client is allowed to use
   - `"redirect_uris"`: the list of OAuth2 / OpenID Connect redirect URIs (`[String.t()]`)
   - `"scope"`: a list of OAuth2 scopes that the client can use when requesting tokens. Scopes
   starting with the string `"asteroid."` are special permissions used to access Asteroid
@@ -39,6 +41,17 @@ defmodule Asteroid.Client do
   set to the lifetime duration of a refresh token in the client credentials flow
   - `"__asteroid_oauth2_flow_client_credentials_access_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an access token in the client credentials flow
+  - `"__asteroid_oauth2_flow_code_authorization_code_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an authorization in the code flow
+  - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
+  true if a refresh token is to be issued in the authorization code flow when presenting the
+  authorization code
+  - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_refresh"`: a `boolean()` set
+  to true if a refresh token is to be issued when refreshing tokens in the authorization code flow
+  - `"__asteroid_oauth2_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the authorization code flow
+  - `"__asteroid_oauth2_flow_authoirzation_code_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the authorization code flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
 

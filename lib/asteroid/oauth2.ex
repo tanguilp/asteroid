@@ -33,7 +33,24 @@ defmodule Asteroid.OAuth2 do
 
   @type flow_str :: String.t()
 
+  @type response_type :: :code
+
+  @typedoc """
+  String representation of a `t:response_type/0`
+
+  Must be the string conversion of its corresponding `t:response_type/0`
+  """
+
+  @type response_type_str :: String.t()
+
   @type endpoint :: :authorize | :token | :introspect | :revoke
+
+  @doc """
+  Returns `:ok` if the grant type is enabled, `{:error, :grant_type_disabled}` otherwise
+
+  Uses the #{Asteroid.Config.link_to_option(:oauth2_grant_types_enabled)} configuration
+  option's value.
+  """
 
   @spec grant_type_enabled?(grant_type()) :: :ok | {:error, :grant_type_disabled}
 
@@ -42,6 +59,23 @@ defmodule Asteroid.OAuth2 do
       :ok
     else
       {:error, :grant_type_disabled}
+    end
+  end
+
+  @doc """
+  Returns `:ok` if the grant type is enabled, `{:error, :response_type_disabled}` otherwise
+
+  Uses the #{Asteroid.Config.link_to_option(:oauth2_response_types_enabled)} configuration
+  option's value.
+  """
+
+  @spec response_type_enabled?(grant_type()) :: :ok | {:error, :response_type_disabled}
+
+  def response_type_enabled?(response_type) do
+    if response_type in astrenv(:oauth2_response_types_enabled, []) do
+      :ok
+    else
+      {:error, :response_type_disabled}
     end
   end
 

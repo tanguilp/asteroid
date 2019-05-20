@@ -40,7 +40,7 @@ defmodule AsteroidWeb.Router do
   scope "/", AsteroidWeb do
     pipe_through :browser
 
-    get "/", PageController, :index
+    get "/authorize", AuthorizeController, :pre_authorize
   end
 
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do

@@ -7,6 +7,10 @@ defmodule Asteroid.Subject do
   Subject resource are real-world physical persons, such as the reader of this documentation. It
   refers to the OAuth2 definition of a subject.
 
+  ## Field naming
+  The following fields have standardised meaning:
+  - `"sub"`: the subject identifier (`"sub"` in OAuth2) (`String.t()`)
+
   ## Configuration
 
   This modules uses the default configuration of `AttributeRepository.Resource` (see `config/1`).

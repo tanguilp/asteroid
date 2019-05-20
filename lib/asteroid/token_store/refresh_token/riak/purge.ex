@@ -43,6 +43,8 @@ defmodule Asteroid.TokenStore.RefreshToken.Riak.Purge do
                      [refresh_token_id, opts, access_token_store_config])
         end
 
+        :ok
+
       {:error, _} = error ->
         Logger.warn(
           "#{__MODULE__}: purge process on #{node()} failed with error #{inspect(error)}"

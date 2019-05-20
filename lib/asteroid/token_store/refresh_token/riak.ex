@@ -33,7 +33,7 @@ defmodule Asteroid.TokenStore.RefreshToken.Riak do
 
   ## Purge process
   The purge process uses the `Singleton` library. Therefore the purge process will be unique
-  per cluster (and that's probably what you want if you use Mnesia).
+  per cluster (and that's probably what you want if you use Riak).
 
   """
 
@@ -108,7 +108,7 @@ defmodule Asteroid.TokenStore.RefreshToken.Riak do
             "value: `#{inspect(refresh_token)}`"
         )
 
-        refresh_token
+        {:ok, refresh_token}
 
       nil ->
         Logger.debug(

@@ -24,7 +24,7 @@ defmodule Asteroid.Context do
     optional(:flow) => Asteroid.OAuth2.flow(),
     optional(:grant_type) => Asteroid.OAuth2.grant_type(),
     optional(:requested_scopes) => Scope.Set.t(),
-    optional(:scopes) => Scope.Set.t(),
+    optional(:granted_scopes) => Scope.Set.t(),
     optional(:client) => Asteroid.Client.t(),
     optional(:subject) => Asteroid.Subject.t(),
     optional(:device) => Asteroid.Device.t(),

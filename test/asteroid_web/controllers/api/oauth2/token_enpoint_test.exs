@@ -1,6 +1,6 @@
 defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   import Asteroid.Utils
-  alias Asteroid.Token.{RefreshToken, AccessToken}
+  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias OAuth2Utils.Scope
   use AsteroidWeb.ConnCase
 
@@ -856,6 +856,245 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert response["error"] == "invalid_scope"
   end
+
+  ##########################################################################
+  # Authorization code grant types
+  ##########################################################################
+
+  test "grant type code not enabled", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => "eigzjewochgwortuxwh",
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    Process.put(:oauth2_grant_types_enabled, [:password, :client_credentials, :refresh_token])
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "unsupported_grant_type"
+  end
+
+  test "grant type code public client doesn't provide the client_id parameter", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_public_1")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(401)
+
+    assert response["error"] == "invalid_client"
+  end
+
+  test "grant type code missing code parameter", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
+  test "grant type code missing redirect_uri parameter", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => "eigzjewochgwortuxwh"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
+  test "grant type code confidential client uses a code issued to another client", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_2")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code confidential client uses a code issued to the request's client_id", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_2")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com",
+      "client_id" => "client_confidential_2"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code public client uses a code issued to the erroneous request's client_id", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_public_2")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com",
+      "client_id" => "client_public_1"
+    }
+
+    response =
+      conn
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code confidential client uses an expired code", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("exp", now() - 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code confidential client uses an nonexistent code", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => "eigzjewochgwortuxwh",
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code confidential client uses different redirect URIs", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://example.org/auth/web/"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "grant type code confidential client is not authorized to use this grant type", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_2")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "unauthorized_client"
+  end
+
   ##########################################################################
   # Helper functions
   ##########################################################################

@@ -83,6 +83,33 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
+    Authorization code store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the token's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all token's implementation functions. Refer to
+    the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_authorization_code, [
+      module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_authorization_code :: Keyword.t()
+
+    field :token_store_authorization_code,
+      config_time: :runtime
+
+    @doc """
     Callback invoked before storing a refresh token
     """
 
@@ -100,6 +127,17 @@ defmodule Asteroid.Config do
     (Asteroid.Token.AccessToken.t(), Asteroid.Context.t() -> Asteroid.Token.RefreshToken.t())
 
     field :token_store_access_token_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing an authorization code
+    """
+
+    @type token_store_authorization_code_before_store_callback ::
+    (Asteroid.Token.AuthorizationCode.t(), Asteroid.Context.t() ->
+      Asteroid.Token.AuthorizationCode.t())
+
+    field :token_store_authorization_code_before_store_callback,
     config_time: :runtime
 
     @doc """
@@ -145,6 +183,18 @@ defmodule Asteroid.Config do
     @type oauth2_grant_types_enabled :: [Asteroid.OAuth2.grant_type()]
 
     field :oauth2_grant_types_enabled,
+      config_time: :runtime
+
+    @doc """
+    List of enabled response types
+
+    It is used in OAuth2 web authentication flows (`/authorize`) so as to determine support,
+    and for metadata generation.
+    """
+
+    @type oauth2_response_types_enabled :: [Asteroid.OAuth2.response_type()]
+
+    field :oauth2_response_types_enabled,
       config_time: :runtime
 
     @doc """
@@ -224,7 +274,9 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_issue_refresh_token_init,
       :oauth2_flow_ropc_issue_refresh_token_refresh,
       :oauth2_flow_client_credentials_issue_refresh_token_init,
-      :oauth2_flow_client_credentials_issue_refresh_token_refresh
+      :oauth2_flow_client_credentials_issue_refresh_token_refresh,
+      :oauth2_flow_authorization_code_issue_refresh_token_init,
+      :oauth2_flow_authorization_code_issue_refresh_token_refresh
     ]
 
     @doc """
@@ -251,7 +303,8 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     uses: [
       :oauth2_flow_ropc_refresh_token_lifetime,
-      :oauth2_flow_client_credentials_refresh_token_lifetime
+      :oauth2_flow_client_credentials_refresh_token_lifetime,
+      :oauth2_flow_authorization_code_refresh_token_lifetime
     ]
 
     @doc """
@@ -278,8 +331,36 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     uses: [
       :oauth2_flow_ropc_access_token_lifetime,
-      :oauth2_flow_client_credentials_access_token_lifetime
+      :oauth2_flow_client_credentials_access_token_lifetime,
+      :oauth2_flow_authorization_code_access_token_lifetime
     ]
+
+    @doc """
+    Callback called to determine the lifetime of an authorization code
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oauth2_authorization_code_lifetime_callback ::
+    (Asteroid.Context.t() -> non_neg_integer())
+
+    field :oauth2_authorization_code_lifetime_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_code_authorization_code_lifetime
+    ]
+
+    @doc """
+    Defines the lifetime of an authorization code in the code flow
+    """
+
+    @type oauth2_flow_code_authorization_code_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_code_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
 
     @doc """
     Callback invoked on the json response when the grant_type is "password"
@@ -450,6 +531,101 @@ defmodule Asteroid.Config do
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
     field :oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/3`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/3`
+    """
+
+    @type oauth2_flow_code_web_authorization_callback ::
+    (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+
+    field :oauth2_flow_code_web_authorization_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"code"` on
+    the `/authorize` endpoint
+
+    The connection is redirected immediatly after this callback returns.
+    """
+
+    @type oauth2_endpoint_authorize_response_type_code_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Defines whether a refresh token should be issued when submitting an authorization code
+    in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_issue_refresh_token_init :: boolean()
+
+    field :oauth2_flow_authorization_code_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the authorization
+    code flow
+    """
+
+    @type oauth2_flow_authorization_code_issue_refresh_token_refresh :: boolean()
+
+    field :oauth2_flow_authorization_code_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_refresh_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_authorization_code_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_access_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_authorization_code_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback invoked on the json response when the grant_type is "authorization_code"
+    """
+
+    @type oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is
+    "authorization_code"
+    """
+
+    @type oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback,
     config_time: :runtime
 
     ### end of configuration options

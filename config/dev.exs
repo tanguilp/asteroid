@@ -98,6 +98,11 @@ config :asteroid, :token_store_refresh_token, [
   opts: [bucket_type: "token"]
 ]
 
+config :asteroid, :token_store_authorization_code, [
+  module: Asteroid.TokenStore.AuthorizationCode.Riak,
+  opts: [bucket_type: "ephemeral_token"]
+]
+
 config :asteroid, :attribute_repositories,
 [
   subject: [
@@ -173,8 +178,10 @@ config :asteroid, :api_oauth2_endpoint_introspect_plugs,
   ]
 
 config :asteroid, :oauth2_grant_types_enabled, [
-  :authorization_code, :password, :client_credentials, :refresh_token
+  :code, :password, :client_credentials, :refresh_token
 ]
+
+config :asteroid, :oauth2_response_types_enabled, [:code]
 
 config :asteroid, :api_error_response_verbosity, :debug
 
@@ -273,4 +280,32 @@ config :asteroid, :oauth2_flow_ropc_access_token_lifetime, 60 * 10
 config :asteroid, :client_credentials_issue_refresh_token, false
 
 config :asteroid, :client_credentials_scope_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# authorization codes
+
+config :asteroid, :token_store_authorization_code_before_store_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_authorization_code_lifetime_callback,
+  &Asteroid.Token.AuthorizationCode.lifetime/1
+
+config :asteroid, :oauth2_flow_code_authorization_code_lifetime, 60
+
+config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_flow_authorization_code_issue_refresh_token_init, true
+
+config :asteroid, :oauth2_flow_authorization_code_issue_refresh_token_refresh, false
+
+config :asteroid, :oauth2_flow_authorization_code_refresh_token_lifetime,
+  60 * 60 * 24 * 7 # 1 week
+
+config :asteroid, :oauth2_flow_authorization_code_access_token_lifetime, 60 * 10
+
+config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+  
+config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2

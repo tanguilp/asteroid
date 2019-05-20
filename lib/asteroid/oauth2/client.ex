@@ -47,6 +47,28 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
+  defmodule UnauthorizedScopeError do
+    defexception []
+
+    @impl true
+
+    def message(_), do: "Unauthorized scope for client" 
+  end
+
+  defmodule InvalidClientIdError do
+    @moduledoc """
+    Exception returned when the client id is invalid
+    """
+
+    defexception [:client_id]
+
+    @impl true
+
+    def message(%{client_id: client_id}) do
+      "Invalid client_id `#{client_id}`"
+    end
+  end
+
   @doc """
   Returns the authenticated or **unauthenticated** client of a request
 
@@ -141,7 +163,7 @@ defmodule Asteroid.OAuth2.Client do
   Returns `true` if the client is allowed to use the grant type, `false` otherwise
 
   To be authorized to use a given grant type, the client's `"grant_types"` attribute
-  must contain the given `grant_type`.
+  must contain the given `t:Asteroid.OAuth2.grant_type_str/0`.
   """
 
   @spec grant_type_authorized?(Asteroid.Client.t(), Asteroid.OAuth2.grant_type_str()) ::
@@ -159,6 +181,27 @@ defmodule Asteroid.OAuth2.Client do
   end
 
   @doc """
+  Returns `true` if the client is allowed to use the response type, `false` otherwise
+
+  To be authorized to use a given grant type, the client's `"response_types"` attribute
+  must contain the given `t:Asteroid.OAuth2.response_type_str/0`.
+  """
+
+  @spec response_type_authorized?(Asteroid.Client.t(), Asteroid.OAuth2.response_type_str()) ::
+  :ok
+  | {:error, %__MODULE__.AuthorizationError{}}
+
+  def  response_type_authorized?(client, response_type) do
+    client = Client.fetch_attributes(client, ["response_types"])
+
+    if response_type in (client.attrs["response_types"] || []) do
+      :ok
+    else
+      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_response_type)}
+    end
+  end
+
+  @doc """
   Returns `true` if the client is authorized to use the scopes, `false` otherwise
 
   Checks for each scope of the `Scope.Set.t()` if it's included in the  client's `"scope"`
@@ -167,7 +210,7 @@ defmodule Asteroid.OAuth2.Client do
 
   @spec scopes_authorized?(Asteroid.Client.t(), Scope.Set.t()) ::
   :ok
-  | {:error, %__MODULE__.AuthorizationError{}}
+  | {:error, %__MODULE__.UnauthorizedScopeError{}}
 
   def  scopes_authorized?(client, scope_set) do
     client = Client.fetch_attributes(client, ["scope"])
@@ -175,7 +218,7 @@ defmodule Asteroid.OAuth2.Client do
     if Scope.Set.subset?(scope_set, Scope.Set.new(client.attrs["scope"] || [])) do
       :ok
     else
-      {:error, __MODULE__.AuthorizationError.exception(reason: :unauthorized_scope)}
+      {:error, __MODULE__.UnauthorizedScopeError.exception([])}
     end
   end
 

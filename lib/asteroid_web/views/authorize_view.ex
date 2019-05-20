@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.PageView do
+defmodule AsteroidWeb.AuthorizeView do
   @moduledoc false
 
   use AsteroidWeb, :view

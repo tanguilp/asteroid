@@ -1,0 +1,3 @@
+<section class="phx-hero">
+  <h1><%= gettext "Error", name: "Error" %></h1>
+</section>

@@ -1,8 +1,9 @@
-defmodule Asteroid.TokenStore.AccessToken.Riak.Purge do
+defmodule Asteroid.TokenStore.AuthorizationCode.Riak.Purge do
   @moduledoc false
 
   use GenServer
   require Logger
+  import Asteroid.Utils
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -25,14 +26,16 @@ defmodule Asteroid.TokenStore.AccessToken.Riak.Purge do
   end
 
   defp purge(opts) do
-    Logger.info("#{__MODULE__}: starting access token purge process on #{node()}")
+    Logger.info("#{__MODULE__}: starting authorization code purge process on #{node()}")
 
     request = "exp_int_register:[0 TO #{:os.system_time(:second)}]"
 
-    case Asteroid.TokenStore.AccessToken.Riak.search(request, opts) do
-      {:ok, access_token_ids} ->
-        for access_token_id <- access_token_ids do
-          Task.start(Asteroid.TokenStore.AccessToken.Riak, :delete, [access_token_id, opts])
+    case Asteroid.TokenStore.AuthorizationCode.Riak.search(request, opts) do
+      {:ok, authorization_code_ids} ->
+        for authorization_code_id <- authorization_code_ids do
+          Task.start(Asteroid.TokenStore.AuthorizationCode.Riak,
+                     :delete,
+                     [authorization_code_id, opts])
         end
 
         :ok
