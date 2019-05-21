@@ -75,7 +75,7 @@ defmodule AsteroidWeb.AuthorizeController do
           params: params
         }
 
-      astrenv(:oauth2_flow_code_web_authorization_callback).(conn, authz_request)
+      astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
     else
       {:error, :unregistered_redirect_uri} ->
         error_redirect_uri(conn, "Unregistered redirect_uri")

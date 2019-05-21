@@ -1,8 +1,11 @@
 defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   import Asteroid.Utils
+
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias OAuth2Utils.Scope
-  use AsteroidWeb.ConnCase
+  alias Asteroid.OAuth2
+
+  use AsteroidWeb.ConnCase, async: true
 
   ##########################################################################
   # General tests
@@ -1093,6 +1096,174 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
+  end
+
+  test "grant type code success with refresh token without scopes", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    # lets sleep a bit so that we can check that iat and exp of released access and refresh
+    # tokens are not the same as the ones of the authorization code, which would mean they
+    # are copied while they shouldn't
+    :timer.sleep(1500)
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert access_token.refresh_token_id == refresh_token.id
+
+    assert access_token.data["client_id"] == code.data["client_id"]
+    assert access_token.data["sub"] == code.data["sub"]
+    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
+    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert access_token.data["issuer"] == code.data["issuer"]
+
+    refute access_token.data["iat"] == code.data["iat"]
+    refute access_token.data["exp"] == code.data["exp"]
+
+    assert refresh_token.data["client_id"] == code.data["client_id"]
+    assert refresh_token.data["sub"] == code.data["sub"]
+    assert refresh_token.data["redirect_uri"] == code.data["redirect_uri"]
+    assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert refresh_token.data["issuer"] == code.data["issuer"]
+
+    refute refresh_token.data["iat"] == code.data["iat"]
+    refute refresh_token.data["exp"] == code.data["exp"]
+  end
+
+  test "grant type code success with refresh token with scopes", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("scope", Scope.Set.new(["scp1", "scp2", "scp5"]))
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    # lets sleep a bit so that we can check that iat and exp of released access and refresh
+    # tokens are not the same as the ones of the authorization code, which would mean they
+    # are copied while they shouldn't
+    :timer.sleep(1500)
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert access_token.refresh_token_id == refresh_token.id
+
+    assert access_token.data["client_id"] == code.data["client_id"]
+    assert access_token.data["sub"] == code.data["sub"]
+    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
+    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert access_token.data["issuer"] == code.data["issuer"]
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["issuer"]),
+                            Scope.Set.new(code.data["issuer"]))
+
+    refute access_token.data["iat"] == code.data["iat"]
+    refute access_token.data["exp"] == code.data["exp"]
+
+    assert refresh_token.data["client_id"] == code.data["client_id"]
+    assert refresh_token.data["sub"] == code.data["sub"]
+    assert refresh_token.data["redirect_uri"] == code.data["redirect_uri"]
+    assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert refresh_token.data["issuer"] == code.data["issuer"]
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["issuer"]),
+                            Scope.Set.new(code.data["issuer"]))
+
+    refute refresh_token.data["iat"] == code.data["iat"]
+    refute refresh_token.data["exp"] == code.data["exp"]
+  end
+
+  test "grant type code success without refresh token without scopes", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    # lets sleep a bit so that we can check that iat and exp of released access and refresh
+    # tokens are not the same as the ones of the authorization code, which would mean they
+    # are copied while they shouldn't
+    :timer.sleep(1500)
+
+    Process.put(:oauth2_flow_authorization_code_issue_refresh_token_init, false)
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert response["refresh_token"] == nil
+
+    assert access_token.refresh_token_id == nil
+
+    assert access_token.data["client_id"] == code.data["client_id"]
+    assert access_token.data["sub"] == code.data["sub"]
+    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
+    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert access_token.data["issuer"] == code.data["issuer"]
+
+    refute access_token.data["iat"] == code.data["iat"]
+    refute access_token.data["exp"] == code.data["exp"]
   end
 
   ##########################################################################

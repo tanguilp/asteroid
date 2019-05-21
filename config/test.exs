@@ -225,7 +225,7 @@ config :asteroid, :token_store_authorization_code_before_store_callback,
 config :asteroid, :oauth2_authorization_code_lifetime_callback,
   &Asteroid.Token.AuthorizationCode.lifetime/1
 
-config :asteroid, :oauth2_flow_code_authorization_code_lifetime, 60
+config :asteroid, :oauth2_flow_authorization_code_authorization_code_lifetime, 60
 
 config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2

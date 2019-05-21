@@ -69,7 +69,7 @@ defmodule Asteroid.OAuth2 do
   option's value.
   """
 
-  @spec response_type_enabled?(grant_type()) :: :ok | {:error, :response_type_disabled}
+  @spec response_type_enabled?(response_type()) :: :ok | {:error, :response_type_disabled}
 
   def response_type_enabled?(response_type) do
     if response_type in astrenv(:oauth2_response_types_enabled, []) do

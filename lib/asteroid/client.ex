@@ -41,8 +41,8 @@ defmodule Asteroid.Client do
   set to the lifetime duration of a refresh token in the client credentials flow
   - `"__asteroid_oauth2_flow_client_credentials_access_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an access token in the client credentials flow
-  - `"__asteroid_oauth2_flow_code_authorization_code_lifetime"`: a `non_neg_integer()`
-  set to the lifetime duration of an authorization in the code flow
+  - `"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"`: a
+  `non_neg_integer()` set to the lifetime duration of an authorization in the code flow
   - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
   true if a refresh token is to be issued in the authorization code flow when presenting the
   authorization code

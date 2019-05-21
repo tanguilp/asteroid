@@ -203,15 +203,15 @@ defmodule Asteroid.Token.AuthorizationCode do
   ## Processing rules
   - If the client has the following field set to an integer value for the corresponding flow
   returns that value:
-    - `"__asteroid_oauth2_flow_code_authorization_code_lifetime"`
+    - `"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_code_authorization_code_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_authorization_code_lifetime)}
   - Otherwise returns `0`
   """
 
   def lifetime(%{flow: :authorization_code, endpoint: :authorize, client: client}) do
-    attr = "__asteroid_oauth2_flow_code_authorization_code_lifetime"
+    attr = "__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
 
@@ -220,7 +220,7 @@ defmodule Asteroid.Token.AuthorizationCode do
         lifetime
 
       _ ->
-        astrenv(:oauth2_flow_code_authorization_code_lifetime, 0)
+        astrenv(:oauth2_flow_authorization_code_authorization_code_lifetime, 0)
     end
   end
 

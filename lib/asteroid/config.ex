@@ -348,16 +348,16 @@ defmodule Asteroid.Config do
     field :oauth2_authorization_code_lifetime_callback,
     config_time: :runtime,
     uses: [
-      :oauth2_flow_code_authorization_code_lifetime
+      :oauth2_flow_authorization_code_authorization_code_lifetime
     ]
 
     @doc """
     Defines the lifetime of an authorization code in the code flow
     """
 
-    @type oauth2_flow_code_authorization_code_lifetime :: non_neg_integer()
+    @type oauth2_flow_authorization_code_authorization_code_lifetime :: non_neg_integer()
 
-    field :oauth2_flow_code_authorization_code_lifetime,
+    field :oauth2_flow_authorization_code_authorization_code_lifetime,
     config_time: :runtime,
     used_by: [:oauth2_authorization_code_lifetime_callback],
     unit: "seconds"
@@ -544,10 +544,10 @@ defmodule Asteroid.Config do
     - `AsteroidWeb.AuthorizeController.authorization_denied/3`
     """
 
-    @type oauth2_flow_code_web_authorization_callback ::
+    @type oauth2_flow_authorization_code_web_authorization_callback ::
     (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
 
-    field :oauth2_flow_code_web_authorization_callback,
+    field :oauth2_flow_authorization_code_web_authorization_callback,
     config_time: :runtime
 
     @doc """

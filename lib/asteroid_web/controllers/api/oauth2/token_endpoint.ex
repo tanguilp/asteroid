@@ -400,7 +400,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       "redirect_uri" => redirect_uri
     }} = conn, _params)
   do
-    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:code),
+    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:authorization_code),
          {:ok, client} <- OAuth2.Client.get_client(conn),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "authorization_code"),
          {:ok, authz_code} <- AuthorizationCode.get(code),
