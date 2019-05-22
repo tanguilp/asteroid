@@ -173,10 +173,6 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
       error_response_verbosity: :debug}
   ]
 
-config :asteroid, :api_oauth2_endpoint_introspect_plugs,
-  [
-  ]
-
 config :asteroid, :oauth2_grant_types_enabled, [
   :code, :password, :client_credentials, :refresh_token
 ]
@@ -212,6 +208,8 @@ config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_re
 config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
+# Endpoint: introspect
+
 config :asteroid, :oauth2_endpoint_introspect_client_authorized,
   &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1
 
@@ -225,6 +223,11 @@ config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :oauth2_endpoint_introspect_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# Endpoint: revoke
+
+config :asteroid, :oauth2_endpoint_revoke_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 # Flow: client credentials

@@ -174,6 +174,17 @@ defmodule Asteroid.Config do
       config_time: :compile
 
     @doc """
+    Plugs installed on `"/api/oauth2/revoke"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oauth2_endpoint_revoke_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oauth2_endpoint_revoke_plugs,
+      config_time: :compile
+
+    @doc """
     List of enabled grant types
 
     It is used in OAuth2 APIs (such as `/token`) so as to determine support, and for metadata
@@ -626,6 +637,16 @@ defmodule Asteroid.Config do
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
     field :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` in the `/revoke` endpoint
+    """
+
+    @type oauth2_endpoint_revoke_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_revoke_before_send_conn_callback,
     config_time: :runtime
 
     ### end of configuration options

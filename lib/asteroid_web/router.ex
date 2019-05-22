@@ -37,6 +37,12 @@ defmodule AsteroidWeb.Router do
     end
   end
 
+  pipeline :oauth2_endpoint_revoke do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_revoke_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   scope "/", AsteroidWeb do
     pipe_through :browser
 
@@ -57,6 +63,12 @@ defmodule AsteroidWeb.Router do
       pipe_through :oauth2_endpoint_introspect
 
       post "/", IntrospectEndpoint, :handle
+    end
+
+    scope "/revoke" do
+      pipe_through :oauth2_endpoint_revoke
+
+      post "/", RevokeEndpoint, :handle
     end
   end
 
