@@ -19,12 +19,14 @@ backends that store them on disk (Mnesia, Riak...).
 
 Asteroid defines the following behaviours and implementations:
 
-|   Token type   |          Behaviour                 | Implementation                           |
-|:--------------:|:----------------------------------:|------------------------------------------|
-| Refresh token  |`Asteroid.TokenStore.RefreshToken`  |`Asteroid.TokenStore.RefreshToken.Mnesia` |
-|                |                                    |`Asteroid.TokenStore.RefreshToken.Riak`   |
-| Access token   |`Asteroid.TokenStore.AccessToken`   |`Asteroid.TokenStore.AccessToken.Mnesia`  |
-|                |                                    |`Asteroid.TokenStore.AccessToken.Riak`    |
+|   Token type       |          Behaviour                     | Implementation                                |
+|:------------------:|:--------------------------------------:|-----------------------------------------------|
+| Refresh token      |`Asteroid.TokenStore.RefreshToken`      |`Asteroid.TokenStore.RefreshToken.Mnesia`      |
+|                    |                                        |`Asteroid.TokenStore.RefreshToken.Riak`        |
+| Access token       |`Asteroid.TokenStore.AccessToken`       |`Asteroid.TokenStore.AccessToken.Mnesia`       |
+|                    |                                        |`Asteroid.TokenStore.AccessToken.Riak`         |
+| Authorization code |`Asteroid.TokenStore.AuthorizationCode` |`Asteroid.TokenStore.AuthorizationCode.Mnesia` |
+|                    |                                        |`Asteroid.TokenStore.AuthorizationCode.Riak`   |
 
 Note that you don't necessarily need to configure token stores for all the token types, but only
 for those who you'll be using. For instance, there's no need to configure a refresh token
@@ -42,10 +44,11 @@ store if you never release refresh tokens.
 
 Token stores are each configured under their own key:
 
-|    Token type    | Configuration key            |
-|:----------------:|------------------------------|
-| Refresh token    | [`:token_store_refresh_token`](Asteroid.Config.html#module-token_store_refresh_token) |
-| Access token     | [`:token_store_access_token`](Asteroid.Config.html#module-token_store_access_token)  |
+|    Token type      | Configuration key            |
+|:------------------:|------------------------------|
+| Refresh token      | [`:token_store_refresh_token`](Asteroid.Config.html#module-token_store_refresh_token) |
+| Access token       | [`:token_store_access_token`](Asteroid.Config.html#module-token_store_access_token)  |
+| Authorization code | [`:token_store_authorization_code`](Asteroid.Config.html#module-token_store_authorization_code)  |
 
 The options for a token store are:
 - `:module`: the name of the module implementing the token's behaviours. No default, **mandatory**
@@ -68,6 +71,12 @@ config :asteroid, :token_store_refresh_token, [
   module: Asteroid.TokenStore.RefreshToken.Riak,
   opts: [bucket_type: "token"]
 ]
+
+config :asteroid, :token_store_authorization_code, [
+  module: Asteroid.TokenStore.AuthorizationCode.Riak,
+  opts: [bucket_type: "ephemeral_token"]
+]
+
 ```
 
 ## Example (Riak and Mnesia)
@@ -80,6 +89,10 @@ config :asteroid, :token_store_access_token, [
 config :asteroid, :token_store_refresh_token, [
   module: Asteroid.TokenStore.RefreshToken.Riak,
   opts: [bucket_type: "token"]
+]
+
+config :asteroid, :token_store_authorization_code, [
+  module: Asteroid.TokenStore.AuthorizationCode.Mnesia
 ]
 ```
 
