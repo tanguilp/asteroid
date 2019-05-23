@@ -343,7 +343,8 @@ defmodule Asteroid.Config do
     uses: [
       :oauth2_flow_ropc_access_token_lifetime,
       :oauth2_flow_client_credentials_access_token_lifetime,
-      :oauth2_flow_authorization_code_access_token_lifetime
+      :oauth2_flow_authorization_code_access_token_lifetime,
+      :oauth2_flow_implicit_access_token_lifetime
     ]
 
     @doc """
@@ -546,6 +547,7 @@ defmodule Asteroid.Config do
 
     @doc """
     Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
+    for the OAuth2 authorization code flow
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -559,6 +561,17 @@ defmodule Asteroid.Config do
     (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
 
     field :oauth2_flow_authorization_code_web_authorization_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
+    `"code"` on the `/authorize` endpoint
+    """
+
+    @type oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback ::
+    (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
+
+    field :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
     config_time: :runtime
 
     @doc """
@@ -649,6 +662,58 @@ defmodule Asteroid.Config do
     field :oauth2_endpoint_revoke_before_send_conn_callback,
     config_time: :runtime
 
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
+    for the OAuth2 implicit flow
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/3`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/3`
+    """
+
+    @type oauth2_flow_implicit_web_authorization_callback ::
+    (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+
+    field :oauth2_flow_implicit_web_authorization_callback,
+    config_time: :runtime
+
+    @doc """
+    Defines the lifetime of an access token in the implicit flow
+    """
+
+    @type oauth2_flow_implicit_access_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_implicit_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
+    `"token"` on the `/authorize` endpoint
+    """
+
+    @type oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback ::
+    (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
+
+    field :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"token"` on
+    the `/authorize` endpoint
+
+    The connection is redirected immediatly after this callback returns.
+    """
+
+    @type oauth2_endpoint_authorize_response_type_token_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
+    config_time: :runtime
     ### end of configuration options
   end
 

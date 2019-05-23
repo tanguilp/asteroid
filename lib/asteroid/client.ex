@@ -50,8 +50,10 @@ defmodule Asteroid.Client do
   to true if a refresh token is to be issued when refreshing tokens in the authorization code flow
   - `"__asteroid_oauth2_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an access token in the authorization code flow
-  - `"__asteroid_oauth2_flow_authoirzation_code_refresh_token_lifetime"`: a `non_neg_integer()`
+  - `"__asteroid_oauth2_flow_authorization_code_refresh_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of a refresh token in the authorization code flow
+  - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
 

@@ -174,7 +174,7 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
   ]
 
 config :asteroid, :oauth2_grant_types_enabled, [
-  :code, :password, :client_credentials, :refresh_token
+  :authorization_code, :password, :client_credentials, :refresh_token
 ]
 
 config :asteroid, :oauth2_response_types_enabled, [:code]
@@ -295,6 +295,9 @@ config :asteroid, :oauth2_authorization_code_lifetime_callback,
 
 config :asteroid, :oauth2_flow_authorization_code_authorization_code_lifetime, 60
 
+config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
 config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
@@ -311,4 +314,14 @@ config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_se
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# implicit flow
+
+config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60
+
+config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2

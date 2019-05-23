@@ -23,7 +23,7 @@ defmodule Asteroid.OAuth2 do
 
   @type grant_type_str :: String.t()
 
-  @type flow :: :ropc | :client_credentials | :authorization_code
+  @type flow :: :ropc | :client_credentials | :authorization_code | :implicit
 
   @typedoc """
   String representation of a `t:flow()/0`
@@ -33,7 +33,7 @@ defmodule Asteroid.OAuth2 do
 
   @type flow_str :: String.t()
 
-  @type response_type :: :code
+  @type response_type :: :code | :token
 
   @typedoc """
   String representation of a `t:response_type/0`

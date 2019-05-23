@@ -2,6 +2,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   use AsteroidWeb.ConnCase
 
   alias Asteroid.Client
+  alias OAuth2Utils.Scope
 
   ##########################
   # Invalid requests
@@ -235,7 +236,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
-  test "Authorization granted - access granted with state", %{conn: conn} do
+  ##########################
+  # Authorization granted (code)
+  ##########################
+
+  test "Authorization granted (code) - access granted with state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
@@ -260,5 +265,129 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     assert authorization_code.data["client_id"] == "client_confidential_1"
     assert authorization_code.data["sub"] == "user_1"
+  end
+
+  test "Authorization granted (code) - access granted without state", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :code,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: MapSet.new(),
+        params: %{}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1"})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+    assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["state"] == nil
+
+    {:ok, authorization_code} = Asteroid.Token.AuthorizationCode.get(az_code)
+
+    assert authorization_code.data["client_id"] == "client_confidential_1"
+    assert authorization_code.data["sub"] == "user_1"
+  end
+
+  ##########################
+  # Authorization granted (implicit)
+  ##########################
+
+  test "Authorization granted (implicit) - access granted with state", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :token,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: MapSet.new(),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1", granted_scopes: MapSet.new()})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "access_token" => access_token,
+      "token_type" => "bearer",
+      "expires_in" => _,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
+
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+  end
+
+  test "Authorization granted (implicit) - access granted without state", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :token,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: MapSet.new(),
+        params: %{}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1", granted_scopes: MapSet.new()})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "access_token" => access_token,
+      "token_type" => "bearer",
+      "expires_in" => _,
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).fragment)["state"] == nil
+
+    {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
+
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+  end
+
+  test "Authorization granted (implicit) - access granted with differing scopes", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :token,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1", granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3"])})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "access_token" => access_token,
+      "token_type" => "bearer",
+      "expires_in" => _,
+      "scope" => granted_scopes,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    assert Scope.Set.equal?(Scope.Set.from_scope_param!(granted_scopes),
+                            Scope.Set.new(["scp2", "scp4", "scp3"]))
+
+    {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
+
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
   end
 end
