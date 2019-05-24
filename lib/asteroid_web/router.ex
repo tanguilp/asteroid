@@ -72,7 +72,7 @@ defmodule AsteroidWeb.Router do
     end
   end
 
-  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack} = error) do
+  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
     conn
     |> put_status(400)
     |> json(%{

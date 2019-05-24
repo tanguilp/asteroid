@@ -25,6 +25,8 @@ defmodule AsteroidWeb.AuthorizeController do
       :client,
       :redirect_uri,
       :requested_scopes,
+      :pkce_code_challenge,
+      :pkce_code_challenge_method,
       :params
     ]
 
@@ -33,6 +35,8 @@ defmodule AsteroidWeb.AuthorizeController do
       client: Client.t(),
       redirect_uri: OAuth2.RedirectUri.t(),
       requested_scopes: Scope.Set.t(),
+      pkce_code_challenge: OAuth2.PKCE.code_challenge() | nil,
+      pkce_code_challenge_method: OAuth2.PKCE.code_challenge_method() | nil,
       params: map()
     }
   end
@@ -64,7 +68,8 @@ defmodule AsteroidWeb.AuthorizeController do
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
-         :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
+         :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
+         {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <- pkce_params(client, params)
     do
       authz_request =
         %__MODULE__.Request{
@@ -72,11 +77,19 @@ defmodule AsteroidWeb.AuthorizeController do
           client: client,
           redirect_uri: redirect_uri,
           requested_scopes: requested_scopes,
+          pkce_code_challenge: maybe_code_challenge,
+          pkce_code_challenge_method: maybe_code_challenge_method,
           params: params
         }
 
       astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
     else
+      {:error, %OAuth2.PKCE.MalformedCodeChallengeError{} = e} ->
+        error(conn, e, redirect_uri, params["state"])
+
+      {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e} ->
+        error(conn, e, redirect_uri, params["state"])
+
       {:error, :unregistered_redirect_uri} ->
         error_redirect_uri(conn, "Unregistered redirect_uri")
 
@@ -232,6 +245,14 @@ defmodule AsteroidWeb.AuthorizeController do
       |> AuthorizationCode.put_value("scope", res[:granted_scopes])
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("iss", OAuth2.issuer())
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
+                                     authz_request.pkce_code_challenge)
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method",
+                                     if authz_request.pkce_code_challenge_method != nil do
+                                       to_string(authz_request.pkce_code_challenge_method)
+                                     else
+                                       nil
+                                     end)
       |> AuthorizationCode.store(ctx)
 
     redirect_uri =
@@ -295,6 +316,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
     redirect_uri =
       authz_request.redirect_uri
+      |> redirect_uri_add_params(put_if_not_nil(%{}, "state", authz_request.params["state"]))
       |> Kernel.<>("#")
       |> Kernel.<>(URI.encode_query(fragment_params))
       |> astrenv(:oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback).(ctx)
@@ -423,6 +445,20 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
+  defp error(conn, :pkce_mandatory_use, redirect_uri, maybe_state) do
+    redirect_uri = redirect_uri_add_params(
+      redirect_uri,
+      %{
+        "error" => "invalid_request",
+        "error_description" => "Use of PKCE is mandatory"
+      }
+      |> put_if_not_nil("state", maybe_state)
+    )
+
+    conn
+    |> redirect(external: redirect_uri)
+  end
+
   defp error(conn, %AttributeRepository.Read.NotFoundError{} = e, redirect_uri, maybe_state) do
     redirect_uri = redirect_uri_add_params(
       redirect_uri,
@@ -480,6 +516,34 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
+  defp error(conn, %OAuth2.PKCE.MalformedCodeChallengeError{} = e, redirect_uri, maybe_state) do
+    redirect_uri = redirect_uri_add_params(
+      redirect_uri,
+      %{
+        "error" => "invalid_request",
+        "error_description" => Exception.message(e)
+      }
+      |> put_if_not_nil("state", maybe_state)
+    )
+
+    conn
+    |> redirect(external: redirect_uri)
+  end
+
+  defp error(conn, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e, redirect_uri, maybe_state) do
+    redirect_uri = redirect_uri_add_params(
+      redirect_uri,
+      %{
+        "error" => "invalid_request",
+        "error_description" => Exception.message(e)
+      }
+      |> put_if_not_nil("state", maybe_state)
+    )
+
+    conn
+    |> redirect(external: redirect_uri)
+  end
+
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::
   :ok
   | {:error, :unregistered_redirect_uri}
@@ -518,5 +582,71 @@ defmodule AsteroidWeb.AuthorizeController do
     else
       Map.put(m, "scope", Enum.join(granted_scopes, " "))
     end
+  end
+
+  @spec pkce_params(Client.t(), map()) ::
+  {:ok, {OAuth2.PKCE.code_challenge() | nil, OAuth2.PKCE.code_challenge_method() | nil}}
+  | {:error, :pkce_mandatory_use}
+  | {:error, %OAuth2.PKCE.MalformedCodeChallengeError{}}
+  | {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{}}
+
+  defp pkce_params(client, params) do
+    case astrenv(:oauth2_flow_authorization_code_pkce_policy) do
+      :disabled ->
+        {:ok, {nil, nil}}
+
+      :optional ->
+        if OAuth2.Client.must_use_pkce?(client) do
+          if params["code_challenge"] != nil do
+            pkce_params_when_mandatory(params)
+          else
+            {:error, :pkce_mandatory_use}
+          end
+        else
+          if params["code_challenge"] != nil do
+            pkce_params_when_mandatory(params)
+          else
+            {:ok, {nil, nil}}
+          end
+        end
+
+      :mandatory ->
+        pkce_params_when_mandatory(params)
+    end
+  end
+
+  @spec pkce_params_when_mandatory(map()) ::
+  {:ok, {OAuth2.PKCE.code_challenge(), OAuth2.PKCE.code_challenge_method()}}
+  | {:error, %OAuth2.PKCE.MalformedCodeChallengeError{}}
+  | {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{}}
+  | {:error, :pkce_mandatory_use}
+
+  defp pkce_params_when_mandatory(%{"code_challenge" => code_challenge} = params) do
+    method =
+      case params["code_challenge_method"] do
+        method when is_binary(method) ->
+          method
+
+        nil ->
+          "plain"
+      end
+
+    with :ok <- OAuth2.PKCE.code_challenge_valid?(code_challenge),
+         {:ok, code_challenge_method} <- OAuth2.PKCE.code_challenge_method_from_string(method)
+    do
+      if code_challenge_method in astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods) do
+        {:ok, {code_challenge, code_challenge_method}}
+      else
+        {:error,
+          OAuth2.PKCE.UnsupportedCodeChallengeMethodError.exception(code_challenge_method_str: code_challenge_method)}
+      end
+    else
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp pkce_params_when_mandatory(_) do
+    {:error, :pkce_mandatory_use}
   end
 end

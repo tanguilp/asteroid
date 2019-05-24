@@ -398,7 +398,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     %{"grant_type" => "authorization_code",
       "code" => code,
       "redirect_uri" => redirect_uri
-    }} = conn, _params)
+    }} = conn, params) # FIXME: rewrite params
   do
     with :ok <- Asteroid.OAuth2.grant_type_enabled?(:authorization_code),
          {:ok, client} <- OAuth2.Client.get_client(conn),
@@ -406,6 +406,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, authz_code} <- AuthorizationCode.get(code),
          :ok <- authorization_code_granted_to_client?(authz_code, client),
          :ok <- redirect_uris_match?(authz_code, redirect_uri),
+         :ok <- pkce_code_verifier_valid?(authz_code, params["code_verifier"]),
          {:ok, subject} <- Subject.load(authz_code.data["sub"])
     do
       ctx =
@@ -474,11 +475,18 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback).(ctx)
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.error_response(conn, error)
+      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
+        OAuth2.Client.error_response(conn, e)
 
-      {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = error} ->
-        OAuth2.Client.error_response(conn, error)
+      {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = e} ->
+        OAuth2.Client.error_response(conn, e)
+
+        {:error, %OAuth2.PKCE.InvalidCodeVerifierError{} = e} ->
+        error_resp(conn, error: :invalid_grant, error_description: Exception.message(e))
+
+      {:error, :pkce_missing_code_verifier} ->
+        error_resp(conn, error: :invalid_request,
+                   error_description: "Missing PKCE code verifier")
 
       {:error, :grant_type_disabled} ->
         error_resp(conn, error: :unsupported_grant_type,
@@ -626,6 +634,29 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     else
       {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "refresh_token",
                                                             parameter_value: "[HIDDEN]")}
+    end
+  end
+
+  @spec pkce_code_verifier_valid?(AuthorizationCode.t(), OAuth2.PKCE.code_verifier() | nil) ::
+  :ok
+  | {:error, %OAuth2.PKCE.InvalidCodeVerifierError{}}
+  | {:error, :pkce_missing_code_verifier}
+
+  defp pkce_code_verifier_valid?(authorization_code, code_verifier) do
+    case {authorization_code.data["__asteroid_oauth2_pkce_code_challenge"], code_verifier} do
+      {nil, _} ->
+        :ok
+
+      {_, nil} ->
+        {:error, :pkce_missing_code_verifier}
+
+      {code_challenge, code_verifier} ->
+        code_challenge_method =
+          authorization_code.data["__asteroid_oauth2_pkce_code_challenge_method"]
+          |> OAuth2.PKCE.code_challenge_method_from_string() # returns {:ok, method}
+          |> elem(1)
+
+        OAuth2.PKCE.verify_code_verifier(code_verifier, code_challenge, code_challenge_method)
     end
   end
 end

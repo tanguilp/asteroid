@@ -316,6 +316,13 @@ config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_se
 config :asteroid, :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
+config :asteroid, :oauth2_flow_authorization_code_pkce_policy, :optional
+
+config :asteroid, :oauth2_flow_authorization_code_pkce_allowed_methods, [:S256]
+
+config :asteroid, :oauth2_flow_authorization_code_pkce_client_callback,
+  &Asteroid.OAuth2.Client.must_use_pkce?/1
+
 # implicit flow
 
 config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60

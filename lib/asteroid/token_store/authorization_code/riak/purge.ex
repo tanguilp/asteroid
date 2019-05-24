@@ -3,7 +3,6 @@ defmodule Asteroid.TokenStore.AuthorizationCode.Riak.Purge do
 
   use GenServer
   require Logger
-  import Asteroid.Utils
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)

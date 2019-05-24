@@ -17,6 +17,9 @@ defmodule Asteroid.Token.AuthorizationCode do
   - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the authorization code
   - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` during which
   the authorization code was granted
+  - `"__asteroid_oauth2_pkce_code_challenge"`: the PKCE code challenge, if any
+  - `"__asteroid_oauth2_pkce_code_challenge_method"`: the PKCE code challenge method, if any,
+  stored as a `t:Asteroid.OAuth2.PKCE.code_challenge_method_str/0`
   """
 
   @enforce_keys [:id, :serialization_format, :data]

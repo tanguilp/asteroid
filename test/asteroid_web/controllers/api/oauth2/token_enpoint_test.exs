@@ -1266,6 +1266,143 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     refute access_token.data["exp"] == code.data["exp"]
   end
 
+  test "PKCE - grant type code success with plain code challenge method", %{conn: conn} do
+    code_verifier = String.duplicate("r", 50)
+
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_verifier)
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "plain")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com",
+      "code_verifier" => code_verifier
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, _} = AccessToken.get(response["access_token"])
+    assert {:ok, _} = RefreshToken.get(response["refresh_token"])
+  end
+
+  test "PKCE - grant type code success with S256 code challenge method", %{conn: conn} do
+    code_verifier = String.duplicate("r", 50)
+    code_challenge = Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false)
+
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com",
+      "code_verifier" => code_verifier
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, _} = AccessToken.get(response["access_token"])
+    assert {:ok, _} = RefreshToken.get(response["refresh_token"])
+  end
+
+  test "PKCE - grant type code failure with invalid code verifier", %{conn: conn} do
+    code_verifier = String.duplicate("r", 50)
+    code_challenge = Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false)
+    code_verifier = code_verifier <> "_invalid"
+
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com",
+      "code_verifier" => code_verifier
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "PKCE - grant type code failure with absent code verifier", %{conn: conn} do
+    code_verifier = String.duplicate("r", 50)
+    code_challenge = Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false)
+
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
+      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
   ##########################################################################
   # Helper functions
   ##########################################################################

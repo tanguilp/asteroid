@@ -56,6 +56,8 @@ defmodule Asteroid.Client do
   set to the lifetime duration of an access token in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
+  - `"__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
+  whether the client shall use PKCE or not (defaults to not being forced to use PKCE)
 
   ## Configuration
 

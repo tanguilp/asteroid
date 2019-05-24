@@ -714,6 +714,47 @@ defmodule Asteroid.Config do
 
     field :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
     config_time: :runtime
+
+    @doc """
+    The PKCE policy
+
+    This configuration option can have 3 values:
+    - `:disabled`: PKCE support is disabled
+    - `:mandatory`: all requests using the authorization code flow must use PKCE
+    - `:optional`: use of PKCE is optional, except for clients marked as forced to use it
+    """
+
+    @type oauth2_flow_authorization_code_pkce_policy :: :disabled | :optional | :mandatory
+
+    field :oauth2_flow_authorization_code_pkce_policy,
+    config_time: :runtime
+
+    @doc """
+    Code challenge methods supported
+
+    Supported methods are the following atoms:
+    - `:plain`
+    - `:S256`
+    """
+
+    @type oauth2_flow_authorization_code_pkce_allowed_methods :: [atom()]
+
+    field :oauth2_flow_authorization_code_pkce_allowed_methods,
+    config_time: :runtime
+
+    @doc """
+    Returns `true` if the client has to use PKCE, `false` otherwise
+
+    Used only when the `:oauth2_flow_authorization_code_pkce_policy` configuration option is
+    set to `:optional`
+    """
+
+    @type oauth2_flow_authorization_code_pkce_client_callback ::
+    (Client.t() -> boolean())
+
+    field :oauth2_flow_authorization_code_pkce_client_callback,
+    config_time: :runtime
+
     ### end of configuration options
   end
 
