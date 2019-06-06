@@ -56,15 +56,12 @@ defmodule AsteroidWeb.AuthorizeController do
           Scope.Set.from_scope_param!(val)
       end
 
-    unless OAuth2.RedirectUri.valid?(redirect_uri) do
-      raise OAuth2.RedirectUri.MalformedError, redirect_uri: redirect_uri
-    end
-
     unless OAuth2Utils.valid_client_id_param?(client_id) do
       raise OAuth2.Client.InvalidClientIdError, client_id: client_id
     end
 
     with :ok <- Asteroid.OAuth2.response_type_enabled?(:code),
+         :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
@@ -122,15 +119,12 @@ defmodule AsteroidWeb.AuthorizeController do
           Scope.Set.from_scope_param!(val)
       end
 
-    unless OAuth2.RedirectUri.valid?(redirect_uri) do
-      raise OAuth2.RedirectUri.MalformedError, redirect_uri: redirect_uri
-    end
-
     unless OAuth2Utils.valid_client_id_param?(client_id) do
       raise OAuth2.Client.InvalidClientIdError, client_id: client_id
     end
 
     with :ok <- Asteroid.OAuth2.response_type_enabled?(:token),
+         :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "token"),
@@ -165,15 +159,12 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   def pre_authorize(conn, %{"redirect_uri" => redirect_uri, "client_id" => client_id} = params) do
-    unless OAuth2.RedirectUri.valid?(redirect_uri) do
-      raise OAuth2.RedirectUri.MalformedError, redirect_uri: redirect_uri
-    end
-
     unless OAuth2Utils.valid_client_id_param?(client_id) do
       raise OAuth2.Client.InvalidClientIdError, client_id: client_id
     end
 
-    with {:ok, client} <- Client.load(client_id),
+    with :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
+         {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri)
     do
       if params["response_type"] do

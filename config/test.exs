@@ -294,3 +294,23 @@ config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_red
 
 config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
+  #
+# client registration
+
+config :asteroid, :oauth2_endpoint_register_client_authorization_callback,
+  &Asteroid.OAuth2.Register.client_authorized?/2
+
+config :asteroid, :oauth2_endpoint_register_client_authorization_policy, :authorized_clients
+
+config :asteroid, :oauth2_endpoint_register_client_additional_metadata_field, ["test_field"]
+
+config :asteroid, :oauth2_endpoint_register_client_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_register_client_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# endpoint token
+
+config :asteroid, :oauth2_endpoint_token_auth_methods_supported_callback,
+  &Asteroid.OAuth2.Endpoint.token_endpoint_auth_methods_supported/0

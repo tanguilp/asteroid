@@ -103,7 +103,18 @@ defmodule Asteroid.MixProject do
         "guides/attribute-repositories.md",
         "guides/token-stores.md",
         "guides/protecting-apis.md",
-        "guides/configuring-clients.md"
+        "guides/configuring-clients.md",
+        "guides/oauth2/terminology-conventions.md",
+        "guides/oauth2/basic-configuration.md",
+        "guides/oauth2/managing-scopes.md"
+      ],
+      groups_for_extras:
+      [
+        "OAuth2": [
+          "guides/oauth2/terminology-conventions.md",
+          "guides/oauth2/basic-configuration.md",
+          "guides/oauth2/managing-scopes.md"
+        ]
       ]
     ]
   end

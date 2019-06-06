@@ -16,7 +16,7 @@ defmodule AsteroidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Plug.Parsers, parsers: [:urlencoded]
+    plug Plug.Parsers, parsers: [:urlencoded, :json]
   end
 
   pipeline :oauth2 do
@@ -39,6 +39,12 @@ defmodule AsteroidWeb.Router do
 
   pipeline :oauth2_endpoint_revoke do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_revoke_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :oauth2_endpoint_register do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_register_plugs, []) do
       plug plug_module, plug_options
     end
   end
@@ -69,6 +75,12 @@ defmodule AsteroidWeb.Router do
       pipe_through :oauth2_endpoint_revoke
 
       post "/", RevokeEndpoint, :handle
+    end
+
+    scope "/register" do
+      pipe_through :oauth2_endpoint_register
+
+      post "/", RegisterEndpoint, :handle
     end
   end
 

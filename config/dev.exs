@@ -184,15 +184,6 @@ config :asteroid, :api_error_response_verbosity, :debug
 config :asteroid, :oauth2_ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
-config :asteroid, :oauth2_flow_ropc_scope_config,
-  %{
-    "scope-a" => [auto: true],
-    "scope-b" => [auto: true],
-    "scope-c" => [auto: false],
-    "scope-d" => [],
-    "scope-f" => [auto: true],
-  }
-
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
 
@@ -231,15 +222,6 @@ config :asteroid, :oauth2_endpoint_revoke_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 # Flow: client credentials
-
-config :asteroid, :oauth2_flow_client_credentials_scope_config,
-  %{
-    "scope-a" => [auto: true],
-    "scope-b" => [auto: true],
-    "scope-c" => [auto: false],
-    "scope-d" => [],
-    "scope-f" => [auto: true],
-  }
 
 config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_init, false
 
@@ -332,3 +314,85 @@ config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_red
 
 config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# client registration
+
+config :asteroid, :oauth2_endpoint_register_client_authorization_callback,
+  &Asteroid.OAuth2.Register.client_authorized?/2
+
+config :asteroid, :oauth2_endpoint_register_client_authorization_policy, :authorized_clients
+
+config :asteroid, :oauth2_endpoint_register_client_additional_metadata_field, ["test_field"]
+
+config :asteroid, :oauth2_endpoint_register_client_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_register_client_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+# endpoint token
+
+config :asteroid, :oauth2_endpoint_token_auth_methods_supported_callback,
+  &Asteroid.OAuth2.Endpoint.token_endpoint_auth_methods_supported/0
+
+# scope configuration
+
+config :asteroid, :scope_config,
+[
+  scopes: %{
+    "api.access" => [auto: true]
+  }
+]
+
+config :asteroid, :oauth2_scope_config,
+[
+  scopes: %{
+    "read_balance" => [
+      label: %{
+        "en" => "Read my account balance",
+        "fr" => "Lire mes soldes de compte",
+        "ru" => "Читать баланс счета"
+      }
+    ],
+    "read_account_information" => [
+      optional: true,
+      label: %{
+        "en" => "Read my account transactions",
+        "fr" => "Consulter la liste de mes transactions bancaires",
+        "ru" => "Читать транзакции по счету"
+      }
+    ]
+  }
+]
+
+config :asteroid, :oauth2_flow_authorization_code_scope_config,
+[
+  scopes: %{
+    "interbank_transfer" => [
+      max_refresh_token_lifetime: 3600 * 24 * 30 * 3,
+      label: %{
+        "en" => "Make bank transfers",
+        "fr" => "Réaliser des virements",
+        "ru" => "Делать банковские переводы"
+      }
+    ]
+  }
+]
+config :asteroid, :oauth2_flow_ropc_scope_config,
+  %{
+    "scope-a" => [auto: true],
+    "scope-b" => [auto: true],
+    "scope-c" => [auto: false],
+    "scope-d" => [],
+    "scope-f" => [auto: true],
+  }
+
+config :asteroid, :oauth2_flow_client_credentials_scope_config,
+  %{
+    "scope-a" => [auto: true],
+    "scope-b" => [auto: true],
+    "scope-c" => [auto: false],
+    "scope-d" => [],
+    "scope-f" => [auto: true],
+  }
+

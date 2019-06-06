@@ -5,6 +5,10 @@ defmodule Asteroid.OAuth2.Client do
 
   import Asteroid.Utils
 
+  @moduledoc """
+  Util function to work with OAuth2 clients
+  """
+
   defmodule AuthenticationError do
     @moduledoc """
     Error raised when an client authentication error occurs
@@ -52,7 +56,7 @@ defmodule Asteroid.OAuth2.Client do
 
     @impl true
 
-    def message(_), do: "Unauthorized scope for client" 
+    def message(_), do: "Unauthorized scope for client"
   end
 
   defmodule InvalidClientIdError do

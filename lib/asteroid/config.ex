@@ -185,6 +185,17 @@ defmodule Asteroid.Config do
       config_time: :compile
 
     @doc """
+    Plugs installed on `"/api/oauth2/register"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oauth2_endpoint_register_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oauth2_endpoint_register_plugs,
+      config_time: :compile
+
+    @doc """
     List of enabled grant types
 
     It is used in OAuth2 APIs (such as `/token`) so as to determine support, and for metadata
@@ -753,6 +764,82 @@ defmodule Asteroid.Config do
     (Client.t() -> boolean())
 
     field :oauth2_flow_authorization_code_pkce_client_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback called to determine whether a client is authorized to create new clients on
+    the register endpoint or not
+    """
+
+    @type oauth2_endpoint_register_client_authorization_callback ::
+    (Plug.Conn.t(), Asteroid.Client.t() ->
+      :ok | {:error, %Asteroid.OAuth2.Register.UnauthorizedClientError{}})
+
+    field :oauth2_endpoint_register_client_authorization_callback,
+    config_time: :runtime,
+    uses: [:oauth2_endpoint_register_client_authorization_policy]
+
+    @doc """
+    The client registration policy
+
+    This configuration option can have 3 values:
+    - `:all`: all clients are allowed to register new clients. Be careful when using this
+    value because public clients and the clients created by these public clients could DDOS the
+    client registration endpoint. You might consider severely rate-limiting these requests in
+    this case
+    - `:authenticated_clients`: only authenticated clients are allowed to create new clients
+    - `:authorized_clients`: clients that have the `"asteroid.register"` scope set or that
+    authenticate to that endpoint with an access token containing that scope
+    """
+
+    @type oauth2_endpoint_register_client_authorization_policy ::
+    :all
+    | :authenticated_clients
+    | :authorized_clients
+
+    field :oauth2_endpoint_register_client_authorization_policy,
+    config_time: :runtime,
+    used_by: [:oauth2_endpoint_register_client_authorization_callback]
+
+    @doc """
+    Additional fields that are saved when registering new clients
+
+    Note that this option is overriden by client configuration, if existing.
+    """
+
+    @type oauth2_endpoint_register_client_additional_metadata_field :: [String.t()]
+
+    field :oauth2_endpoint_register_client_additional_metadata_field,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the json response when on the register endpoint
+    """
+
+    @type oauth2_endpoint_register_client_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_register_client_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the register endpoint
+    """
+
+    @type oauth2_endpoint_register_client_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_register_client_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback called to determine the supported authentication of the token endpoint
+    """
+
+    @type oauth2_endpoint_token_auth_methods_supported_callback ::
+    (-> [Asteroid.OAuth2.Endpoint.auth_method()])
+
+    field :oauth2_endpoint_token_auth_methods_supported_callback,
     config_time: :runtime
 
     ### end of configuration options

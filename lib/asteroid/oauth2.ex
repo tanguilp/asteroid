@@ -5,12 +5,41 @@ defmodule Asteroid.OAuth2 do
 
   import Asteroid.Utils
 
+  defmodule UnsupportedGrantTypeError do
+    @moduledoc """
+    Error returned when the grant type is unsupported or unknown
+    """
+
+    defexception [:grant_type]
+
+    @impl true
+
+    def message(%{grant_type: grant_type}) do
+      "Unsupported grant type `#{grant_type}`"
+    end
+  end
+
+  defmodule UnsupportedResponseTypeError do
+    @moduledoc """
+    Error returned when the grant type is unsupported or unknown
+    """
+
+    defexception [:response_type]
+
+    @impl true
+
+    def message(%{response_type: response_type}) do
+      "Unsupported response type `#{response_type}`"
+    end
+  end
+
   @typedoc """
   OAuth2 grant types
   """
 
   @type grant_type ::
   :authorization_code
+  | :implicit
   | :password
   | :client_credentials
   | :refresh_token
@@ -43,7 +72,99 @@ defmodule Asteroid.OAuth2 do
 
   @type response_type_str :: String.t()
 
-  @type endpoint :: :authorize | :token | :introspect | :revoke
+  @type endpoint :: :authorize | :token | :introspect | :revoke | :register
+
+  @doc """
+  Converts a `t:grant_type_str/0` to a `t:grant_type/0`
+
+  Returns `{:ok, grant_type()}` if the grant type is supported,
+  `{:error, %Asteroid.OAuth2.UnsupportedGrantTypeError{}}` otherwise.
+  """
+
+  @spec to_grant_type(String.t()) ::
+  {:ok, grant_type()}
+  | {:error, %__MODULE__.UnsupportedGrantTypeError{}}
+
+  def to_grant_type("authorization_code"), do: {:ok, :authorization_code}
+  def to_grant_type("implicit"), do: {:ok, :implicit}
+  def to_grant_type("password"), do: {:ok, :password}
+  def to_grant_type("client_credentials"), do: {:ok, :client_credentials}
+  def to_grant_type("refresh_token"), do: {:ok, :refresh_token}
+  def to_grant_type(param), do: {:error, __MODULE__.UnsupportedGrantTypeError.exception(grant_type: param)}
+
+  @doc """
+  Converts a `t:grant_type_str/0` to a `t:grant_type/0`
+
+  Returns `t:grant_type/0` if it exists or raises a
+  `%Asteroid.OAuth2.UnsupportedGrantTypeError{}` otherwise.
+  """
+
+  @spec to_grant_type!(String.t()) :: grant_type()
+
+  def to_grant_type!(grant_type_str) do
+    case to_grant_type(grant_type_str) do
+      {:ok, grant_type} ->
+        grant_type
+
+      {:error, e} ->
+        raise e
+    end
+  end
+
+  @doc """
+  Returns the flow associated to a grant type, or `nil`
+
+  The conversion is performed in conformance to the following table:
+
+  |      Grant type        |       Flow            |
+  |:----------------------:|:---------------------:|
+  | `:authorization_code`  | `:authorization_code` |
+  | `:implicit`            | `:implicit`           |
+  | `:password`            | `:ropc`               |
+  | `:client_credentials`  | `:client_credentials` |
+
+  """
+
+  @spec grant_type_to_flow(grant_type()) :: flow() | nil
+
+  def grant_type_to_flow(:authorization_code), do: :authorization_code
+  def grant_type_to_flow(:implicit), do: :implicit
+  def grant_type_to_flow(:password), do: :ropc
+  def grant_type_to_flow(:client_credentials), do: :client_credentials
+  def grant_type_to_flow(_), do: nil
+
+  @doc """
+  Converts a `t:response_type_str/0` to a `t:response_type/0`
+
+  Returns `{:ok, response_type()}` if the response type is supported,
+  `{:error, %Asteroid.OAuth2.UnsupportedResponseTypeError{}}` otherwise.
+  """
+
+  @spec to_response_type(String.t()) ::
+  {:ok, response_type()}
+  | {:error, %__MODULE__.UnsupportedResponseTypeError{}}
+
+  def to_response_type("code"), do: {:ok, :code}
+  def to_response_type("token"), do: {:ok, :token}
+
+  @doc """
+  Converts a `t:response_type_str/0` to a `t:response_type/0`
+
+  Returns `t:response_type/0` if it exists or raises a
+  `%Asteroid.OAuth2.UnsupportedResponseTypeError{}` otherwise.
+  """
+
+  @spec to_response_type!(String.t()) :: response_type()
+
+  def to_response_type!(response_type_str) do
+    case to_response_type(response_type_str) do
+      {:ok, response_type} ->
+        response_type
+
+      {:error, e} ->
+        raise e
+    end
+  end
 
   @doc """
   Returns `:ok` if the grant type is enabled, `{:error, :grant_type_disabled}` otherwise

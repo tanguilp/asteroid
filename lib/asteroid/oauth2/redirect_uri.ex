@@ -9,12 +9,18 @@ defmodule Asteroid.OAuth2.RedirectUri do
   Returns `true` if a redirect uri is valid, `false` otherwise
   """
 
-  @spec valid?(String.t()) :: boolean()
+  @spec valid?(String.t()) ::
+  :ok
+  | {:error, %__MODULE__.MalformedError{}}
 
   def valid?(redirect_uri) when is_binary(redirect_uri) do
     parsed_uri = URI.parse(redirect_uri)
 
-    parsed_uri.scheme != nil and parsed_uri.fragment == nil
+    if parsed_uri.scheme != nil and parsed_uri.fragment == nil do
+      :ok
+    else
+      __MODULE__.MalformedError.exception(redirect_uri: redirect_uri)
+    end
   end
 
   def valid?(_) do

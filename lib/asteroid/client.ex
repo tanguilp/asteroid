@@ -25,6 +25,8 @@ defmodule Asteroid.Client do
   - `"scope"`: a list of OAuth2 scopes that the client can use when requesting tokens. Scopes
   starting with the string `"asteroid."` are special permissions used to access Asteroid
   endpoints. See also []()
+  - `"token_endpoint_auth_method"`: a `t:Asteroid.Oauth2.Endpoint.auth_method_str/0`
+  as specified in RFC7591
   - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_init"`: a `boolean()` set to true if a
   refresh token is to be issued at the first request of the ROPC flow
   - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_refresh"`: a `boolean()` set to true if a
@@ -58,6 +60,30 @@ defmodule Asteroid.Client do
   returned from the `"/introspect"` endpoint
   - `"__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
   whether the client shall use PKCE or not (defaults to not being forced to use PKCE)
+  - `"__asteroid_oauth2_endpoint_register_allowed_token_endpoint_auth_method"`: a list of
+  `t:Asteroid.OAuth2.Endpoint.auth_method_str/0` that restricts the token endpoint auth methods
+  that can be assigned to a new client created by this client. If absent or set to `nil`, all
+  supported methods
+  (#{Asteroid.Config.link_to_option(:oauth2_endpoint_token_auth_methods_supported_callback)})
+  can be assigned to new clients
+  - `"__asteroid_oauth2_endpoint_register_allowed_grant_types"`: a list of
+  `t:Asteroid.OAuth2.grant_type_str/0` of grant types that can be assigned on newly created
+  clients on the client registration endpoint. This is opt-in: when not set to a client,
+  it will not be capable of creating new clients
+  - `"__asteroid_oauth2_endpoint_register_allowed_response_types"`: a list of
+  `t:Asteroid.OAuth2.response_type_str/0` of response types that can be assigned to newly created
+  clients on the client registration endpoint. This is opt-in: when not set to a client,
+  it will not be capable of creating new clients
+  - `"__asteroid_oauth2_endpoint_register_allowed_scopes"`: a list of scopes that can be
+  assigned to newly created clients on the client registration endpoint. If not set, defaults
+  to the available scopes for the granted flows (determined from the grant types)
+  - `"__asteroid_oauth2_endpoint_register_auto_scopes"`: a list of scopes that are automatically
+  assigned to newly created clients, in addition to those requested. The existence of these
+  automatically granted scopes are *not checked* against the configured scopes, which means
+  that scopes that are not configured in the configuration files can be granted through this
+  option
+  - `"__asteroid_oauth2_endpoint_register_additional_metadata_fields"`: a list of strings
+  for the additional metadata fields that will be saved upon client creation request
 
   ## Configuration
 

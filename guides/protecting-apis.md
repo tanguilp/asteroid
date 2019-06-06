@@ -1,6 +1,6 @@
 # Protecting APIs
 
-Asteroid provides with numerous APIs as shown by the `mix phx.routes` commande:
+Asteroid provides with numerous APIs and web endpoints as shown by the `mix phx.routes` commande:
 
 ```console
 $ mix phx.routes
@@ -8,6 +8,7 @@ $ mix phx.routes
      token_endpoint_path  POST  /api/oauth2/token                      AsteroidWeb.API.OAuth2.TokenEndpoint :handle
 introspect_endpoint_path  POST  /api/oauth2/introspect                 AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
     revoke_endpoint_path  POST  /api/oauth2/revoke                     AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
+  register_endpoint_path  POST  /api/oauth2/register                   AsteroidWeb.API.OAuth2.RegisterEndpoint :handle
 ```
 
 At compile-time, Asteroid loads from configuration a list of plugs to configure on each
@@ -16,14 +17,15 @@ any other plug.
 
 The following schema lists the configuration keys used to install plugs:
 ```elixir
+authorize
 api
 │
 ╰─ oauth2……………………………………………………………………………………………… :api_oauth2_plugs
    │
    ├ token…………………………………………………………………………………………… :api_oauth2_endpoint_token_plugs
    ├ introspect……………………………………………………………………………… :api_oauth2_endpoint_introspect_plugs
-   ╰ revoke………………………………………………………………………………………… :api_oauth2_endpoint_revoke_plugs
- 
+   ├ revoke………………………………………………………………………………………… :api_oauth2_endpoint_revoke_plugs
+   ╰ register…………………………………………………………………………………… :api_oauth2_endpoint_register_plugs
 ``` 
 
 Plugs configured at an upper level are not discarded but on the contrary exexcuted first.
