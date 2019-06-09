@@ -174,10 +174,10 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
   ]
 
 config :asteroid, :oauth2_grant_types_enabled, [
-  :authorization_code, :password, :client_credentials, :refresh_token
+  :authorization_code, :implicit, :password, :client_credentials, :refresh_token
 ]
 
-config :asteroid, :oauth2_response_types_enabled, [:code]
+config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 
 config :asteroid, :api_error_response_verbosity, :debug
 
@@ -317,18 +317,24 @@ config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_con
 
 # client registration
 
-config :asteroid, :oauth2_endpoint_register_client_authorization_callback,
-  &Asteroid.OAuth2.Register.client_authorized?/2
+config :asteroid, :oauth2_endpoint_register_authorization_callback,
+  &Asteroid.OAuth2.Register.request_authorized?/2
 
-config :asteroid, :oauth2_endpoint_register_client_authorization_policy, :authorized_clients
+config :asteroid, :oauth2_endpoint_register_authorization_policy, :authorized_clients
 
-config :asteroid, :oauth2_endpoint_register_client_additional_metadata_field, ["test_field"]
+config :asteroid, :oauth2_endpoint_register_additional_metadata_field, ["test_field"]
 
-config :asteroid, :oauth2_endpoint_register_client_before_send_resp_callback,
+config :asteroid, :oauth2_endpoint_register_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_register_client_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_register_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_register_client_before_save_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_register_gen_client_id_callback,
+  &Asteroid.OAuth2.Register.generate_client_id/1
 
 # endpoint token
 

@@ -1,6 +1,14 @@
 defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
   @moduledoc false
 
+  use AsteroidWeb, :controller
+
+  import Asteroid.Utils
+
+  alias OAuth2Utils.Scope
+  alias Asteroid.Client
+  alias Asteroid.OAuth2
+
   defmodule InvalidClientMetadataField do
     @moduledoc """
     Error returned when client metadata is invalid
@@ -26,133 +34,179 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     @impl true
 
     def message (%{scopes: scopes}) do
-      "The following requested scope are not allowed under the current policy: " <>
+      "The following requested scopes are not allowed under the current policy: " <>
       Enum.join(scopes, " ")
     end
   end
 
-  use AsteroidWeb, :controller
+  defmodule MissingRedirectURIError do
+    @moduledoc """
+    Error raised when the redirect uri is missing and grant types require at least one.
+    """
 
-  import Asteroid.Utils
+    defexception []
 
-  alias OAuth2Utils.Scope
-  alias Asteroid.Client
-  alias Asteroid.OAuth2
+    @impl true
+
+    def message(_) do
+      "Missing redirect URI, mandatory in regards of the request grant types"
+    end
+  end
 
   def handle(conn, input_metadata) do
-    with {:ok, client} <- OAuth2.Client.get_client(conn),
-         :ok <- OAuth2.Register.client_authorized?(conn, client)
-    do
-      ctx =
-        %{}
-        |> Map.put(:endpoint, :register)
-        |> Map.put(:client, client)
-
-      processed_metadata =
-        %{}
-        |> process_grant_types(client, input_metadata)
-        |> process_response_types(client, input_metadata)
-        |> process_redirect_uris(input_metadata)
-        |> process_token_endpoint_auth_method(client, input_metadata)
-        |> process_i18n_field(input_metadata, "client_name")
-        |> process_i18n_field(input_metadata, "client_uri")
-        |> process_i18n_field(input_metadata, "logo_uri")
-        |> process_i18n_field(input_metadata, "tos_uri")
-        |> process_i18n_field(input_metadata, "policy_uri")
-        |> process_scope(client, input_metadata)
-        |> process_contacts(input_metadata)
-        |> process_jwks_uri(input_metadata)
-        |> process_jwks(input_metadata)
-        |> process_software_id(input_metadata)
-        |> process_software_version(input_metadata)
-        |> process_additional_metadata_fields(client, input_metadata)
-
-      client_id = gen_new_client_id(processed_metadata)
-
-      maybe_client_secret_and_hash =
-        if "client_secret_basic" in processed_metadata["token_endpoint_auth_method"] or
-          "client_secret_post" in processed_metadata["token_endpoint_auth_method"]
-        do
-          Expwd.Hashed.gen()
-        else
-          nil
-        end
-
-      client =
-        Enum.reduce(
-          processed_metadata,
-          Client.gen_new(id: client_id),
-          fn
-            {k, v}, acc ->
-              Client.add(acc, k, v)
-          end
-        )
-
-      client =
-        if maybe_client_secret_and_hash do
-          hashed_client_str =
-            maybe_client_secret_and_hash
-            |> elem(1)
-            |> Expwd.Hashed.Portable.to_portable()
-
-          Client.add(client, "client_secret", hashed_client_str)
-        else
+    maybe_authenticated_client =
+      case OAuth2.Client.get_authenticated_client(conn) do
+        {:ok, client} ->
           client
-        end
 
-      :ok = Client.store(client)
+        {:error, _} ->
+          nil
+      end
 
-      processed_metadata =
-        if maybe_client_secret_and_hash do
-          {client_secret, _client_secret_hashed} = maybe_client_secret_and_hash
+    case OAuth2.Register.request_authorized?(conn, maybe_authenticated_client) do
+      :ok ->
+        :ok
 
-          Map.put(processed_metadata, "client_secret", client_secret)
-        else
-          processed_metadata
-        end
-
-      processed_metadata =
-        astrenv(:oauth2_endpoint_register_client_before_send_resp_callback).(processed_metadata)
-
-      conn
-      |> put_status(200)
-      |> astrenv(:oauth2_endpoint_register_client_before_send_conn_callback).(ctx)
-      |> json(processed_metadata)
-    else
-      {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.error_response(conn, error)
-
-      {:error, %Asteroid.OAuth2.Register.UnauthorizedClientError{} = error} ->
-        OAuth2.Request.error_response(conn, error)
-
-      {:error, :missing_redirect_uri} ->
-        error_resp(conn, error: :invalid_client_metadata,
-                   error_description: "Missing mandatory redirect URIs for these grant types")
+      {:error, e} ->
+        raise e
     end
+
+    ctx =
+      %{}
+      |> Map.put(:endpoint, :register)
+      |> put_if_not_nil(:client, maybe_authenticated_client)
+
+    processed_metadata =
+      %{}
+      |> process_grant_types(maybe_authenticated_client, input_metadata)
+      |> process_response_types(maybe_authenticated_client, input_metadata)
+      |> check_grant_response_type_consistency()
+      |> process_redirect_uris(input_metadata)
+      |> process_token_endpoint_auth_method(maybe_authenticated_client, input_metadata)
+      |> process_i18n_field(input_metadata, "client_name")
+      |> process_i18n_field(input_metadata, "client_uri")
+      |> process_i18n_field(input_metadata, "logo_uri")
+      |> process_i18n_field(input_metadata, "tos_uri")
+      |> process_i18n_field(input_metadata, "policy_uri")
+      |> process_scope(maybe_authenticated_client, input_metadata)
+      |> process_contacts(input_metadata)
+      |> process_jwks_uri(input_metadata)
+      |> process_jwks(input_metadata)
+      |> process_software_id(input_metadata)
+      |> process_software_version(input_metadata)
+      |> process_additional_metadata_fields(maybe_authenticated_client, input_metadata)
+
+    maybe_client_secret_and_hash =
+      if processed_metadata["token_endpoint_auth_method"] == "client_secret_basic" or
+         processed_metadata["token_endpoint_auth_method"] == "client_secret_post"
+      do
+        Expwd.Hashed.gen()
+      else
+        nil
+      end
+
+    client_id = astrenv(:oauth2_endpoint_register_gen_client_id_callback).(processed_metadata)
+
+    new_client =
+      Enum.reduce(
+        processed_metadata,
+        Client.gen_new(id: client_id),
+        fn
+          {k, v}, acc ->
+            Client.add(acc, k, v)
+        end
+      )
+      |> Client.add("client_id", client_id)
+      |> set_client_type()
+
+    new_client =
+      if maybe_client_secret_and_hash do
+        hashed_client_str =
+          maybe_client_secret_and_hash
+          |> elem(1)
+          |> Expwd.Hashed.Portable.to_portable()
+
+        Client.add(new_client, "client_secret", hashed_client_str)
+      else
+        new_client
+      end
+
+    :ok =
+      new_client
+      |> jwks_to_binary()
+      |> astrenv(:oauth2_endpoint_register_client_before_save_callback).(ctx)
+      |> Client.store()
+
+    processed_metadata =
+      if maybe_client_secret_and_hash do
+        {client_secret, _client_secret_hashed} = maybe_client_secret_and_hash
+
+        Map.put(processed_metadata, "client_secret", client_secret)
+      else
+        processed_metadata
+      end
+      |> Map.put("client_id", client_id)
+      |> astrenv(:oauth2_endpoint_register_before_send_resp_callback).(ctx)
+
+    conn
+    |> put_status(201)
+    |> astrenv(:oauth2_endpoint_register_before_send_conn_callback).(ctx)
+    |> json(processed_metadata)
   rescue
+    e in Asteroid.OAuth2.Client.AuthenticationError ->
+      OAuth2.Client.error_response(conn, e)
+
+    e in Asteroid.OAuth2.Register.UnauthorizedRequestError ->
+      OAuth2.Register.error_response(conn, e)
+
     e in OAuth2.RedirectUri.MalformedError ->
       error_resp(conn, error: :invalid_redirect_uri, error_description: Exception.message(e))
 
-    e in OAuth2.Endpoint.UnsupportedAuthMethod ->
+    e in InvalidClientMetadataField ->
       error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
 
-    e in __MODULE__.InvalidClientMetadataField ->
+    e in MissingRedirectURIError ->
+      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
+
+    e in UnauthorizedRequestedScopes ->
       error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
 
     e in Scope.Set.InvalidScopeParam ->
       error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
+
+    e in OAuth2.Endpoint.UnsupportedAuthMethod ->
+      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
   end
 
-  @spec process_grant_types(map(), Client.t(), map()) :: map()
+  @spec process_grant_types(map(), Client.t() | nil, map()) :: map()
 
   defp process_grant_types(
     processed_metadata,
-    client,
+    nil,
+    %{"grant_types" => requested_grant_types}) when is_list(requested_grant_types)
+  do
+    enabled_grant_types =
+      astrenv(:oauth2_grant_types_enabled)
+      |> Enum.map(&to_string/1)
+      |> MapSet.new()
+
+    if MapSet.subset?(MapSet.new(requested_grant_types), enabled_grant_types) do
+      Map.put(processed_metadata, "grant_types", requested_grant_types)
+    else
+      raise InvalidClientMetadataField,
+        field: "grant_types",
+        reason: "one of the grant types could be granted as a result of applying the server policy"
+    end
+  end
+
+  defp process_grant_types(
+    processed_metadata,
+    authenticated_client,
     %{"grant_types" => requested_grant_types}) when is_list(requested_grant_types)
   do
     conf_attr = "__asteroid_oauth2_endpoint_register_allowed_grant_types"
 
-    client = Client.fetch_attributes(client, [conf_attr])
+    client = Client.fetch_attributes(authenticated_client, [conf_attr])
 
     enabled_grant_types =
       astrenv(:oauth2_grant_types_enabled)
@@ -160,39 +214,58 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
 
     allowed_grant_types =
       MapSet.intersection(
-        MapSet.new(client.data[conf_attr] || []),
+        MapSet.new(client.attrs[conf_attr] || enabled_grant_types),
         MapSet.new(enabled_grant_types)
       )
 
     if MapSet.subset?(MapSet.new(requested_grant_types), allowed_grant_types) do
       Map.put(processed_metadata, "grant_types", requested_grant_types)
     else
-      raise __MODULE__.InvalidClientMetadataField,
+      raise InvalidClientMetadataField,
         field: "grant_types",
-        reason: "None of the grant types could be granted as a result of applying the server policy"
+        reason: "one of the grant types could be granted as a result of applying the server policy"
     end
   end
 
   defp process_grant_types(_, _, %{"grant_types" => _}) do
-    raise __MODULE__.InvalidClientMetadataField,
+    raise InvalidClientMetadataField,
       field: "grant_types",
-      reason: "Invalid type for the `grant_types` field (should be a list)"
+      reason: "should be a list of strings"
   end
 
   defp process_grant_types(processed_metadata, _, _) do
     Map.put(processed_metadata, "grant_types", ["authorization_code"])
   end
 
-  @spec process_response_types(map(), Client.t(), map()) :: map()
+  @spec process_response_types(map(), Client.t() | nil, map()) :: map()
 
   defp process_response_types(
     processed_metadata,
-    client,
+    nil,
+    %{"response_types" => requested_response_types}) when is_list(requested_response_types)
+  do
+    enabled_response_types =
+      astrenv(:oauth2_response_types_enabled)
+      |> Enum.map(&to_string/1)
+      |> MapSet.new()
+
+    if MapSet.subset?(MapSet.new(requested_response_types), enabled_response_types) do
+      Map.put(processed_metadata, "response_types", requested_response_types)
+    else
+      raise InvalidClientMetadataField,
+        field: "response_types",
+        reason: "one of the response types could be granted as a result of applying the server policy"
+    end
+  end
+
+  defp process_response_types(
+    processed_metadata,
+    authenticated_client,
     %{"response_types" => requested_response_types}) when is_list(requested_response_types)
   do
     conf_attr = "__asteroid_oauth2_endpoint_register_allowed_response_types"
 
-    client = Client.fetch_attributes(client, [conf_attr])
+    client = Client.fetch_attributes(authenticated_client, [conf_attr])
 
     enabled_response_types =
       astrenv(:oauth2_response_types_enabled)
@@ -200,39 +273,23 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
 
     allowed_response_types =
       MapSet.intersection(
-        MapSet.new(client.data[conf_attr] || []),
+        MapSet.new(client.attrs[conf_attr] || enabled_response_types),
         MapSet.new(enabled_response_types)
       )
 
     if MapSet.subset?(MapSet.new(requested_response_types), allowed_response_types) do
-      case {
-          "authorization_code" in processed_metadata and "code" not in requested_response_types,
-          "implicit" in processed_metadata and "token" not in requested_response_types
-        } do
-        {true, _} ->
-          raise __MODULE__.InvalidClientMetadataField,
-            field: "response_types",
-            reason: "Response type `code` must be registered along with the grant type `authorization_code`"
-
-        {_, true} ->
-          raise __MODULE__.InvalidClientMetadataField,
-            field: "response_types",
-            reason: "Response type `token` must be registered along with the grant type `implicit`"
-
-        _ ->
           Map.put(processed_metadata, "response_types", requested_response_types)
-      end
     else
-      raise __MODULE__.InvalidClientMetadataField,
+      raise InvalidClientMetadataField,
         field: "response_types",
-        reason: "None of the response types could be granted as a result of applying the server policy"
+        reason: "one of the response types could be granted as a result of applying the server policy"
     end
   end
 
   defp process_response_types(_, _, %{"response_types" => _}) do
-    raise __MODULE__.InvalidClientMetadataField,
+    raise InvalidClientMetadataField,
       field: "response_types",
-      reason: "Invalid type for the `response_types` field (should be a list)"
+      reason: "should be a list of strings"
   end
 
   defp process_response_types(processed_metadata, _, _) do
@@ -268,7 +325,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               OAuth2Utils.uses_authorization_endpoint?(grant_type)
           end
         ) do
-          {:error, :missing_redirect_uri}
+          raise MissingRedirectURIError
         else
           processed_metadata
         end
@@ -281,28 +338,49 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     |> json(Enum.into(error_data, %{}))
   end
 
-  @spec process_token_endpoint_auth_method(map(), Client.t(), map()) :: map()
+  @spec process_token_endpoint_auth_method(map(), Client.t() | nil, map()) :: map()
 
   defp process_token_endpoint_auth_method(
     processed_metadata,
-    client,
+    nil,
     %{"token_endpoint_auth_method" => token_endpoint_auth_method})
+      when is_binary(token_endpoint_auth_method)
+  do
+    auth_method_allowed_str =
+      astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).f()
+      |> Enum.map(&to_string/1)
+
+    if token_endpoint_auth_method in auth_method_allowed_str do
+      Map.put(processed_metadata, "token_endpoint_auth_method", token_endpoint_auth_method)
+    else
+      raise OAuth2.Endpoint.UnsupportedAuthMethod,
+        endpoint: :token,
+        auth_method: token_endpoint_auth_method
+    end
+  end
+
+  defp process_token_endpoint_auth_method(
+    processed_metadata,
+    authenticated_client,
+    %{"token_endpoint_auth_method" => token_endpoint_auth_method})
+      when is_binary(token_endpoint_auth_method)
   do
     auth_meth_client = "__asteroid_oauth2_endpoint_register_allowed_token_endpoint_auth_methods"
 
-    client = Client.fetch_attributes(client, [auth_meth_client])
+    client = Client.fetch_attributes(authenticated_client, [auth_meth_client])
+
+    token_endpoint_auth_methods_supported =
+      astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).()
 
     auth_method_allowed_str =
-      case client.data[auth_meth_client] do
+      case client.attrs[auth_meth_client] do
         nil ->
-          astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).f()
-          |> Enum.map(&to_string/1)
+          Enum.map(token_endpoint_auth_methods_supported, &to_string/1)
 
         l when is_list(l) ->
           MapSet.intersection(
-            l,
-            astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).f()
-            |> Enum.map(&to_string/1)
+            MapSet.new(l),
+            token_endpoint_auth_methods_supported |> Enum.map(&to_string/1) |> MapSet.new()
           )
           |> MapSet.to_list()
       end
@@ -316,17 +394,66 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     end
   end
 
+  defp process_token_endpoint_auth_method(
+    _processed_metadata,
+    _authenticated_client,
+    %{"token_endpoint_auth_method" => _})
+  do
+    raise InvalidClientMetadataField,
+      field: "token_endpoint_auth_method",
+      reason: "should be a list of strings"
+  end
+
   defp process_token_endpoint_auth_method(processed_metadata, _, _) do
     Map.put(processed_metadata, "token_endpoint_auth_method", "client_secret_basic")
   end
 
-  @spec process_scope(map(), Client.t(), map()) :: map()
+  @spec process_scope(map(), Client.t() | nil, map()) :: map()
 
-  defp process_scope(processed_metadata, client, %{"scope" => scope_param}) do
+  defp process_scope(
+    processed_metadata,
+    nil,
+    %{"scope" => scope_param}) when is_binary(scope_param)
+  do
+    requested_scopes = Scope.Set.from_scope_param!(scope_param)
+
+    # let's compute all the available scopes for the flows associated to the accepted
+    # grant types
+    allowed_scopes_for_flows =
+      Enum.reduce(
+        processed_metadata["grant_types"],
+        MapSet.new(),
+        fn
+          grant_type_str, acc ->
+            grant_type = OAuth2.to_grant_type!(grant_type_str)
+
+            case OAuth2.grant_type_to_flow(grant_type) do
+              flow when is_atom(flow) ->
+                Scope.Set.union(acc, OAuth2.Scope.scopes_for_flow(flow))
+
+              nil ->
+                acc
+            end
+        end
+      )
+
+    if Scope.Set.subset?(requested_scopes, allowed_scopes_for_flows) do
+      Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(requested_scopes))
+    else
+      raise UnauthorizedRequestedScopes,
+        scopes: Scope.Set.difference(requested_scopes, allowed_scopes_for_flows)
+    end
+  end
+
+  defp process_scope(
+    processed_metadata,
+    authorized_client,
+    %{"scope" => scope_param}) when is_binary(scope_param)
+  do
     attr_allowed_scope = "__asteroid_oauth2_endpoint_register_allowed_scopes"
     attr_auto_scope = "__asteroid_oauth2_endpoint_register_auto_scopes"
 
-    client = Client.fetch_attributes(client, [attr_allowed_scope, attr_auto_scope])
+    client = Client.fetch_attributes(authorized_client, [attr_allowed_scope, attr_auto_scope])
 
     client_auto_scopes = Scope.Set.new(client.attrs[attr_auto_scope] || [])
 
@@ -338,13 +465,13 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       if Scope.Set.subset?(requested_scopes, client_allowed_scopes) do
         result_scopes = Scope.Set.union(requested_scopes, client_auto_scopes)
 
-        Map.put(processed_metadata, "scope", Scope.Set.to_list(result_scopes))
+        Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(result_scopes))
       else
         raise UnauthorizedRequestedScopes,
-          scope: Scope.Set.difference(requested_scopes, client_allowed_scopes)
+          scopes: Scope.Set.difference(requested_scopes, client_allowed_scopes)
       end
     else
-      # let's compute all the available scopes for the flo9ws associated to the accepted
+      # let's compute all the available scopes for the flows associated to the accepted
       # grant types
       allowed_scopes_for_flows =
         Enum.reduce(
@@ -367,12 +494,24 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       if Scope.Set.subset?(requested_scopes, allowed_scopes_for_flows) do
         result_scopes = Scope.Set.union(requested_scopes, client_auto_scopes)
 
-        Map.put(processed_metadata, "scope", Scope.Set.to_list(result_scopes))
+        Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(result_scopes))
       else
         raise UnauthorizedRequestedScopes,
-          scope: Scope.Set.difference(requested_scopes, allowed_scopes_for_flows)
+          scopes: Scope.Set.difference(requested_scopes, allowed_scopes_for_flows)
       end
     end
+  end
+
+  defp process_scope(_processed_metadata, _client, %{"scope" => _}) do
+    raise InvalidClientMetadataField,
+      field: "scope",
+      reason: "should be a string"
+  end
+
+  defp process_scope(processed_metadata, nil, _input_metadata) do
+    #FIXME: allow default scopes here?
+
+    processed_metadata
   end
 
   defp process_scope(processed_metadata, client, _input_metadata) do
@@ -399,7 +538,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               :ok
 
             _ ->
-              raise __MODULE__.InvalidClientMetadataField,
+              raise InvalidClientMetadataField,
                 field: "contacts",
                 reason: "one of the list value is not a string"
           end
@@ -408,7 +547,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "contacts", contacts)
 
       _ ->
-        raise __MODULE__.InvalidClientMetadataField,
+        raise InvalidClientMetadataField,
           field: "contacts",
           reason: "not a list"
     end
@@ -428,7 +567,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "jwks_uri", jwks_uri)
 
       _ ->
-        raise __MODULE__.InvalidClientMetadataField,
+        raise InvalidClientMetadataField,
           field: "jwks_uri",
           reason: "must be an https:// URL"
     end
@@ -441,7 +580,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
   @spec process_jwks(map(), map()) :: map()
 
   defp process_jwks(%{"jwks_uri" => _}, %{"jwks" => _}) do
-    raise __MODULE__.InvalidClientMetadataField,
+    raise InvalidClientMetadataField,
       field: "jwks",
       reason: "`jwks_uri` and `jwks` fields cannot be present at the same time"
   end
@@ -456,7 +595,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               :ok
 
             key ->
-              raise __MODULE__.InvalidClientMetadataField,
+              raise InvalidClientMetadataField,
                 field: "jwks",
                 reason: "invalid key `#{inspect(key)}`, must be a map and contain `kty`"
           end
@@ -465,7 +604,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "jwks", key_list)
 
       _ ->
-      raise __MODULE__.InvalidClientMetadataField,
+      raise InvalidClientMetadataField,
         field: "jwks",
         reason: "jwks must have a `keys` key containing a list of keys"
     end
@@ -481,7 +620,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if is_binary(software_id) do
       Map.put(processed_metadata, "software_id", software_id)
     else
-      raise __MODULE__.InvalidClientMetadataField,
+      raise InvalidClientMetadataField,
         field: "software_id",
         reason: "must be a string"
     end
@@ -497,7 +636,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if is_binary(software_version) do
       Map.put(processed_metadata, "software_version", software_version)
     else
-      raise __MODULE__.InvalidClientMetadataField,
+      raise InvalidClientMetadataField,
         field: "software_version",
         reason: "must be a string"
     end
@@ -507,16 +646,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     processed_metadata
   end
 
-  @spec process_additional_metadata_fields(map(), Client.t(), map()) :: map()
+  @spec process_additional_metadata_fields(map(), Client.t() | nil, map()) :: map()
 
-  defp process_additional_metadata_fields(processed_metadata, client, input_metadata) do
-    add_met = "__asteroid_oauth2_endpoint_register_additional_metadata_fields"
-
-    client = Client.fetch_attributes(client, [add_met])
-
+  defp process_additional_metadata_fields(processed_metadata, nil, input_metadata) do
     Enum.reduce(
-      client.attrs[add_met] ||
-        astrenv(:oauth2_endpoint_register_client_additional_metadata_field, []),
+      astrenv(:oauth2_endpoint_register_additional_metadata_field, []),
       processed_metadata,
       fn
         additional_field, acc ->
@@ -525,44 +659,62 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     )
   end
 
-  @spec gen_new_client_id(map()) :: String.t()
+  defp process_additional_metadata_fields(processed_metadata, authorized_client, input_metadata) do
+    add_met = "__asteroid_oauth2_endpoint_register_additional_metadata_fields"
 
-  defp gen_new_client_id(%{"client_name" => client_name}) do
-    client_name_sanitized =
-      client_name
-      |> String.replace(~r/[^\x20-\x7E]/, "")
-      |> String.replace(" ", "_")
+    client = Client.fetch_attributes(authorized_client, [add_met])
 
-    gen_new_client_id_from_client_name(client_name_sanitized, 0)
-  end
-
-  defp gen_new_client_id(_) do
-    secure_random_b64(20)
-  end
-
-  @spec gen_new_client_id_from_client_name(String.t(), non_neg_integer()) :: String.t()
-
-  defp gen_new_client_id_from_client_name(_client_name, n) when n >= 10_000 do
-    secure_random_b64(20)
-  end
-
-  defp gen_new_client_id_from_client_name(client_name, n) do
-    client_name =
-      case n do
-        0 ->
-          client_name
-
-        _ ->
-          client_name <> "_" <> Integer.to_string(n)
+    Enum.reduce(
+      client.attrs[add_met] ||
+        astrenv(:oauth2_endpoint_register_additional_metadata_field, []),
+      processed_metadata,
+      fn
+        additional_field, acc ->
+          put_if_not_nil(acc, additional_field, input_metadata[additional_field])
       end
+    )
+  end
 
-    case Client.load(client_name, attributes: []) do
-      {:ok, _} ->
-        client_name
+  @spec set_client_type(Client.t()) :: Client.t()
 
-      {:error, _} ->
-        gen_new_client_id_from_client_name(client_name, n + 1)
+  defp set_client_type(client) do
+    if client.attrs["token_endpoint_auth_method"] == "none" do
+      Client.add(client, "client_type", "public")
+    else
+      Client.add(client, "client_type", "confidential")
     end
+  end
+
+  @spec check_grant_response_type_consistency(map()) :: map()
+
+  defp check_grant_response_type_consistency(processed_metadata) do
+    case OAuth2.Register.grant_response_types_consistent?(
+      processed_metadata["grant_types"],
+      processed_metadata["response_types"])
+    do
+      :ok ->
+        processed_metadata
+
+      {:error, {:grant_type, error_str}} ->
+        raise InvalidClientMetadataField, field: "grant_types", reason: error_str
+
+      {:error, {:response_type, error_str}} ->
+        raise InvalidClientMetadataField, field: "response_types", reason: error_str
+    end
+  end
+
+  @spec jwks_to_binary(Client.t()) :: Client.t()
+
+  defp jwks_to_binary(%Client{:attrs => %{"jwks" => jwks}} = client) do
+    jwks_binary = for jwk <- jwks, do: {:binary_data, :erlang.term_to_binary(jwk)}
+
+    client
+    |> Client.remove("jwks")
+    |> Client.add("jwks", jwks_binary)
+  end
+
+  defp jwks_to_binary(client) do
+    client
   end
 
   @spec process_i18n_field(map(), map(), String.t()) :: map()
@@ -573,10 +725,26 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       processed_metadata,
       fn
         {key, value}, acc ->
-          if key == field_name or String.starts_with?(key, field_name <> "#") do
-            Map.put(acc, key, value)
-          else
-            acc
+          cond do
+            field_name == key ->
+              Map.put(acc, key, value)
+
+            # for instance `client_name#fr`
+            String.starts_with?(key, field_name <> "#") ->
+              field_name_i18n = field_name <> "_i18n"
+
+              [^field_name, i18n_key] = String.split(key, "#")
+
+              case acc[field_name_i18n] do
+                nil ->
+                  Map.put(acc, field_name_i18n, %{i18n_key => value})
+
+                _ -> # key already exsists
+                  put_in(acc, [field_name_i18n, i18n_key], value)
+              end
+
+            true ->
+              acc
           end
       end
     )

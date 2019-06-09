@@ -16,6 +16,8 @@ defmodule Asteroid.OAuth2.Client do
 
     defexception [:reason]
 
+    @impl true
+
     def message(%__MODULE__{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->

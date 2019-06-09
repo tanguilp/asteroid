@@ -15,10 +15,9 @@ defmodule Asteroid.OAuth2.Endpoint do
     @impl true
 
     def message(%{endpoint: :token, auth_method: auth_method}) do
-      "The client authentication method `#{auth_method}` is not supported on the token endpoint"
-      <> " (supported values are: "
-      <> "#{inspect astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).f()}"
-      <> ")"
+      "The client authentication method `#{auth_method}` is not supported on the token " <>
+      "endpoint (supported values are: " <>
+      "#{inspect astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).()})"
     end
   end
 
@@ -41,7 +40,7 @@ defmodule Asteroid.OAuth2.Endpoint do
   - `:api_oauth2_endpoint_token_plugs`
 
   It also adds `:none` to the list since public client are authorized to access the token
-  endpoint.
+  endpoint without authentication.
   """
 
   @spec token_endpoint_auth_methods_supported() :: [auth_method()]

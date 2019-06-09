@@ -87,6 +87,9 @@ defmodule AsteroidWeb.AuthorizeController do
       {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e} ->
         error(conn, e, redirect_uri, params["state"])
 
+      {:error, %OAuth2.RedirectUri.MalformedError{} = e} ->
+        error_redirect_uri(conn, Exception.message(e))
+
       {:error, :unregistered_redirect_uri} ->
         error_redirect_uri(conn, "Unregistered redirect_uri")
 
@@ -94,9 +97,6 @@ defmodule AsteroidWeb.AuthorizeController do
         error(conn, reason, redirect_uri, params["state"])
     end
   rescue
-    e in OAuth2.RedirectUri.MalformedError ->
-      error_redirect_uri(conn, Exception.message(e))
-
     e in OAuth2.Client.InvalidClientIdError ->
       error_redirect_uri(conn, Exception.message(e))
 

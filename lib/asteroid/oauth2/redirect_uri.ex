@@ -19,7 +19,7 @@ defmodule Asteroid.OAuth2.RedirectUri do
     if parsed_uri.scheme != nil and parsed_uri.fragment == nil do
       :ok
     else
-      __MODULE__.MalformedError.exception(redirect_uri: redirect_uri)
+      {:error, __MODULE__.MalformedError.exception(redirect_uri: redirect_uri)}
     end
   end
 

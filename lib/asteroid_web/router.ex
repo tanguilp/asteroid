@@ -16,7 +16,7 @@ defmodule AsteroidWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug Plug.Parsers, parsers: [:urlencoded, :json]
+    plug Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Jason
   end
 
   pipeline :oauth2 do

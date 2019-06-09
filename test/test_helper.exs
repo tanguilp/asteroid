@@ -15,9 +15,15 @@ Client.gen_new(id: "client_confidential_1")
   "refresh_token"
 ])
 |> Client.add("response_types", ["code"])
-|> Client.add("scope", ["scp1", "scp2", "scp3", "scp4", "scp5", "scp6", "asteroid.introspect"])
+|> Client.add("scope", [
+  "scp1", "scp2", "scp3", "scp4", "scp5", "scp6",
+  "asteroid.introspect",
+  "asteroid.register"
+])
 |> Client.add("redirect_uris", ["https://www.example.com", "https://example.org/auth/web/"])
 |> Client.add("resource_server_name", "https://client1.api")
+|> Client.add("__asteroid_oauth2_endpoint_register_additional_metadata_fields",
+              ["field_1", "field_2", "field_4"])
 |> Client.store()
 
 Client.gen_new(id: "client_confidential_2")
@@ -32,10 +38,14 @@ Client.gen_new(id: "client_confidential_2")
 Client.gen_new(id: "client_confidential_3")
 |> Client.add("client_id", "client_confidential_3")
 |> Client.add("client_type", "confidential")
+|> Client.add("client_secret", "password3")
 |> Client.add("grant_types", ["authorization_code"])
 |> Client.add("response_types", ["code"])
 |> Client.add("redirect_uris", ["https://www.example.com"])
 |> Client.add("__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use", true)
+|> Client.add("__asteroid_oauth2_endpoint_register_allowed_scopes", ["scp11", "scp12", "scp13"])
+|> Client.add("__asteroid_oauth2_endpoint_register_auto_scopes", ["scp17", "scp18", "scp19"])
+|> Client.add("scope", ["asteroid.register"])
 |> Client.store()
 
 Client.gen_new(id: "client_public_1")

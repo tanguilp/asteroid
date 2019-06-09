@@ -771,13 +771,13 @@ defmodule Asteroid.Config do
     the register endpoint or not
     """
 
-    @type oauth2_endpoint_register_client_authorization_callback ::
+    @type oauth2_endpoint_register_authorization_callback ::
     (Plug.Conn.t(), Asteroid.Client.t() ->
-      :ok | {:error, %Asteroid.OAuth2.Register.UnauthorizedClientError{}})
+      :ok | {:error, %Asteroid.OAuth2.Register.UnauthorizedRequestError{}})
 
-    field :oauth2_endpoint_register_client_authorization_callback,
+    field :oauth2_endpoint_register_authorization_callback,
     config_time: :runtime,
-    uses: [:oauth2_endpoint_register_client_authorization_policy]
+    uses: [:oauth2_endpoint_register_authorization_policy]
 
     @doc """
     The client registration policy
@@ -792,14 +792,14 @@ defmodule Asteroid.Config do
     authenticate to that endpoint with an access token containing that scope
     """
 
-    @type oauth2_endpoint_register_client_authorization_policy ::
+    @type oauth2_endpoint_register_authorization_policy ::
     :all
     | :authenticated_clients
     | :authorized_clients
 
-    field :oauth2_endpoint_register_client_authorization_policy,
+    field :oauth2_endpoint_register_authorization_policy,
     config_time: :runtime,
-    used_by: [:oauth2_endpoint_register_client_authorization_callback]
+    used_by: [:oauth2_endpoint_register_authorization_callback]
 
     @doc """
     Additional fields that are saved when registering new clients
@@ -807,29 +807,50 @@ defmodule Asteroid.Config do
     Note that this option is overriden by client configuration, if existing.
     """
 
-    @type oauth2_endpoint_register_client_additional_metadata_field :: [String.t()]
+    @type oauth2_endpoint_register_additional_metadata_field :: [String.t()]
 
-    field :oauth2_endpoint_register_client_additional_metadata_field,
+    field :oauth2_endpoint_register_additional_metadata_field,
     config_time: :runtime
 
     @doc """
     Callback invoked on the json response when on the register endpoint
     """
 
-    @type oauth2_endpoint_register_client_before_send_resp_callback ::
+    @type oauth2_endpoint_register_before_send_resp_callback ::
     (map(), Asteroid.Context.t() -> map())
 
-    field :oauth2_endpoint_register_client_before_send_resp_callback,
+    field :oauth2_endpoint_register_before_send_resp_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked on the `t:Plug.Conn.t/0` response on the register endpoint
     """
 
-    @type oauth2_endpoint_register_client_before_send_conn_callback ::
+    @type oauth2_endpoint_register_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
-    field :oauth2_endpoint_register_client_before_send_conn_callback,
+    field :oauth2_endpoint_register_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Asteroid.Client.t()` before it's being saved
+    """
+
+    @type oauth2_endpoint_register_client_before_save_callback ::
+    (Client.t(), Asteroid.Context.t() -> Client.t())
+
+    field :oauth2_endpoint_register_client_before_save_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked to generate the client id of a newly created client
+
+    The callback should ensure that the client id does not already exists.
+    """
+
+    @type oauth2_endpoint_register_gen_client_id_callback :: (map() -> String.t())
+
+    field :oauth2_endpoint_register_gen_client_id_callback,
     config_time: :runtime
 
     @doc """
