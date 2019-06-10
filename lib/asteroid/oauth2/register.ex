@@ -36,6 +36,8 @@ defmodule Asteroid.OAuth2.Register do
   to `:all`.
 
   A client passed as a parameter shall be authenticated.
+
+  When using the HTTP `Bearer` scheme, it is not required that the client exists in Asteroid.
   """
 
   @spec request_authorized?(Plug.Conn.t(), Client.t() | nil) ::

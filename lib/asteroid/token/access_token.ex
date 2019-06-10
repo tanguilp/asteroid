@@ -118,7 +118,7 @@ defmodule Asteroid.Token.AccessToken do
 
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
-  def store(access_token, ctx) do
+  def store(access_token, ctx \\ %{}) do
     token_store_module = astrenv(:token_store_access_token)[:module]
     token_store_opts = astrenv(:token_store_access_token)[:opts] || []
 

@@ -3,11 +3,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
   alias Asteroid.Client
   alias OAuth2Utils.Scope
+  alias Asteroid.Token.AccessToken
 
   # error cases
 
   test "invalid content-type", %{conn: conn} do
-    IO.inspect(:tata)
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
@@ -102,7 +102,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["error"] == "invalid_client"
   end
 
-  test ":authorized_clients policy, client authorized to create new clients", %{conn: conn} do
+  test ":authorized_clients policy, client authorized to create new clients, auth basic", %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number six",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -115,6 +115,30 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_six"
+    assert response["token_endpoint_auth_method"] == "client_secret_basic"
+    assert response["grant_types"] == ["authorization_code"]
+    assert response["response_types"] == ["code"]
+    assert {:ok, _} = Client.load(response["client_id"])
+  end
+
+  test ":authorized_clients policy, client authorized to create new clients, auth bearer", %{conn: conn} do
+    req_body = %{
+      "client_name" => "Example client number six'",
+      "redirect_uris" => ["https://www.example.com/redirect_uri"]
+    }
+
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("scope", "asteroid.register")
+      |> AccessToken.store()
+
+    response =
+      conn
+      |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
+      |> post(AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
+      |> json_response(201)
+
+    assert response["client_id"] == "example_client_number_six'"
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]

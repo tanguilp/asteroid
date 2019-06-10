@@ -138,7 +138,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
   # Endpoint test - access tokens
   ##########################################################################
 
-  test "existing access token, no token_type_hint param", %{conn: conn} do
+  test "existing access token, no token_type_hint param, basic auth", %{conn: conn} do
     {:ok, access_token} =
       AccessToken.gen_new()
       |> AccessToken.put_value("scope", ["scp3", "scp9", "scp1"])
@@ -162,6 +162,35 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     assert response == Map.put(access_token.data, "active", true)
   end
 
+  test "existing access token, no token_type_hint param, bearer auth", %{conn: conn} do
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("scope", ["scp3", "scp9", "scp1"])
+      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("token_type", "strange_type")
+      |> AccessToken.put_value("exp", now() + 3600)
+      |> AccessToken.put_value("iat", now())
+      |> AccessToken.put_value("iss", "https://example.net")
+      |> AccessToken.store(%{})
+
+    req_body = %{
+      "token" => access_token.id
+    }
+
+    {:ok, auth_access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("scope", "asteroid.introspect")
+      |> AccessToken.store()
+
+    response =
+      conn
+      |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(auth_access_token))
+      |> post(AsteroidWeb.Router.Helpers.introspect_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response == Map.put(access_token.data, "active", true)
+  end
   test "existing access token, correct token_type_hint param", %{conn: conn} do
     {:ok, access_token} =
       AccessToken.gen_new()

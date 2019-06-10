@@ -113,13 +113,12 @@ config :asteroid, :api_oauth2_endpoint_introspect_plugs,
       error_response_verbosity: :debug},
     {APIacAuthBearer,
       realm: "Asteroid",
-      bearer_validator:
-        {
-          APIacAuthBearer.Validator.Identity,
-          [response: {:error, :invalid_token}]
-        },
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
       set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
-error_response_verbosity: :debug}
+      error_response_verbosity: :debug,
+      required_scopes: ["asteroid.introspect"],
+      forward_metadata: ["scope"]
+    }
   ]
 
 config :asteroid, :api_oauth2_endpoint_revoke_plugs,
@@ -152,6 +151,14 @@ config :asteroid, :api_oauth2_endpoint_register_plugs,
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
       set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+      set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
+      error_response_verbosity: :debug,
+      required_scopes: ["asteroid.register"],
+      forward_metadata: ["scope"]
+    }
   ]
 
 config :asteroid, :oauth2_grant_types_enabled, [
