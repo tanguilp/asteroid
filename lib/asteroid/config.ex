@@ -854,6 +854,15 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
+    Callback invoked to determine the client type
+    """
+
+    @type oauth2_endpoint_register_client_type_callback :: (Client.t() -> OAuth2.Client.type())
+
+    field :oauth2_endpoint_register_client_type_callback,
+    config_time: :runtime
+
+    @doc """
     Callback called to determine the supported authentication of the token endpoint
     """
 

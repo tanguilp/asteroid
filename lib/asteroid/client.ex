@@ -27,6 +27,9 @@ defmodule Asteroid.Client do
   endpoints. See also []()
   - `"token_endpoint_auth_method"`: a `t:Asteroid.Oauth2.Endpoint.auth_method_str/0`
   as specified in RFC7591
+  - `"__asteroid_created_by_client_id"`: the `String.t()` client id of the client that has
+  initially created this client using the `/register` endpoint (may not have a value if the
+  client was created by another mean)
   - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_init"`: a `boolean()` set to true if a
   refresh token is to be issued at the first request of the ROPC flow
   - `"__asteroid_oauth2_flow_ropc_issue_refresh_token_refresh"`: a `boolean()` set to true if a
@@ -84,6 +87,15 @@ defmodule Asteroid.Client do
   option
   - `"__asteroid_oauth2_endpoint_register_additional_metadata_fields"`: a list of strings
   for the additional metadata fields that will be saved upon client creation request
+  - `"__asteroid_oauth2_endpoint_register_default_token_endpoint_auth_method"`: a
+  `t:Asteroid.OAuth2.Endpoint.auth_method_str/0` that replaces the specification's default
+  (`"client_secret_basic"`) for new clients created by this client
+  - `"__asteroid_oauth2_endpoint_register_default_grant_types"`: a list of
+  `t:Asteroid.OAuth2.grant_type_str/0` that replaces the specification's default
+  (`["authorization_code"]`) for new clients created by this client
+  - `"__asteroid_oauth2_endpoint_register_default_response_types"`: a list of
+  `t:Asteroid.OAuth2.response_type_str/0` that replaces the specification's default
+  (`["code"]`) for new clients created by this client
 
   ## Configuration
 

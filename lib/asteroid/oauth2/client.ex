@@ -75,6 +75,20 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
+  @typedoc """
+  Client's type: confidential or public
+  """
+
+  @type type :: :confidential | :public
+
+  @typedoc """
+  String representation of a client type
+
+  Must be the string conversion of a `t:type/0` atom.
+  """
+
+  @type type_str :: String.t()
+
   @doc """
   Returns the authenticated or **unauthenticated** client of a request
 

@@ -209,6 +209,25 @@ defmodule Asteroid.OAuth2.Register do
     end
   end
 
+  @doc """
+  Returns the computed client's type
+
+  Returns `:public` if the client `"token_endpoint_auth_method"` is set to `"none"`,
+  `:confidential` otherwise.
+  """
+
+  @spec client_type(Client.t()) :: OAuth2.Client.type()
+
+  def client_type(client) do
+    client = Client.fetch_attributes(client, ["token_endpoint_auth_method"])
+
+    if client.attrs["token_endpoint_auth_method"] == "none" do
+      :public
+    else
+      :confidential
+    end
+  end
+
   @spec error_response(Plug.Conn.t(), %__MODULE__.UnauthorizedRequestError{}) :: Plug.Conn.t()
 
   def error_response(conn, %__MODULE__.UnauthorizedRequestError{} = e) do

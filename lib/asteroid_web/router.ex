@@ -14,9 +14,14 @@ defmodule AsteroidWeb.Router do
     plug :put_secure_browser_headers
   end
 
-  pipeline :api do
+  pipeline :api_urlencoded do
     plug :accepts, ["json"]
-    plug Plug.Parsers, parsers: [:urlencoded, :json], json_decoder: Jason
+    plug Plug.Parsers, parsers: [:urlencoded]
+  end
+
+  pipeline :api_json do
+    plug :accepts, ["json"]
+    plug Plug.Parsers, parsers: [:json], json_decoder: Jason
   end
 
   pipeline :oauth2 do
@@ -56,28 +61,31 @@ defmodule AsteroidWeb.Router do
   end
 
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
-    pipe_through :api
     pipe_through :oauth2
 
     scope "/token" do
+      pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_token
 
       post "/", TokenEndpoint, :handle
     end
 
     scope "/introspect" do
+      pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_introspect
 
       post "/", IntrospectEndpoint, :handle
     end
 
     scope "/revoke" do
+      pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_revoke
 
       post "/", RevokeEndpoint, :handle
     end
 
     scope "/register" do
+      pipe_through :api_json
       pipe_through :oauth2_endpoint_register
 
       post "/", RegisterEndpoint, :handle

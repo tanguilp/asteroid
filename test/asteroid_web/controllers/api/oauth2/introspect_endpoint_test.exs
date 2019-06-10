@@ -2,7 +2,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
   import Asteroid.Utils
   alias Asteroid.Token.{RefreshToken, AccessToken}
 
-  use AsteroidWeb.ConnCase
+  use AsteroidWeb.ConnCase, async: true
 
   ##########################################################################
   # General tests

@@ -117,7 +117,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         end
       )
       |> Client.add("client_id", client_id)
-      |> set_client_type()
+      |> set_new_client_type()
+      |> set_client_created_by(maybe_authenticated_client)
 
     new_client =
       if maybe_client_secret_and_hash do
@@ -233,8 +234,22 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       reason: "should be a list of strings"
   end
 
-  defp process_grant_types(processed_metadata, _, _) do
+  defp process_grant_types(processed_metadata, nil, _) do
     Map.put(processed_metadata, "grant_types", ["authorization_code"])
+  end
+
+  defp process_grant_types(processed_metadata, authenticated_client, _) do
+    attr = "__asteroid_oauth2_endpoint_register_default_grant_types"
+
+    client = Client.fetch_attributes(authenticated_client, [attr])
+
+    case client.attrs[attr] do
+      l when is_list(l) ->
+        Map.put(processed_metadata, "grant_types", l)
+
+      nil ->
+        Map.put(processed_metadata, "grant_types", ["authorization_code"])
+    end
   end
 
   @spec process_response_types(map(), Client.t() | nil, map()) :: map()
@@ -292,8 +307,22 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       reason: "should be a list of strings"
   end
 
-  defp process_response_types(processed_metadata, _, _) do
+  defp process_response_types(processed_metadata, nil, _) do
     Map.put(processed_metadata, "response_types", ["code"])
+  end
+
+  defp process_response_types(processed_metadata, authenticated_client, _) do
+    attr = "__asteroid_oauth2_endpoint_register_default_response_types"
+
+    client = Client.fetch_attributes(authenticated_client, [attr])
+
+    case client.attrs[attr] do
+      l when is_list(l) ->
+        Map.put(processed_metadata, "response_types", l)
+
+      nil ->
+        Map.put(processed_metadata, "response_types", ["code"])
+    end
   end
 
   @spec process_redirect_uris(map(), map()) :: map()
@@ -404,8 +433,22 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       reason: "should be a list of strings"
   end
 
-  defp process_token_endpoint_auth_method(processed_metadata, _, _) do
+  defp process_token_endpoint_auth_method(processed_metadata, nil, _) do
     Map.put(processed_metadata, "token_endpoint_auth_method", "client_secret_basic")
+  end
+
+  defp process_token_endpoint_auth_method(processed_metadata, authenticated_client, _) do
+    attr = "__asteroid_oauth2_endpoint_register_default_token_endpoint_auth_method"
+
+    client = Client.fetch_attributes(authenticated_client, [attr])
+
+    case client.attrs[attr] do
+      auth_method when is_binary(auth_method) ->
+        Map.put(processed_metadata, "token_endpoint_auth_method", auth_method)
+
+      nil ->
+        Map.put(processed_metadata, "token_endpoint_auth_method", "client_secret_basic")
+    end
   end
 
   @spec process_scope(map(), Client.t() | nil, map()) :: map()
@@ -675,14 +718,28 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     )
   end
 
-  @spec set_client_type(Client.t()) :: Client.t()
+  @spec set_new_client_type(Client.t()) :: Client.t()
 
-  defp set_client_type(client) do
-    if client.attrs["token_endpoint_auth_method"] == "none" do
-      Client.add(client, "client_type", "public")
-    else
-      Client.add(client, "client_type", "confidential")
+  defp set_new_client_type(client) do
+    case astrenv(:oauth2_endpoint_register_client_type_callback).(client) do
+      :public ->
+        Client.add(client, "client_type", "public")
+
+      :confidential ->
+        Client.add(client, "client_type", "private")
     end
+  end
+
+  @spec set_client_created_by(Client.t(), Client.t() | nil) :: Client.t()
+
+  defp set_client_created_by(new_client, nil) do
+    new_client
+  end
+
+  defp set_client_created_by(new_client, client) do
+    client = Client.fetch_attributes(client, ["client_id"])
+
+    Client.add(new_client, "__asteroid_created_by_client_id", client.attrs["client_id"])
   end
 
   @spec check_grant_response_type_consistency(map()) :: map()

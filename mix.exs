@@ -74,7 +74,6 @@ defmodule Asteroid.MixProject do
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       #test: ["ecto.create --quiet", "ecto.migrate", "test"]
-      test: ["test"]
     ]
   end
 
@@ -106,14 +105,16 @@ defmodule Asteroid.MixProject do
         "guides/configuring-clients.md",
         "guides/oauth2/terminology-conventions.md",
         "guides/oauth2/basic-configuration.md",
-        "guides/oauth2/managing-scopes.md"
+        "guides/oauth2/managing-scopes.md",
+        "guides/oauth2/dynamic-client-registration.md"
       ],
       groups_for_extras:
       [
         "OAuth2": [
           "guides/oauth2/terminology-conventions.md",
           "guides/oauth2/basic-configuration.md",
-          "guides/oauth2/managing-scopes.md"
+          "guides/oauth2/managing-scopes.md",
+          "guides/oauth2/dynamic-client-registration.md"
         ]
       ]
     ]

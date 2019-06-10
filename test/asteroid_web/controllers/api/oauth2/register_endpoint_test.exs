@@ -7,6 +7,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
   # error cases
 
   test "invalid content-type", %{conn: conn} do
+    IO.inspect(:tata)
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
@@ -475,6 +476,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert client.attrs["jwks_uri"] == "https://www.example.com/jwks"
     assert client.attrs["software_id"] == "client_01"
     assert client.attrs["software_version"] == "1.5.2"
+    assert client.attrs["__asteroid_created_by_client_id"] == "client_confidential_1"
     assert client.attrs["field_1"] == "value 1"
     assert client.attrs["field_2"] == "value 2"
     assert client.attrs["field_3"] == nil
@@ -553,6 +555,36 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
     assert {:binary_data, :erlang.term_to_binary(key_1)} in client.attrs["jwks"]
     assert {:binary_data, :erlang.term_to_binary(key_2)} in client.attrs["jwks"]
+  end
+
+  test "client defaults grant type and auth method", %{conn: conn} do
+    req_body = %{
+      "client_name" => "Example client number twenty four",
+      "redirect_uris" => ["https://www.example.com/auth"],
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_3", "password3"))
+      |> post(AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
+      |> json_response(201)
+
+    assert response["client_id"] == "example_client_number_twenty_four"
+    assert response["token_endpoint_auth_method"] == "client_secret_post"
+    assert Enum.sort(response["grant_types"]) ==
+      Enum.sort(["authorization_code", "client_credentials", "password"])
+    assert response["response_types"] == ["code"]
+
+    assert {:ok, client} = Client.load(response["client_id"])
+
+    client = Client.fetch_attributes(client, [
+      "client_id", "token_endpoint_auth_method", "grant_types", "response_types"])
+
+    assert client.attrs["client_id"] == "example_client_number_twenty_four"
+    assert client.attrs["token_endpoint_auth_method"] == "client_secret_post"
+    assert Enum.sort(client.attrs["grant_types"]) ==
+      Enum.sort(["authorization_code", "client_credentials", "password"])
+    assert client.attrs["response_types"] == ["code"]
   end
 
   defp basic_auth_header(client, secret) do

@@ -45,6 +45,10 @@ Client.gen_new(id: "client_confidential_3")
 |> Client.add("__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use", true)
 |> Client.add("__asteroid_oauth2_endpoint_register_allowed_scopes", ["scp11", "scp12", "scp13"])
 |> Client.add("__asteroid_oauth2_endpoint_register_auto_scopes", ["scp17", "scp18", "scp19"])
+|> Client.add("__asteroid_oauth2_endpoint_register_default_token_endpoint_auth_method",
+              "client_secret_post")
+|> Client.add("__asteroid_oauth2_endpoint_register_default_grant_types",
+              ["authorization_code", "client_credentials", "password"])
 |> Client.add("scope", ["asteroid.register"])
 |> Client.store()
 

@@ -336,6 +336,9 @@ config :asteroid, :oauth2_endpoint_register_client_before_save_callback,
 config :asteroid, :oauth2_endpoint_register_gen_client_id_callback,
   &Asteroid.OAuth2.Register.generate_client_id/1
 
+config :asteroid, :oauth2_endpoint_register_client_type_callback,
+  &Asteroid.OAuth2.Register.client_type/1
+
 # endpoint token
 
 config :asteroid, :oauth2_endpoint_token_auth_methods_supported_callback,
