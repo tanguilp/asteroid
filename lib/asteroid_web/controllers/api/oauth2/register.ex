@@ -157,8 +157,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     e in Asteroid.OAuth2.Client.AuthenticationError ->
       OAuth2.Client.error_response(conn, e)
 
-    e in Asteroid.OAuth2.Register.UnauthorizedRequestError ->
-      OAuth2.Register.error_response(conn, e)
+    e in Asteroid.OAuth2.Client.AuthorizationError ->
+      OAuth2.Client.error_response(conn, e)
 
     e in OAuth2.RedirectUri.MalformedError ->
       error_resp(conn, error: :invalid_redirect_uri, error_description: Exception.message(e))

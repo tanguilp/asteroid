@@ -6,30 +6,12 @@ defmodule Asteroid.OAuth2.Register do
   import Asteroid.Utils
 
   alias Asteroid.Client
+  alias Asteroid.OAuth2
   alias OAuth2Utils.Scope
-
-  defmodule UnauthorizedRequestError do
-    @moduledoc """
-    Exception returned when the client is not authorized to register new clients on the client
-    registration endpoint
-    """
-
-    defexception [:client_id, :reason]
-
-    @impl true
-
-    def message(%{client_id: nil}) do
-      "Only authenticated clients can register new clients"
-    end
-
-    def message(%{client_id: client_id, reason: reason}) do
-      "Client `#{client_id}` is not authorized to register new clients (reason: #{reason})"
-    end
-  end
 
   @doc """
   Returns `:ok` if the request is authorized to register new clients,
-  `{:error, %Asteroid.OAuth2.Register.UnauthorizedRequestError{}}` otherwise
+  `{:error, Exception.t()}` otherwise
 
   Unauthenticated requests are authorized only if the
   #{Asteroid.Config.link_to_option(:oauth2_endpoint_register_authorization_policy)} is set
@@ -42,7 +24,8 @@ defmodule Asteroid.OAuth2.Register do
 
   @spec request_authorized?(Plug.Conn.t(), Client.t() | nil) ::
   :ok
-  | {:error, %Asteroid.OAuth2.Register.UnauthorizedRequestError{}}
+  | {:error, %OAuth2.Client.AuthenticationError{}}
+  | {:error, %OAuth2.Client.AuthorizationError{}}
 
   def request_authorized?(conn, maybe_authenticated_client) do
     case astrenv(:oauth2_endpoint_register_authorization_policy) do
@@ -56,12 +39,13 @@ defmodule Asteroid.OAuth2.Register do
           if maybe_authenticated_client do
             client = Client.fetch_attributes(maybe_authenticated_client, ["client_id"])
 
-            {:error, Asteroid.OAuth2.Register.UnauthorizedRequestError.exception(
-              client_id: client.attrs["client_id"],
-              reason: "Client authentication is required"
+            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
+              reason: :client_authentication_required
             )}
           else
-            {:error, Asteroid.OAuth2.Register.UnauthorizedRequestError.exception([])}
+            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
+              reason: :client_authentication_required
+            )}
           end
         end
 
@@ -77,13 +61,14 @@ defmodule Asteroid.OAuth2.Register do
             if "asteroid.register" in client.attrs["scope"] do
               :ok
             else
-              {:error, Asteroid.OAuth2.Register.UnauthorizedRequestError.exception(
-                client_id: client.attrs["client_id"],
-                reason: "Client authentication is required"
+              {:error, Asteroid.OAuth2.Client.AuthorizationError.exception(
+                reason: :unauthorized_client
               )}
             end
           else
-            {:error, Asteroid.OAuth2.Register.UnauthorizedRequestError.exception([])}
+            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
+              reason: :client_authentication_required
+            )}
           end
         end
     end
@@ -228,19 +213,5 @@ defmodule Asteroid.OAuth2.Register do
     else
       :confidential
     end
-  end
-
-  @spec error_response(Plug.Conn.t(), %__MODULE__.UnauthorizedRequestError{}) :: Plug.Conn.t()
-
-  def error_response(conn, %__MODULE__.UnauthorizedRequestError{} = e) do
-    response =
-      %{
-        "error" => "invalid_client",
-        "error_description" => Exception.message(e)
-      }
-
-    conn
-    |> Plug.Conn.put_status(401)
-    |> Phoenix.Controller.json(response)
   end
 end

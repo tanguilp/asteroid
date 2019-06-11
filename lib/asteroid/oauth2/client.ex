@@ -39,13 +39,13 @@ defmodule Asteroid.OAuth2.Client do
 
     defexception [:reason]
 
-    def message(%__MODULE__{reason: :unauthorized_grant_type}) do
+    def message(%__MODULE__{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "The grant type is not authorized for this client"
+          "The grant type is not authorized to perform this action (reason: #{inspect(reason)})"
 
         :normal ->
-          "The grant type is not authorized for this client"
+          "The grant type is not authorized to perform this action (reason: #{inspect(reason)})"
 
         :minimal ->
           ""
@@ -352,11 +352,11 @@ defmodule Asteroid.OAuth2.Client do
 
     conn
     |> Plug.Conn.put_status(400)
-    |> set_www_authenticate_header()
     |> Phoenix.Controller.json(response)
   end
 
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
+
   defp set_www_authenticate_header(conn) do
     apisex_errors = APIac.AuthFailureResponseData.get(conn)
 

@@ -44,12 +44,34 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
     Process.put(:oauth2_endpoint_register_authorization_policy, :authenticated_clients)
 
-    response =
-      conn
-      |> post(AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
-      |> json_response(401)
+    conn = post(conn, AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
+    response = json_response(conn, 401)
 
     assert response["error"] == "invalid_client"
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="Asteroid")
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Bearer realm="Asteroid")
+  end
+
+  test ":authenticated_clients policy, client with bad credentials not authorized to create new clients", %{conn: conn} do
+    req_body = %{
+      "client_name" => "Example client number two",
+      "redirect_uris" => ["https://www.example.com/redirect_uri"]
+    }
+
+    Process.put(:oauth2_endpoint_register_authorization_policy, :authenticated_clients)
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_2", "invalid"))
+      |> post(AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 401)
+
+    assert response["error"] == "invalid_client"
+    assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
+      ~s(Basic realm="Asteroid")
   end
 
   test ":authenticated_client policy, client authorized to create new clients", %{conn: conn} do
@@ -97,9 +119,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
       |> post(AsteroidWeb.Router.Helpers.register_endpoint_path(conn, :handle), req_body)
-      |> json_response(401)
+      |> json_response(400)
 
-    assert response["error"] == "invalid_client"
+    assert response["error"] == "unauthorized_client"
   end
 
   test ":authorized_clients policy, client authorized to create new clients, auth basic", %{conn: conn} do

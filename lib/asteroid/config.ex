@@ -773,7 +773,7 @@ defmodule Asteroid.Config do
 
     @type oauth2_endpoint_register_authorization_callback ::
     (Plug.Conn.t(), Asteroid.Client.t() ->
-      :ok | {:error, %Asteroid.OAuth2.Register.UnauthorizedRequestError{}})
+      :ok | {:error, Exception.t()})
 
     field :oauth2_endpoint_register_authorization_callback,
     config_time: :runtime,
