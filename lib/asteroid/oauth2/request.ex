@@ -1,22 +1,28 @@
 defmodule Asteroid.OAuth2.Request do
   import Asteroid.Utils
 
-  defmodule MalformedParamError do
+  defmodule InvalidRequestError do
     @moduledoc """
-    Error raised when an OAuth2 request param is malformed
+    Error returned when an OAuth2 request is invalid
     """
 
-    defexception parameter_name: nil, parameter_value: nil
+    @enforce_keys [:reason]
 
-    def message(exception) do
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+
+    def message(%{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "Malformed parameter `#{exception.parameter_name}` "
-          <> "with value `#{exception.parameter_value}`"
+          reason
 
         :normal ->
-          "Malformed parameter `#{exception.parameter_name}` "
-          <> "with value `#{exception.parameter_value}`"
+          reason
 
         :minimal ->
           ""
@@ -24,18 +30,31 @@ defmodule Asteroid.OAuth2.Request do
     end
   end
 
-  @spec error_response(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t()
-  def error_response(conn, %__MODULE__.MalformedParamError{parameter_name: parameter_name} = error) do
-    conn
-    |> Plug.Conn.put_status(400)
-    |> Phoenix.Controller.json(%{
-      "error" =>
-        if parameter_name == "scope" do
-          "invalid_scope"
-        else
-          "invalid_request"
-        end,
-      "error_description" => Exception.message(error)
-    })
+  defmodule MalformedParamError do
+    @moduledoc """
+    Error raised when an OAuth2 request param is malformed
+    """
+
+    defexception [:name, :value]
+
+    @type t :: %__MODULE__{
+      name: String.t(),
+      value: String.t()
+    }
+
+    @impl true
+
+    def message(%{name: name, value: value}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Malformed parameter `#{name}` with value `#{value}`"
+
+        :normal ->
+          "Malformed parameter `#{name}`"
+
+        :minimal ->
+          ""
+      end
+    end
   end
 end

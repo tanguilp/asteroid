@@ -3,6 +3,7 @@ defmodule Asteroid.Token.RefreshToken do
 
   alias Asteroid.Context
   alias Asteroid.Client
+  alias Asteroid.Token
 
   @moduledoc """
   Refresh token structure
@@ -86,7 +87,7 @@ defmodule Asteroid.Token.RefreshToken do
   Defaults to `true`. For validity checking details, see `active?/1`
   """
 
-  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, any()}
+  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(refresh_token_id, opts \\ [check_active: true]) do
     token_store_module = astrenv(:token_store_refresh_token)[:module]
@@ -97,11 +98,17 @@ defmodule Asteroid.Token.RefreshToken do
         if opts[:check_active] != true or active?(refresh_token) do
           {:ok, refresh_token}
         else
-          {:error, :inactive_refresh_token}
+          {:error, Token.InvalidTokenError.exception(
+            sort: "refresh token",
+            reason: "inactive token",
+            id: refresh_token_id)}
         end
 
       {:ok, nil} ->
-        {:error, :nonexistent_refresh_token}
+        {:error, Token.InvalidTokenError.exception(
+          sort: "refresh token",
+          reason: "not found in the token store",
+          id: refresh_token_id)}
 
       {:error, error} ->
         {:error, error}

@@ -3,6 +3,7 @@ defmodule Asteroid.Token.AuthorizationCode do
 
   alias Asteroid.Context
   alias Asteroid.Client
+  alias Asteroid.Token
 
   @moduledoc """
   Authorization code structure
@@ -76,15 +77,15 @@ defmodule Asteroid.Token.AuthorizationCode do
   Gets a authorization code from the authorization code store
 
   Unlike the `c:Asteroid.TokenStore.AuthorizationCode.get/2`, this function returns
-  `{:error, :nonexistent_authorization_code}` if the authorization code is not found in the token
-  store.
+  `{:error, %Asteroid.Token.InvalidTokenError{}}` if the authorization code is not found in
+  the token store.
 
   ## Options
   - `:check_active`: determines whether the validity of the authorization code should be checked.
   Defaults to `true`. For validity checking details, see `active?/1`
   """
 
-  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, any()}
+  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authorization_code_id, opts \\ [check_active: true]) do
     token_store_module = astrenv(:token_store_authorization_code)[:module]
@@ -95,11 +96,17 @@ defmodule Asteroid.Token.AuthorizationCode do
         if opts[:check_active] != true or active?(authorization_code) do
           {:ok, authorization_code}
         else
-          {:error, :inactive_authorization_code}
+          {:error, Token.InvalidTokenError.exception(
+            sort: "authorization code",
+            reason: "inactive token",
+            id: authorization_code_id)}
         end
 
       {:ok, nil} ->
-        {:error, :nonexistent_authorization_code}
+        {:error, Token.InvalidTokenError.exception(
+          sort: "authorization code",
+          reason: "not found in the token store",
+          id: authorization_code_id)}
 
       {:error, error} ->
         {:error, error}

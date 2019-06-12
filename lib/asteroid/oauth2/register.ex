@@ -37,8 +37,6 @@ defmodule Asteroid.OAuth2.Register do
           :ok
         else
           if maybe_authenticated_client do
-            client = Client.fetch_attributes(maybe_authenticated_client, ["client_id"])
-
             {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
               reason: :client_authentication_required
             )}

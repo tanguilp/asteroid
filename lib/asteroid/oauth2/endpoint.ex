@@ -5,22 +5,6 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   import Asteroid.Utils
 
-  defmodule UnsupportedAuthMethod do
-    @moduledoc """
-    Error returned when the auth method is not supported for an endpoint
-    """
-
-    defexception [:endpoint, :auth_method]
-
-    @impl true
-
-    def message(%{endpoint: :token, auth_method: auth_method}) do
-      "The client authentication method `#{auth_method}` is not supported on the token " <>
-      "endpoint (supported values are: " <>
-      "#{inspect astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).()})"
-    end
-  end
-
   @type auth_method :: :none | :client_secret_basic | :tls_client_auth
 
   @typedoc """

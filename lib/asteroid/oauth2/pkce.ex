@@ -1,6 +1,8 @@
 defmodule Asteroid.OAuth2.PKCE do
   @moduledoc false
 
+  alias Asteroid.OAuth2
+
   @type code_challenge :: String.t()
 
   @type code_challenge_method :: :plain | :S256
@@ -56,20 +58,6 @@ defmodule Asteroid.OAuth2.PKCE do
     end
   end
 
-  defmodule InvalidCodeVerifierError do
-    @moduledoc """
-    Error returned when the verification of a code verifier against a code challenge fails
-    """
-
-    defexception [:code_verifier, :code_challenge_method]
-
-    @impl true
-
-    def message(%{code_verifier: code_verifier, code_challenge_method: code_challenge_method}) do
-      "Invalid code verifier `#{code_verifier}` verififed with method `#{code_challenge_method}`"
-    end
-  end
-
   @doc """
   Returns `:ok` if the code challenge is valid,
   `{:error, %Asteroid.OAuth2.PKCE.InvalidCodeChallengeError{}}` otherwise
@@ -116,23 +104,28 @@ defmodule Asteroid.OAuth2.PKCE do
 
   @spec verify_code_verifier(code_verifier(), code_challenge(), code_challenge_method()) ::
   :ok
-  | {:error, %Asteroid.OAuth2.PKCE.InvalidCodeVerifierError{}}
+  | {:error, %OAuth2.InvalidGrantError{}}
 
   def verify_code_verifier(code_verifier, code_challenge, :plain) do
     if code_verifier == code_challenge do
       :ok
     else
-      {:error, __MODULE__.InvalidCodeVerifierError.exception(code_verifier: code_verifier,
-                                                             code_challenge_method: :plain)}
+      {:error, OAuth2.InvalidGrantError.exception(
+        grant: "code_verifier",
+        reason: "invalid code verifier",
+        debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:plain`)}")}
     end
   end
 
   def verify_code_verifier(code_verifier, code_challenge, :S256) do
-    if Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false) == code_challenge do
+    if Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false) == code_challenge 
+    do
       :ok
     else
-      {:error, __MODULE__.InvalidCodeVerifierError.exception(code_verifier: code_verifier,
-                                                             code_challenge_method: :S256)}
+      {:error, OAuth2.InvalidGrantError.exception(
+        grant: "code_verifier",
+        reason: "invalid code verifier",
+        debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:S256`)}")}
     end
   end
 end

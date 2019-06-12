@@ -14,17 +14,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
     do
       do_handle(conn, params, client)
     else
-      {:error, %Asteroid.OAuth2.Client.AuthenticationError{} = error} ->
-        OAuth2.Client.error_response(conn, error)
+      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
+        AsteroidWeb.Error.respond(conn, e)
 
-      {:error, %Asteroid.OAuth2.Request.MalformedParamError{} = error} ->
-        OAuth2.Request.error_response(conn, error)
-
-      {:error, :unauthorized} ->
-        error_resp(conn, 403,
-                   %{"error" => "unauthorized_client",
-                     "error_description" => "Client does not have the relevant permission"
-                   })
+      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+        AsteroidWeb.Error.respond(conn, e)
     end
   end
 
@@ -147,8 +141,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       OAuth2Utils.valid_refresh_token_param?(token) do
       :ok
     else
-      {:error, OAuth2.Request.MalformedParamError.exception(parameter_name: "token",
-                                                            parameter_value: token)}
+      {:error, OAuth2.Request.MalformedParamError.exception(name: "token",
+                                                            value: token)}
     end
   end
 

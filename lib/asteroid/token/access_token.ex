@@ -3,6 +3,7 @@ defmodule Asteroid.Token.AccessToken do
 
   alias Asteroid.Context
   alias Asteroid.Client
+  alias Asteroid.Token
 
   @moduledoc """
   Access token structure
@@ -90,7 +91,7 @@ defmodule Asteroid.Token.AccessToken do
   Defaults to `true`. For validity checking details, see `active?/1`
   """
 
-  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, any()}
+  @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(access_token_id, opts \\ [check_active: true]) do
     token_store_module = astrenv(:token_store_access_token)[:module]
@@ -101,11 +102,17 @@ defmodule Asteroid.Token.AccessToken do
         if opts[:check_active] != true or active?(access_token) do
           {:ok, access_token}
         else
-          {:error, :inactive_access_token}
+          {:error, Token.InvalidTokenError.exception(
+            sort: "access token",
+            reason: "inactive token",
+            id: access_token_id)}
         end
 
       {:ok, nil} ->
-        {:error, :nonexistent_access_token}
+        {:error, Token.InvalidTokenError.exception(
+          grant: "access token",
+          reason: "not found in the token store",
+          id: access_token_id)}
 
       {:error, error} ->
         {:error, error}

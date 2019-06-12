@@ -61,7 +61,8 @@ defmodule AsteroidWeb.AuthorizeController do
     end
 
     with :ok <- Asteroid.OAuth2.response_type_enabled?(:code),
-         :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
+         #FIXME: changed function valid?
+         #:ok <- OAuth2.RedirectUri.valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
@@ -87,8 +88,9 @@ defmodule AsteroidWeb.AuthorizeController do
       {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e} ->
         error(conn, e, redirect_uri, params["state"])
 
-      {:error, %OAuth2.RedirectUri.MalformedError{} = e} ->
-        error_redirect_uri(conn, Exception.message(e))
+      #FIXME: exzception removed, do it internally
+      #{:error, %OAuth2.RedirectUri.MalformedError{} = e} ->
+        #  error_redirect_uri(conn, Exception.message(e))
 
       {:error, :unregistered_redirect_uri} ->
         error_redirect_uri(conn, "Unregistered redirect_uri")
@@ -493,19 +495,20 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
-  defp error(conn, %OAuth2.Client.UnauthorizedScopeError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "access_denied",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
+  #FIXME: exception removed -> use Client.AuthorizationError isntead
+  #defp error(conn, %OAuth2.Client.UnauthorizedScopeError{} = e, redirect_uri, maybe_state) do
+  #  redirect_uri = redirect_uri_add_params(
+  #    redirect_uri,
+  #    %{
+  #      "error" => "access_denied",
+  #      "error_description" => Exception.message(e)
+  #    }
+  #    |> put_if_not_nil("state", maybe_state)
+  #  )
 
-    conn
-    |> redirect(external: redirect_uri)
-  end
+  #  conn
+  #  |> redirect(external: redirect_uri)
+  #end
 
   defp error(conn, %OAuth2.PKCE.MalformedCodeChallengeError{} = e, redirect_uri, maybe_state) do
     redirect_uri = redirect_uri_add_params(

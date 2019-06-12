@@ -9,7 +9,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
   alias Asteroid.Client
   alias Asteroid.OAuth2
 
-  defmodule InvalidClientMetadataField do
+  defmodule InvalidClientMetadataFieldError do
     @moduledoc """
     Error returned when client metadata is invalid
     """
@@ -19,11 +19,27 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     @impl true
 
     def message(%{field: field, reason: reason}) do
-      "Invalid field `#{field}` (reason: #{reason})"
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          case field do
+            "token_endpoint_auth_method" ->
+              "Invalid field `#{field}` (reason: #{reason}, supported methods:)" <>
+              "#{inspect astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).()})"
+
+            _ ->
+              "Invalid field `#{field}` (reason: #{reason})"
+          end
+
+        :normal ->
+          "Invalid field `#{field}`"
+
+        :minimal ->
+          ""
+      end
     end
   end
 
-  defmodule UnauthorizedRequestedScopes do
+  defmodule UnauthorizedRequestedScopesError do
     @moduledoc """
     Error returned when returning scopes are not allowed according to the policy (either the
     client's configuration or the scopes existing in the configuration options).
@@ -34,22 +50,44 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     @impl true
 
     def message (%{scopes: scopes}) do
-      "The following requested scopes are not allowed under the current policy: " <>
-      Enum.join(scopes, " ")
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "The following requested scopes are not allowed under the current policy: " <>
+          Enum.join(scopes, " ")
+
+        :normal ->
+          "The requested scopes are not allowed under the current policy"
+
+        :minimal ->
+          ""
+      end
     end
   end
 
-  defmodule MissingRedirectURIError do
+  defmodule InvalidRedirectURIError do
     @moduledoc """
-    Error raised when the redirect uri is missing and grant types require at least one.
+    Error raised when the one or more redirect URIs are invalid
     """
 
-    defexception []
+    defexception [:redirect_uri]
+
+    @type t :: %__MODULE__{
+      redirect_uri: String.t()
+    }
 
     @impl true
 
-    def message(_) do
-      "Missing redirect URI, mandatory in regards of the request grant types"
+    def message(%{redirect_uri: redirect_uri}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Invalid redirect URI `#{redirect_uri}`"
+
+        :normal ->
+          "Invalid redirect URI `#{redirect_uri}`"
+
+        :minimal ->
+          ""
+      end
     end
   end
 
@@ -155,28 +193,25 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     |> json(processed_metadata)
   rescue
     e in Asteroid.OAuth2.Client.AuthenticationError ->
-      OAuth2.Client.error_response(conn, e)
+      AsteroidWeb.Error.respond(conn, e)
 
     e in Asteroid.OAuth2.Client.AuthorizationError ->
-      OAuth2.Client.error_response(conn, e)
+      AsteroidWeb.Error.respond(conn, e)
 
-    e in OAuth2.RedirectUri.MalformedError ->
-      error_resp(conn, error: :invalid_redirect_uri, error_description: Exception.message(e))
+    e in InvalidClientMetadataFieldError ->
+      AsteroidWeb.Error.respond(conn, e)
 
-    e in InvalidClientMetadataField ->
-      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
+    e in InvalidRedirectURIError ->
+      AsteroidWeb.Error.respond(conn, e)
 
-    e in MissingRedirectURIError ->
-      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
+    e in UnauthorizedRequestedScopesError ->
+      AsteroidWeb.Error.respond(conn, e)
 
-    e in UnauthorizedRequestedScopes ->
-      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
-
-    e in Scope.Set.InvalidScopeParam ->
-      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
-
-    e in OAuth2.Endpoint.UnsupportedAuthMethod ->
-      error_resp(conn, error: :invalid_client_metadata, error_description: Exception.message(e))
+    _ in Scope.Set.InvalidScopeParam ->
+      AsteroidWeb.Error.respond(conn, InvalidClientMetadataFieldError.exception(
+        field: "scope",
+        reason: "malformed scope param"
+      ))
   end
 
   @spec process_grant_types(map(), Client.t() | nil, map()) :: map()
@@ -194,7 +229,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if MapSet.subset?(MapSet.new(requested_grant_types), enabled_grant_types) do
       Map.put(processed_metadata, "grant_types", requested_grant_types)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "grant_types",
         reason: "one of the grant types could be granted as a result of applying the server policy"
     end
@@ -222,14 +257,14 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if MapSet.subset?(MapSet.new(requested_grant_types), allowed_grant_types) do
       Map.put(processed_metadata, "grant_types", requested_grant_types)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "grant_types",
         reason: "one of the grant types could be granted as a result of applying the server policy"
     end
   end
 
   defp process_grant_types(_, _, %{"grant_types" => _}) do
-    raise InvalidClientMetadataField,
+    raise InvalidClientMetadataFieldError,
       field: "grant_types",
       reason: "should be a list of strings"
   end
@@ -267,7 +302,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if MapSet.subset?(MapSet.new(requested_response_types), enabled_response_types) do
       Map.put(processed_metadata, "response_types", requested_response_types)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "response_types",
         reason: "one of the response types could be granted as a result of applying the server policy"
     end
@@ -295,14 +330,14 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if MapSet.subset?(MapSet.new(requested_response_types), allowed_response_types) do
           Map.put(processed_metadata, "response_types", requested_response_types)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "response_types",
         reason: "one of the response types could be granted as a result of applying the server policy"
     end
   end
 
   defp process_response_types(_, _, %{"response_types" => _}) do
-    raise InvalidClientMetadataField,
+    raise InvalidClientMetadataFieldError,
       field: "response_types",
       reason: "should be a list of strings"
   end
@@ -334,12 +369,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
           redirect_uris,
           fn
             redirect_uri ->
-              case OAuth2.RedirectUri.valid?(redirect_uri) do
-                :ok ->
-                  :ok
-
-                {:error, e} ->
-                  raise e
+              unless OAuth2.RedirectUri.valid?(redirect_uri) do
+                  raise InvalidRedirectURIError, redirect_uri: redirect_uri
               end
           end
         )
@@ -354,17 +385,13 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               OAuth2Utils.uses_authorization_endpoint?(grant_type)
           end
         ) do
-          raise MissingRedirectURIError
+          raise InvalidClientMetadataFieldError,
+            field: "redirect_uris",
+            reason: "field is mandatory in regards to the requested grant types"
         else
           processed_metadata
         end
     end
-  end
-
-  defp error_resp(conn, error_status \\ 400, error_data) do
-    conn
-    |> put_status(error_status)
-    |> json(Enum.into(error_data, %{}))
   end
 
   @spec process_token_endpoint_auth_method(map(), Client.t() | nil, map()) :: map()
@@ -382,9 +409,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if token_endpoint_auth_method in auth_method_allowed_str do
       Map.put(processed_metadata, "token_endpoint_auth_method", token_endpoint_auth_method)
     else
-      raise OAuth2.Endpoint.UnsupportedAuthMethod,
-        endpoint: :token,
-        auth_method: token_endpoint_auth_method
+      raise InvalidClientMetadataFieldError,
+        field: "token_endpoint_auth_method",
+        reason: "The client authentication method `#{token_endpoint_auth_method}` is unsupported"
     end
   end
 
@@ -417,9 +444,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if token_endpoint_auth_method in auth_method_allowed_str do
       Map.put(processed_metadata, "token_endpoint_auth_method", token_endpoint_auth_method)
     else
-      raise OAuth2.Endpoint.UnsupportedAuthMethod,
-        endpoint: :token,
-        auth_method: token_endpoint_auth_method
+      raise InvalidClientMetadataFieldError,
+        field: "token_endpoint_auth_method",
+        reason: "The client authentication method `#{token_endpoint_auth_method}` is unsupported"
     end
   end
 
@@ -428,7 +455,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     _authenticated_client,
     %{"token_endpoint_auth_method" => _})
   do
-    raise InvalidClientMetadataField,
+    raise InvalidClientMetadataFieldError,
       field: "token_endpoint_auth_method",
       reason: "should be a list of strings"
   end
@@ -483,7 +510,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if Scope.Set.subset?(requested_scopes, allowed_scopes_for_flows) do
       Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(requested_scopes))
     else
-      raise UnauthorizedRequestedScopes,
+      raise UnauthorizedRequestedScopesError,
         scopes: Scope.Set.difference(requested_scopes, allowed_scopes_for_flows)
     end
   end
@@ -510,7 +537,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
 
         Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(result_scopes))
       else
-        raise UnauthorizedRequestedScopes,
+        raise UnauthorizedRequestedScopesError,
           scopes: Scope.Set.difference(requested_scopes, client_allowed_scopes)
       end
     else
@@ -539,14 +566,14 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
 
         Map.put(processed_metadata, "scope", Scope.Set.to_scope_param(result_scopes))
       else
-        raise UnauthorizedRequestedScopes,
+        raise UnauthorizedRequestedScopesError,
           scopes: Scope.Set.difference(requested_scopes, allowed_scopes_for_flows)
       end
     end
   end
 
   defp process_scope(_processed_metadata, _client, %{"scope" => _}) do
-    raise InvalidClientMetadataField,
+    raise InvalidClientMetadataFieldError,
       field: "scope",
       reason: "should be a string"
   end
@@ -581,7 +608,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               :ok
 
             _ ->
-              raise InvalidClientMetadataField,
+              raise InvalidClientMetadataFieldError,
                 field: "contacts",
                 reason: "one of the list value is not a string"
           end
@@ -590,7 +617,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "contacts", contacts)
 
       _ ->
-        raise InvalidClientMetadataField,
+        raise InvalidClientMetadataFieldError,
           field: "contacts",
           reason: "not a list"
     end
@@ -610,7 +637,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "jwks_uri", jwks_uri)
 
       _ ->
-        raise InvalidClientMetadataField,
+        raise InvalidClientMetadataFieldError,
           field: "jwks_uri",
           reason: "must be an https:// URL"
     end
@@ -623,7 +650,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
   @spec process_jwks(map(), map()) :: map()
 
   defp process_jwks(%{"jwks_uri" => _}, %{"jwks" => _}) do
-    raise InvalidClientMetadataField,
+    raise InvalidClientMetadataFieldError,
       field: "jwks",
       reason: "`jwks_uri` and `jwks` fields cannot be present at the same time"
   end
@@ -638,7 +665,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               :ok
 
             key ->
-              raise InvalidClientMetadataField,
+              raise InvalidClientMetadataFieldError,
                 field: "jwks",
                 reason: "invalid key `#{inspect(key)}`, must be a map and contain `kty`"
           end
@@ -647,7 +674,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         Map.put(processed_metadata, "jwks", key_list)
 
       _ ->
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "jwks",
         reason: "jwks must have a `keys` key containing a list of keys"
     end
@@ -663,7 +690,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if is_binary(software_id) do
       Map.put(processed_metadata, "software_id", software_id)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "software_id",
         reason: "must be a string"
     end
@@ -679,7 +706,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     if is_binary(software_version) do
       Map.put(processed_metadata, "software_version", software_version)
     else
-      raise InvalidClientMetadataField,
+      raise InvalidClientMetadataFieldError,
         field: "software_version",
         reason: "must be a string"
     end
@@ -753,10 +780,10 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         processed_metadata
 
       {:error, {:grant_type, error_str}} ->
-        raise InvalidClientMetadataField, field: "grant_types", reason: error_str
+        raise InvalidClientMetadataFieldError, field: "grant_types", reason: error_str
 
       {:error, {:response_type, error_str}} ->
-        raise InvalidClientMetadataField, field: "response_types", reason: error_str
+        raise InvalidClientMetadataFieldError, field: "response_types", reason: error_str
     end
   end
 

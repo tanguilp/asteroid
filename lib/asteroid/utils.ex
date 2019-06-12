@@ -46,4 +46,9 @@ defmodule Asteroid.Utils do
 
   def put_if_not_nil(map, _, nil), do: map
   def put_if_not_nil(map, key, value), do: Map.put(map, key, value)
+
+  @spec put_if_not_empty_string(map(), Map.key(), String.t()) :: map()
+
+  def put_if_not_empty_string(map, _, ""), do: map
+  def put_if_not_empty_string(map, key, value), do: Map.put(map, key, value)
 end

@@ -12,10 +12,24 @@ defmodule Asteroid.OAuth2 do
 
     defexception [:grant_type]
 
+    @type t :: %__MODULE__{
+      grant_type: String.t()
+    }
+
     @impl true
 
     def message(%{grant_type: grant_type}) do
-      "Unsupported grant type `#{grant_type}`"
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Unsupported grant type `#{grant_type}` (enabled grant types are: " <>
+          "#{inspect astrenv(:oauth2_grant_types_enabled, [])})"
+
+        :normal ->
+          "Unsupported grant type `#{grant_type}`"
+
+        :minimal ->
+          ""
+      end
     end
   end
 
@@ -26,10 +40,59 @@ defmodule Asteroid.OAuth2 do
 
     defexception [:response_type]
 
+    @type t :: %__MODULE__{
+      response_type: String.t()
+    }
+
     @impl true
 
     def message(%{response_type: response_type}) do
-      "Unsupported response type `#{response_type}`"
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Unsupported response type `#{response_type} (enabled grant types are: " <>
+          "#{inspect astrenv(:oauth2_response_types_enabled, [])})"
+
+        :normal ->
+          "Unsupported response type `#{response_type}`"
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
+  defmodule InvalidGrantError do
+    @moduledoc """
+    Error returned for invalid grants (refresh token, password, authorization code,
+    PKCE code verifier...)
+    """
+
+    @enforce_keys [:grant, :reason]
+
+    defexception [:grant, :reason, :debug_details]
+
+    @type t :: %__MODULE__{
+      grant: String.t(),
+      reason: String.t(),
+      debug_details: String.t()
+    }
+
+    @impl true
+
+    def message(%{grant: grant, reason: reason, debug_details: debug_details}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug when not is_nil(debug_details) ->
+          "Invalid grant `#{grant}`: #{reason} (#{debug_details})"
+
+        :debug when is_nil(debug_details) ->
+          "Invalid grant `#{grant}`: #{reason}"
+
+        :normal ->
+          "Invalid grant `#{grant}`: #{reason}"
+
+        :minimal ->
+          ""
+      end
     end
   end
 
@@ -167,36 +230,43 @@ defmodule Asteroid.OAuth2 do
   end
 
   @doc """
-  Returns `:ok` if the grant type is enabled, `{:error, :grant_type_disabled}` otherwise
+  Returns `:ok` if the grant type is enabled,
+  `{:error, %Asteroid.OAuth2.UnsupportedGrantTypeError{}}` otherwise
 
   Uses the #{Asteroid.Config.link_to_option(:oauth2_grant_types_enabled)} configuration
   option's value.
   """
 
-  @spec grant_type_enabled?(grant_type()) :: :ok | {:error, :grant_type_disabled}
+  @spec grant_type_enabled?(grant_type()) ::
+  :ok
+  | {:error, %UnsupportedGrantTypeError{}}
 
   def grant_type_enabled?(grant_type) do
     if grant_type in astrenv(:oauth2_grant_types_enabled, []) do
       :ok
     else
-      {:error, :grant_type_disabled}
+      {:error, UnsupportedGrantTypeError.exception(grant_type: Atom.to_string(grant_type))}
     end
   end
 
   @doc """
-  Returns `:ok` if the grant type is enabled, `{:error, :response_type_disabled}` otherwise
+  Returns `:ok` if the grant type is enabled,
+  `{:error, %Asteroid.OAuth2.UnsupportedResponseTypeError}` otherwise
 
   Uses the #{Asteroid.Config.link_to_option(:oauth2_response_types_enabled)} configuration
   option's value.
   """
 
-  @spec response_type_enabled?(response_type()) :: :ok | {:error, :response_type_disabled}
+  @spec response_type_enabled?(response_type()) ::
+  :ok
+  | {:error, %UnsupportedResponseTypeError{}}
 
   def response_type_enabled?(response_type) do
     if response_type in astrenv(:oauth2_response_types_enabled, []) do
       :ok
     else
-      {:error, :response_type_disabled}
+      {:error,
+        UnsupportedResponseTypeError.exception(response_type: Atom.to_string(response_type))}
     end
   end
 

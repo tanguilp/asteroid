@@ -181,7 +181,7 @@ config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 
 config :asteroid, :api_error_response_verbosity, :debug
 
-config :asteroid, :oauth2_ropc_username_password_verify_callback,
+config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
 config :asteroid, :oauth2_scope_callback,

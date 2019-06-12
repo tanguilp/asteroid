@@ -224,7 +224,7 @@ defmodule Asteroid.Config do
     """
 
     @typedoc """
-    Callback function for the `:oauth2_ropc_username_password_verify_callback` configuration
+    Callback function for the `:oauth2_flow_ropc_username_password_verify_callback` configuration
     option.
 
     Calls the callback `callback` with `callback.(conn, username, password)`
@@ -232,9 +232,9 @@ defmodule Asteroid.Config do
 
     @type oauth2_ropc_username_password_verify_callback ::
     (Plug.Conn.t(), String.t(), String.t() ->
-      {:ok, Asteroid.Subject.t()} | {:error, :invalid_username_or_password})
+      {:ok, Asteroid.Subject.t()} | {:error, Exception.t()})
 
-    field :oauth2_ropc_username_password_verify_callback,
+    field :oauth2_flow_ropc_username_password_verify_callback,
       config_time: :runtime
 
     @doc """

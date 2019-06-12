@@ -15,7 +15,11 @@ defmodule Asteroid.Config.DefaultCallbacks do
         if sub.attrs["password"] == password do
           {:ok, sub}
         else
-          {:error, :invalid_password}
+          {:error, Asteroid.OAuth2.InvalidGrantError.exception(
+            grant: "password",
+            reason: "invalid username or password",
+            debug_details: "passwords don't match"
+          )}
         end
 
       {:error, reason} ->

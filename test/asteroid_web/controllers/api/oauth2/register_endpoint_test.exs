@@ -365,7 +365,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
-    assert response["error_description"] =~ "Missing redirect URI"
+    assert response["error_description"] =~ "Invalid field `redirect_uris`"
   end
 
   test "implicit requested without any redirect_uri", %{conn: conn} do
@@ -383,7 +383,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
-    assert response["error_description"] =~ "Missing redirect URI"
+    assert response["error_description"] =~ "Invalid field `redirect_uris`"
   end
 
   test "redirect_uri is not a list", %{conn: conn} do
