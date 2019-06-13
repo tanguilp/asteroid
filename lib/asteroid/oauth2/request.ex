@@ -4,14 +4,17 @@ defmodule Asteroid.OAuth2.Request do
   defmodule InvalidRequestError do
     @moduledoc """
     Error returned when an OAuth2 request is invalid
+
+    Parameter is used internally to differentiate errors
     """
 
     @enforce_keys [:reason]
 
-    defexception [:reason]
+    defexception [:reason, :parameter]
 
     @type t :: %__MODULE__{
-      reason: String.t()
+      reason: String.t(),
+      parameter: String.t()
     }
 
     @impl true

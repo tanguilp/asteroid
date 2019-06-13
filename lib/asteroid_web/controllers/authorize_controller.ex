@@ -13,6 +13,36 @@ defmodule AsteroidWeb.AuthorizeController do
   alias Asteroid.Subject
   alias Asteroid.Token.{AccessToken, AuthorizationCode}
 
+  defmodule AccessDeniedError do
+    @moduledoc """
+    Error returned when the access was denied either because of the user not consenting or
+    the server's policy inadequation with the request (eg. scopes)
+    """
+
+    @enforce_keys [:reason]
+
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+
+    def message(%{reason: reason}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Access denied:" <> reason
+
+        :normal ->
+          "Access denied:" <> reason
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
   defmodule Request do
     @moduledoc """
     Struct with the necessary information to process an web authorization request
@@ -56,13 +86,10 @@ defmodule AsteroidWeb.AuthorizeController do
           Scope.Set.from_scope_param!(val)
       end
 
-    unless OAuth2Utils.valid_client_id_param?(client_id) do
-      raise OAuth2.Client.InvalidClientIdError, client_id: client_id
-    end
-
-    with :ok <- Asteroid.OAuth2.response_type_enabled?(:code),
-         #FIXME: changed function valid?
-         #:ok <- OAuth2.RedirectUri.valid?(redirect_uri),
+    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:authorization_code),
+         :ok <- Asteroid.OAuth2.response_type_enabled?(:code),
+         :ok <- client_id_valid?(client_id),
+         :ok <- redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
@@ -70,7 +97,7 @@ defmodule AsteroidWeb.AuthorizeController do
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <- pkce_params(client, params)
     do
       authz_request =
-        %__MODULE__.Request{
+        %Request{
           response_type: :code,
           client: client,
           redirect_uri: redirect_uri,
@@ -82,28 +109,34 @@ defmodule AsteroidWeb.AuthorizeController do
 
       astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
     else
-      {:error, %OAuth2.PKCE.MalformedCodeChallengeError{} = e} ->
-        error(conn, e, redirect_uri, params["state"])
+      {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, AccessDeniedError.exception(
+          reason: Exception.message(e)))
 
-      {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e} ->
-        error(conn, e, redirect_uri, params["state"])
+      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
 
-      #FIXME: exzception removed, do it internally
-      #{:error, %OAuth2.RedirectUri.MalformedError{} = e} ->
-        #  error_redirect_uri(conn, Exception.message(e))
+      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
 
-      {:error, :unregistered_redirect_uri} ->
-        error_redirect_uri(conn, "Unregistered redirect_uri")
+      {:error, %OAuth2.UnsupportedResponseTypeError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
 
-      {:error, reason} ->
-        error(conn, reason, redirect_uri, params["state"])
+      {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+          reason: Exception.message(e),
+          parameter: "client_id"))
     end
   rescue
-    e in OAuth2.Client.InvalidClientIdError ->
-      error_redirect_uri(conn, Exception.message(e))
-
-    e ->
-      error(conn, e, redirect_uri, params["state"])
+    _ in Scope.Set.InvalidScopeParam ->
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.MalformedParamError.exception(
+          name: "scope", value: params["scope"]))
   end
 
   def pre_authorize(conn,
@@ -121,19 +154,17 @@ defmodule AsteroidWeb.AuthorizeController do
           Scope.Set.from_scope_param!(val)
       end
 
-    unless OAuth2Utils.valid_client_id_param?(client_id) do
-      raise OAuth2.Client.InvalidClientIdError, client_id: client_id
-    end
-
-    with :ok <- Asteroid.OAuth2.response_type_enabled?(:token),
-         :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
+    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:implicit),
+         :ok <- Asteroid.OAuth2.response_type_enabled?(:token),
+         :ok <- client_id_valid?(client_id),
+         :ok <- redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "token"),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
     do
       authz_request =
-        %__MODULE__.Request{
+        %Request{
           response_type: :token,
           client: client,
           redirect_uri: redirect_uri,
@@ -143,57 +174,66 @@ defmodule AsteroidWeb.AuthorizeController do
 
       astrenv(:oauth2_flow_implicit_web_authorization_callback).(conn, authz_request)
     else
-      {:error, :unregistered_redirect_uri} ->
-        error_redirect_uri(conn, "Unregistered redirect_uri")
+      {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, AccessDeniedError.exception(
+          reason: Exception.message(e)))
 
-      {:error, reason} ->
-        error(conn, reason, redirect_uri, params["state"])
+      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.UnsupportedResponseTypeError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+          reason: Exception.message(e),
+          parameter: "client_id"))
     end
   rescue
-    e in OAuth2.RedirectUri.MalformedError ->
-      error_redirect_uri(conn, Exception.message(e))
-
-    e in OAuth2.Client.InvalidClientIdError ->
-      error_redirect_uri(conn, Exception.message(e))
-
-    e ->
-      error(conn, e, redirect_uri, params["state"])
+    _ in Scope.Set.InvalidScopeParam ->
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.MalformedParamError.exception(
+          name: "scope", value: params["scope"]))
   end
 
   def pre_authorize(conn, %{"redirect_uri" => redirect_uri, "client_id" => client_id} = params) do
-    unless OAuth2Utils.valid_client_id_param?(client_id) do
-      raise OAuth2.Client.InvalidClientIdError, client_id: client_id
-    end
-
-    with :ok <- OAuth2.RedirectUri.valid?(redirect_uri),
+    with :ok <- client_id_valid?(client_id),
+         :ok <- redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri)
     do
       if params["response_type"] do
-        error(conn, :unsupported_response_type, redirect_uri, params["state"])
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.UnsupportedResponseTypeError.exception(
+          response_type: params["response_type"]))
       else
-        error(conn, :missing_parameter, redirect_uri, params["state"])
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+          reason: "missing parameter", parameter: "response_type"))
       end
     else
-      {:error, :unregistered_redirect_uri} ->
-        error_redirect_uri(conn, "Unregistered redirect_uri")
+      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
 
-      {:error, reason} ->
-        error(conn, reason, redirect_uri, params["state"])
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+          reason: Exception.message(e),
+          parameter: "client_id"))
+
+      {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
     end
-  rescue
-    e in OAuth2.RedirectUri.MalformedError ->
-      error_redirect_uri(conn, Exception.message(e))
-
-    e in OAuth2.Client.InvalidClientIdError ->
-      error_redirect_uri(conn, Exception.message(e))
-
-    e ->
-      error(conn, e, redirect_uri, params["state"])
   end
 
   def pre_authorize(conn, _params) do
-    error_redirect_uri(conn, "Missing parameter")
+    AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+      reason: "missing parameter", parameter: "client_id"))
   end
 
   @doc """
@@ -205,9 +245,9 @@ defmodule AsteroidWeb.AuthorizeController do
   - `:sub`: one of the following atoms (**mandatory**):
   """
 
-  @spec authorization_granted(Plug.Conn.t(), __MODULE__.Request.t(), map()) :: Plug.Conn.t()
+  @spec authorization_granted(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
 
-  def authorization_granted(conn, %__MODULE__.Request{response_type: :code} = authz_request, res)
+  def authorization_granted(conn, %Request{response_type: :code} = authz_request, res)
   do
     client = Client.fetch_attributes(authz_request.client, ["client_id"])
 
@@ -250,7 +290,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
     redirect_uri =
       authz_request.redirect_uri
-      |> redirect_uri_add_params(
+      |> OAuth2.RedirectUri.add_params(
         %{
           "code" => AuthorizationCode.serialize(authorization_code)
         }
@@ -266,7 +306,7 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
-  def authorization_granted(conn, %__MODULE__.Request{response_type: :token} = authz_request, res)
+  def authorization_granted(conn, %Request{response_type: :token} = authz_request, res)
   do
     client = Client.fetch_attributes(authz_request.client, ["client_id"])
 
@@ -309,7 +349,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
     redirect_uri =
       authz_request.redirect_uri
-      |> redirect_uri_add_params(put_if_not_nil(%{}, "state", authz_request.params["state"]))
+      |> OAuth2.RedirectUri.add_params(put_if_not_nil(%{}, "state", authz_request.params["state"]))
       |> Kernel.<>("#")
       |> Kernel.<>(URI.encode_query(fragment_params))
       |> astrenv(:oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback).(ctx)
@@ -336,12 +376,12 @@ defmodule AsteroidWeb.AuthorizeController do
   (may be displayed to the end user), or `nil` if no reason is to be given
   """
 
-  @spec authorization_denied(Plug.Conn.t(), __MODULE__.Request.t(), map()) :: Plug.Conn.t()
+  @spec authorization_denied(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
 
   def authorization_denied(conn, authz_request, %{reason: reason} = res)
   when reason in [:access_denied, :server_error, :temporarily_unavailable]
   do
-    redirect_uri = redirect_uri_add_params(
+    redirect_uri = OAuth2.RedirectUri.add_params(
       authz_request.redirect_uri,
       %{
         "error" => to_string(reason),
@@ -357,190 +397,9 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
-  @spec error_redirect_uri(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
-
-  defp error_redirect_uri(conn, reason) do
-    conn
-    |> put_flash(:error, "An error has occured (#{reason})")
-    |> put_status(400)
-    |> render("error_redirect_uri.html")
-  end
-
-  @spec error(Plug.Conn.t(), Exception.t() | atom(), String.t(), String.t | nil) :: Plug.Conn.t()
-
-  defp error(conn, %Scope.Set.InvalidScopeParam{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_scope",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, %OAuth2.Client.InvalidClientIdError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_request",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, :missing_parameter, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_request",
-        "error_description" => "Misssing parameter"
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, :response_type_disabled, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "unsupported_response_type",
-        "error_description" => "This response type is disabled"
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, :unsupported_response_type, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "unsupported_response_type",
-        "error_description" => "This response type is unsupported"
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, :pkce_mandatory_use, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_request",
-        "error_description" => "Use of PKCE is mandatory"
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, %AttributeRepository.Read.NotFoundError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "unauthorized_client",
-        # FIXME: here we leak the presence of a client, send more generic error message instead?
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, %AttributeRepository.ReadError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "server_error",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, %OAuth2.Client.AuthorizationError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "unauthorized_client",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  #FIXME: exception removed -> use Client.AuthorizationError isntead
-  #defp error(conn, %OAuth2.Client.UnauthorizedScopeError{} = e, redirect_uri, maybe_state) do
-  #  redirect_uri = redirect_uri_add_params(
-  #    redirect_uri,
-  #    %{
-  #      "error" => "access_denied",
-  #      "error_description" => Exception.message(e)
-  #    }
-  #    |> put_if_not_nil("state", maybe_state)
-  #  )
-
-  #  conn
-  #  |> redirect(external: redirect_uri)
-  #end
-
-  defp error(conn, %OAuth2.PKCE.MalformedCodeChallengeError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_request",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
-  defp error(conn, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{} = e, redirect_uri, maybe_state) do
-    redirect_uri = redirect_uri_add_params(
-      redirect_uri,
-      %{
-        "error" => "invalid_request",
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", maybe_state)
-    )
-
-    conn
-    |> redirect(external: redirect_uri)
-  end
-
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::
   :ok
-  | {:error, :unregistered_redirect_uri}
+  | {:error, %OAuth2.Request.InvalidRequestError{}}
 
   defp redirect_uri_registered_for_client?(client, redirect_uri) do
     client = Client.fetch_attributes(client, ["redirect_uri"])
@@ -548,24 +407,37 @@ defmodule AsteroidWeb.AuthorizeController do
     if redirect_uri in (client.attrs["redirect_uris"] || []) do
       :ok
     else
-      {:error, :unregistered_redirect_uri}
+      {:error, OAuth2.Request.InvalidRequestError.exception(
+        reason: "unregistered `redirect_uri` for client",
+        parameter: "redirect_uri")}
     end
   end
 
-  @spec redirect_uri_add_params(String.t(), %{required(String.t()) => String.t()}) :: String.t()
+  @spec client_id_valid?(String.t()) ::
+  :ok
+  | {:error, %OAuth2.Request.MalformedParamError{}}
 
-  defp redirect_uri_add_params(redirect_uri, params) do
-    case URI.parse(redirect_uri) do
-      %URI{query: query} = parsed_uri when is_binary(query) ->
-        parsed_uri
-        |> Map.put(:query, URI.encode_query(URI.decode_query(query, params)))
-
-      %URI{query: nil} = parsed_uri ->
-        parsed_uri
-        |> Map.put(:query, URI.encode_query(params))
-
+  defp client_id_valid?(client_id) do
+    if OAuth2Utils.valid_client_id_param?(client_id) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(name: "client_id", value: client_id)}
     end
-    |> URI.to_string()
+  end
+
+
+  @spec redirect_uri_valid?(String.t()) ::
+  :ok
+  | {:error, %OAuth2.Request.MalformedParamError{}}
+
+  defp redirect_uri_valid?(redirect_uri) do
+    if OAuth2.RedirectUri.valid?(redirect_uri) do
+      :ok
+    else
+      {:error, OAuth2.Request.MalformedParamError.exception(
+        name: "redirect_uri",
+        value: redirect_uri)}
+    end
   end
 
   @spec put_scope_implicit_flow(map(), Scope.Set.t(), Scope.Set.t()) :: map()
@@ -580,9 +452,8 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec pkce_params(Client.t(), map()) ::
   {:ok, {OAuth2.PKCE.code_challenge() | nil, OAuth2.PKCE.code_challenge_method() | nil}}
-  | {:error, :pkce_mandatory_use}
-  | {:error, %OAuth2.PKCE.MalformedCodeChallengeError{}}
-  | {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{}}
+  | {:error, %OAuth2.Request.InvalidRequestError{}}
+  | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp pkce_params(client, params) do
     case astrenv(:oauth2_flow_authorization_code_pkce_policy) do
@@ -594,7 +465,8 @@ defmodule AsteroidWeb.AuthorizeController do
           if params["code_challenge"] != nil do
             pkce_params_when_mandatory(params)
           else
-            {:error, :pkce_mandatory_use}
+            {:error, OAuth2.Request.InvalidRequestError.exception(
+              parameter: "code_challenge", reason: "missing `code_challenge` parameter")}
           end
         else
           if params["code_challenge"] != nil do
@@ -611,9 +483,8 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec pkce_params_when_mandatory(map()) ::
   {:ok, {OAuth2.PKCE.code_challenge(), OAuth2.PKCE.code_challenge_method()}}
-  | {:error, %OAuth2.PKCE.MalformedCodeChallengeError{}}
-  | {:error, %OAuth2.PKCE.UnsupportedCodeChallengeMethodError{}}
-  | {:error, :pkce_mandatory_use}
+  | {:error, %OAuth2.Request.InvalidRequestError{}}
+  | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp pkce_params_when_mandatory(%{"code_challenge" => code_challenge} = params) do
     method =
@@ -625,22 +496,28 @@ defmodule AsteroidWeb.AuthorizeController do
           "plain"
       end
 
-    with :ok <- OAuth2.PKCE.code_challenge_valid?(code_challenge),
-         {:ok, code_challenge_method} <- OAuth2.PKCE.code_challenge_method_from_string(method)
-    do
-      if code_challenge_method in astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods) do
-        {:ok, {code_challenge, code_challenge_method}}
-      else
-        {:error,
-          OAuth2.PKCE.UnsupportedCodeChallengeMethodError.exception(code_challenge_method_str: code_challenge_method)}
+    if OAuth2.PKCE.code_challenge_valid?(code_challenge) do
+      case OAuth2.PKCE.code_challenge_method_from_string(method) do
+        code_challenge_method when is_atom(code_challenge_method) ->
+          if code_challenge_method in astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods) do
+            {:ok, {code_challenge, code_challenge_method}}
+          else
+            {:error, OAuth2.Request.InvalidRequestError.exception(
+              reason: "unsupported code challenge method", parameter: "code_challenge_method")}
+          end
+
+        nil ->
+          {:error, OAuth2.Request.InvalidRequestError.exception(
+            reason: "unsupported code challenge method", parameter: "code_challenge_method")}
       end
     else
-      {:error, _} = error ->
-        error
+      {:error, OAuth2.Request.MalformedParamError.exception(
+        name: "code_challenge", value: code_challenge)}
     end
   end
 
   defp pkce_params_when_mandatory(_) do
-    {:error, :pkce_mandatory_use}
+    {:error, OAuth2.Request.InvalidRequestError.exception(
+      parameter: "code_challenge", reason: "missing `code_challenge` parameter")}
   end
 end

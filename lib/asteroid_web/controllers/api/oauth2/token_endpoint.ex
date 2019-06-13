@@ -631,8 +631,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {code_challenge, code_verifier} ->
         code_challenge_method =
           authorization_code.data["__asteroid_oauth2_pkce_code_challenge_method"]
-          |> OAuth2.PKCE.code_challenge_method_from_string() # returns {:ok, method}
-          |> elem(1)
+          |> OAuth2.PKCE.code_challenge_method_from_string()
 
         OAuth2.PKCE.verify_code_verifier(code_verifier, code_challenge, code_challenge_method)
     end

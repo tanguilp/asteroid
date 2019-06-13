@@ -21,7 +21,7 @@ defmodule Asteroid.OAuth2.PKCE do
 
     Note that the length is restricted: from 43 to 128 characters.
     """
-    
+
     defexception [:code_challenge]
 
     @impl true
@@ -63,39 +63,22 @@ defmodule Asteroid.OAuth2.PKCE do
   `{:error, %Asteroid.OAuth2.PKCE.InvalidCodeChallengeError{}}` otherwise
   """
 
-  @spec code_challenge_valid?(code_challenge()) ::
-  :ok
-  | {:error, %Asteroid.OAuth2.PKCE.MalformedCodeChallengeError{}}
+  @spec code_challenge_valid?(code_challenge()) :: boolean()
 
   def code_challenge_valid?(code_challenge) do
-    if Regex.run(~r<^[\x41-\x5A\x61-\x7A\x30-\x39._~-]{43,128}$>, code_challenge) != nil do
-      :ok
-    else
-      {:error, __MODULE__.MalformedCodeChallengeError.exception(code_challenge: code_challenge)}
-    end
+    Regex.run(~r<^[\x41-\x5A\x61-\x7A\x30-\x39._~-]{43,128}$>, code_challenge) != nil
   end
 
   @doc """
-  Returns `{:ok, code_challenge_method}` if the parameter is a valid code challenge method,
-  `{:error, %Asteroid.OAuth2.PKCE.InvalidCodeChallengeMethodError{}}` otherwise
+  Returns `t:code_challenge_method/0` if the parameter is a valid code challenge method,
+  `nil` otherwise
   """
 
-  @spec code_challenge_method_from_string(String.t()) ::
-  {:ok, code_challenge_method()}
-  | {:error, %__MODULE__.UnsupportedCodeChallengeMethodError{}}
+  @spec code_challenge_method_from_string(String.t()) :: atom() | nil
 
-  def code_challenge_method_from_string("plain") do
-    {:ok, :plain}
-  end
-
-  def code_challenge_method_from_string("S256") do
-    {:ok, :S256}
-  end
-
-  def code_challenge_method_from_string(invalid) do
-    {:error,
-      __MODULE__.UnsupportedCodeChallengeMethodError.exception(code_challenge_method_str: invalid)}
-  end
+  def code_challenge_method_from_string("plain"), do: :plain
+  def code_challenge_method_from_string("S256"), do: :S256
+  def code_challenge_method_from_string(_), do: nil
 
   @doc """
   Returns `:ok` if the code verifier is validated against the code challenge,

@@ -110,7 +110,7 @@ defmodule Asteroid.Token.AccessToken do
 
       {:ok, nil} ->
         {:error, Token.InvalidTokenError.exception(
-          grant: "access token",
+          sort: "access token",
           reason: "not found in the token store",
           id: access_token_id)}
 

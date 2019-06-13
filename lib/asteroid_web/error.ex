@@ -10,6 +10,7 @@ defmodule AsteroidWeb.Error do
   alias Asteroid.OAuth2
   alias AsteroidWeb.API.OAuth2.TokenEndpoint
   alias AsteroidWeb.API.OAuth2.RegisterEndpoint
+  alias AsteroidWeb.AuthorizeController
 
   @doc """
   Responds with the appropriate error codes, headers and text to an OAuth2 protocol flow
@@ -45,9 +46,56 @@ defmodule AsteroidWeb.Error do
     |> json(error_response)
   end
 
+  @spec respond_authorize(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t()
+
+  def respond_authorize(conn, %OAuth2.Request.MalformedParamError{name: "redirect_uri"} = e) do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> render("error_redirect_uri.html")
+  end
+
+  def respond_authorize(conn, %OAuth2.Request.MalformedParamError{name: "client_id"} = e) do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> render("error_redirect_uri.html")
+  end
+
+  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "redirect_uri"} = e)
+  do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> render("error_redirect_uri.html")
+  end
+
+  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "client_id"} = e)
+  do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> render("error_redirect_uri.html")
+  end
+
+  def respond_authorize(%Plug.Conn{query_params: %{"redirect_uri" => redirect_uri}} = conn, e) do
+    redirect_uri = OAuth2.RedirectUri.add_params(
+      redirect_uri,
+      %{
+        "error" => err_name(e),
+        "error_description" => Exception.message(e)
+      }
+      |> put_if_not_nil("state", conn.query_params["state"])
+    )
+
+    conn
+    |> redirect(external: redirect_uri)
+  end
+
   @spec err_name(Exception.t()) :: String.t()
 
   defp err_name(%OAuth2.UnsupportedGrantTypeError{}), do: "unsupported_grant_type"
+  defp err_name(%OAuth2.UnsupportedResponseTypeError{}), do: "unsupported_response_type"
   defp err_name(%OAuth2.InvalidGrantError{}), do: "invalid_grant"
   defp err_name(%OAuth2.Client.AuthenticationError{}), do: "invalid_client"
   defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}), do: "invalid_scope"
@@ -55,6 +103,7 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.Request.InvalidRequestError{}), do: "invalid_request"
   defp err_name(%OAuth2.Request.MalformedParamError{name: "scope"}), do: "invalid_scope"
   defp err_name(%OAuth2.Request.MalformedParamError{}), do: "invalid_request"
+  defp err_name(%AuthorizeController.AccessDeniedError{}), do: "access_denied"
   defp err_name(%TokenEndpoint.ExceedingScopeError{}), do: "invalid_scope"
   defp err_name(%RegisterEndpoint.InvalidClientMetadataFieldError{}), do: "invalid_client_metadata"
   defp err_name(%RegisterEndpoint.InvalidRedirectURIError{}), do: "invalid_redirect_uri"

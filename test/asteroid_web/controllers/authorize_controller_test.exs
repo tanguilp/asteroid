@@ -27,7 +27,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Missing parameter"
+    assert html_response(conn, 400) =~ "missing parameter"
   end
 
   test "Missing redirect uri", %{conn: conn} do
@@ -38,7 +38,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Missing parameter"
+    assert html_response(conn, 400) =~ "missing parameter"
   end
 
   test "Malformed redirect uri", %{conn: conn} do
@@ -50,7 +50,8 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Malformed redirect_uri"
+    assert html_response(conn, 400) =~ "Malformed parameter"
+    assert html_response(conn, 400) =~ "redirect_uri"
   end
 
   test "Redirect uri not registered for client", %{conn: conn} do
@@ -62,7 +63,8 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Unregistered redirect_uri"
+    assert html_response(conn, 400) =~ "unregistered"
+    assert html_response(conn, 400) =~ "redirect_uri"
   end
 
   test "client_id is missing", %{conn: conn} do
@@ -73,10 +75,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Missing parameter"
+    assert html_response(conn, 400) =~ "missing parameter"
   end
 
-  test "client_id is invalid", %{conn: conn} do
+  test "client_id is malformed", %{conn: conn} do
     params = %{
       "response_type" => "code",
       "client_id" => "invalid_cłiend_id",
@@ -85,7 +87,8 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
-    assert html_response(conn, 400) =~ "Invalid client_id"
+    assert html_response(conn, 400) =~ "Malformed parameter"
+    assert html_response(conn, 400) =~ "client_id"
   end
 
   test "response_type not enabled", %{conn: conn} do

@@ -61,20 +61,6 @@ defmodule Asteroid.OAuth2.Client do
     end
   end
 
-  defmodule InvalidClientIdError do
-    @moduledoc """
-    Exception returned when the client id is invalid
-    """
-
-    defexception [:client_id]
-
-    @impl true
-
-    def message(%{client_id: client_id}) do
-      "Invalid client_id `#{client_id}`"
-    end
-  end
-
   @typedoc """
   Client's type: confidential or public
   """
