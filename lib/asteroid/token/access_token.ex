@@ -238,9 +238,32 @@ defmodule Asteroid.Token.AccessToken do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_access_token_lifetime)}
   - Otherwise returns `0`
+
+  In any case, the returned value is capped by the scope configuration.
   """
 
-  def lifetime(%{flow: :ropc, client: client}) do
+  @spec lifetime(Context.t()) :: non_neg_integer()
+
+  def lifetime(%{flow: flow, granted_scopes: granted_scopes} = ctx) do
+    scope_config = Asteroid.OAuth2.Scope.configuration_for_flow(flow)
+
+    case Asteroid.OAuth2.Scope.max_access_token_lifetime(granted_scopes, scope_config) do
+      capped_lifetime when is_integer(capped_lifetime) ->
+        min(lifetime_for_client(ctx), capped_lifetime)
+
+      nil ->
+        lifetime_for_client(ctx)
+    end
+  end
+
+  # no scopes
+  def lifetime(ctx) do
+    lifetime_for_client(ctx)
+  end
+
+  @spec lifetime_for_client(Context.t()) :: non_neg_integer()
+
+  def lifetime_for_client(%{flow: :ropc, client: client}) do
     attr = "__asteroid_oauth2_flow_ropc_access_token_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
@@ -254,7 +277,7 @@ defmodule Asteroid.Token.AccessToken do
     end
   end
 
-  def lifetime(%{flow: :client_credentials, client: client}) do
+  def lifetime_for_client(%{flow: :client_credentials, client: client}) do
     attr = "__asteroid_oauth2_flow_client_credentials_access_token_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
@@ -268,7 +291,7 @@ defmodule Asteroid.Token.AccessToken do
     end
   end
 
-  def lifetime(%{flow: :authorization_code, client: client}) do
+  def lifetime_for_client(%{flow: :authorization_code, client: client}) do
     attr = "__asteroid_oauth2_flow_authorization_code_access_token_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
@@ -282,7 +305,7 @@ defmodule Asteroid.Token.AccessToken do
     end
   end
 
-  def lifetime(%{flow: :implicit, client: client}) do
+  def lifetime_for_client(%{flow: :implicit, client: client}) do
     attr = "__asteroid_oauth2_flow_implicit_access_token_lifetime"
 
     client = Client.fetch_attributes(client, [attr])
@@ -296,7 +319,7 @@ defmodule Asteroid.Token.AccessToken do
     end
   end
 
-  def lifetime(_) do
+  def lifetime_for_client(_) do
     0
   end
 end

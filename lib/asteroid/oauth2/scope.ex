@@ -92,6 +92,60 @@ defmodule Asteroid.OAuth2.Scope do
   end
 
   @doc """
+  Given a set of scopes and a `t:scope_config_option/0`, returns the max refresh token lifetime
+  or `nil` if not present
+  """
+
+  @spec max_refresh_token_lifetime(Scope.Set.t(), scope_config_option()) ::
+  non_neg_integer()
+  | nil
+
+  def max_refresh_token_lifetime(scopes, scope_config_option) do
+    Enum.reduce(
+      scopes,
+      [],
+      fn
+        scope, acc ->
+          case scope_config_option[:scopes][scope][:max_refresh_token_lifetime] do
+            lifetime when is_integer(lifetime) ->
+              acc ++ [lifetime]
+
+            nil ->
+              acc
+          end
+      end
+    )
+    |> Enum.max(fn -> nil end)
+  end
+
+  @doc """
+  Given a set of scopes and a `t:scope_config_option/0`, returns the max access token lifetime
+  or `nil` if not present
+  """
+
+  @spec max_access_token_lifetime(Scope.Set.t(), scope_config_option()) ::
+  non_neg_integer()
+  | nil
+
+  def max_access_token_lifetime(scopes, scope_config_option) do
+    Enum.reduce(
+      scopes,
+      [],
+      fn
+        scope, acc ->
+          case scope_config_option[:scopes][scope][:max_access_token_lifetime] do
+            lifetime when is_integer(lifetime) ->
+              acc ++ [lifetime]
+
+            nil ->
+              acc
+          end
+      end
+    )
+    |> Enum.max(fn -> nil end)
+  end
+
+  @doc """
   Returns the scopes available to a flow
   """
 

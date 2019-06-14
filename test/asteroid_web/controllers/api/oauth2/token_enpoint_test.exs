@@ -1,11 +1,11 @@
 defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
+  use AsteroidWeb.ConnCase, async: true
+
   import Asteroid.Utils
 
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
-
-  use AsteroidWeb.ConnCase, async: true
 
   ##########################################################################
   # General tests
@@ -374,6 +374,47 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
                             Scope.Set.put(req_scope, "scp99"))
   end
 
+  test "ropc access and refresh token lifetime limited by scope config", %{conn: conn} do
+    req_scope = MapSet.new(["scp1", "scp2", "scp3", "scp4"])
+
+    req_body = %{
+      "grant_type" => "password",
+      "username" => "user_1",
+      "password" => "asteroidftw",
+      "scope" => Enum.join(req_scope, " ")
+    }
+
+    Process.put(:oauth2_flow_ropc_scope_config, [
+      scopes: %{
+        "scp1" => [],
+        "scp2" => [],
+        "scp3" => [],
+        "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
+      }])
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert response["expires_in"] >= 29
+    assert response["expires_in"] <= 31
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(req_scope))
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(req_scope))
+    assert refresh_token.data["exp"] >= now() + 999
+    assert refresh_token.data["exp"] <= now() + 1001
+    assert access_token.data["exp"] >= now() + 29
+    assert access_token.data["exp"] <= now() + 31
+  end
+
   ##########################################################################
   # Client Credentials tests
   ##########################################################################
@@ -545,6 +586,48 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_scope"
   end
 
+  test "client credentials access and refresh token lifetime limited by scope config", %{conn: conn} do
+    req_scope = MapSet.new(["scp1", "scp2", "scp3", "scp4"])
+
+    req_body = %{
+      "grant_type" => "client_credentials",
+      "scope" => Enum.join(req_scope, " ")
+    }
+
+    Process.put(:oauth2_flow_client_credentials_scope_config, [
+      scopes: %{
+        "scp1" => [],
+        "scp2" => [],
+        "scp3" => [],
+        "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
+      }])
+    Process.put(:oauth2_flow_client_credentials_issue_refresh_token_init, true)
+    Process.put(:oauth2_flow_client_credentials_refresh_token_lifetime, 60_000)
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert response["expires_in"] >= 29
+    assert response["expires_in"] <= 31
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(req_scope))
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(req_scope))
+    assert refresh_token.data["exp"] >= now() + 999
+    assert refresh_token.data["exp"] <= now() + 1001
+    assert access_token.data["exp"] >= now() + 29
+    assert access_token.data["exp"] <= now() + 31
+  end
+
   ##########################################################################
   # Refresh token grant types
   ##########################################################################
@@ -687,8 +770,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
       |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
 
-    Application.put_env(:asteroid, :ropc_issue_new_refresh_token, true)
-
     response = json_response(conn, 200)
 
     assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
@@ -705,6 +786,57 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert Scope.Set.equal?(
       Scope.Set.new(newly_issued_refresh_token.data["scope"]),
       Scope.Set.new(refresh_token.data["scope"]))
+  end
+
+  test "refresh token valid request, access and refresh token lifetime limited by scope config",
+    %{conn: conn}
+  do
+    {:ok, refresh_token} =
+      RefreshToken.gen_new()
+      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("sub", "user_1")
+      |> RefreshToken.put_value("exp", now() + 3600)
+      |> RefreshToken.put_value("iat", now())
+      |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("scope", ["scp3", "scp4", "scp1"])
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
+      |> RefreshToken.store(%{:flow => :ropc})
+
+    req_body = %{
+      "grant_type" => "refresh_token",
+      "refresh_token" => refresh_token.id
+    }
+
+    Process.put(:oauth2_flow_ropc_scope_config, [
+      scopes: %{
+        "scp1" => [],
+        "scp2" => [],
+        "scp3" => [],
+        "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
+      }])
+    Process.put(:oauth2_flow_ropc_issue_refresh_token_refresh, true)
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert response["expires_in"] >= 29
+    assert response["expires_in"] <= 31
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, newly_issued_refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert Scope.Set.equal?(
+      Scope.Set.new(newly_issued_refresh_token.data["scope"]),
+      Scope.Set.new(refresh_token.data["scope"]))
+    assert newly_issued_refresh_token.data["exp"] >= now() + 999
+    assert newly_issued_refresh_token.data["exp"] <= now() + 1001
+    assert access_token.data["exp"] >= now() + 29
+    assert access_token.data["exp"] <= now() + 31
   end
 
   test "refresh token issued to different client_id", %{conn: conn} do
@@ -1215,6 +1347,59 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     refute refresh_token.data["iat"] == code.data["iat"]
     refute refresh_token.data["exp"] == code.data["exp"]
+  end
+
+  test "grant type code success with access and refresh token lifetime limited by scope config", %{conn: conn} do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("scope", Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]))
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    # lets sleep a bit so that we can check that iat and exp of released access and refresh
+    # tokens are not the same as the ones of the authorization code, which would mean they
+    # are copied while they shouldn't
+    :timer.sleep(1500)
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    Process.put(:oauth2_flow_authorization_code_scope_config, [
+      scopes: %{
+        "scp1" => [],
+        "scp2" => [],
+        "scp3" => [],
+        "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
+      }])
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert response["expires_in"] >= 29
+    assert response["expires_in"] <= 31
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+    assert refresh_token.data["exp"] >= now() + 999
+    assert refresh_token.data["exp"] <= now() + 1001
+    assert access_token.data["exp"] >= now() + 29
+    assert access_token.data["exp"] <= now() + 31
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["issuer"]),
+                            Scope.Set.new(code.data["issuer"]))
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["issuer"]),
+                            Scope.Set.new(code.data["issuer"]))
   end
 
   test "grant type code success without refresh token without scopes", %{conn: conn} do

@@ -379,6 +379,7 @@ config :asteroid, :oauth2_flow_authorization_code_scope_config,
   scopes: %{
     "interbank_transfer" => [
       max_refresh_token_lifetime: 3600 * 24 * 30 * 3,
+      max_access_token_lifetime: 3 * 60,
       label: %{
         "en" => "Make bank transfers",
         "fr" => "Réaliser des virements",

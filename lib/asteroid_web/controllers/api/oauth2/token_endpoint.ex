@@ -274,12 +274,20 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             nil
           end
 
+        granted_scopes =
+          if Scope.Set.size(requested_scopes) == 0 do
+            Scope.Set.new(refresh_token.data["scope"] || [])
+          else
+            requested_scopes
+          end
+
         ctx =
           %{}
           |> Map.put(:endpoint, :token)
           |> put_if_not_nil(:flow, maybe_initial_flow)
           |> Map.put(:grant_type, :refresh_token)
           |> Map.put(:requested_scopes, requested_scopes)
+          |> Map.put(:granted_scopes, granted_scopes)
           |> put_if_not_nil(:subject, maybe_subject)
           |> Map.put(:client, client)
           |> put_if_not_nil(:scope, requested_scopes)
@@ -306,13 +314,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             new_refresh_token
           else
             nil
-          end
-
-        granted_scopes =
-          if Scope.Set.size(requested_scopes) == 0 do
-            Scope.Set.new(refresh_token.data["scope"] || [])
-          else
-            requested_scopes
           end
 
         access_token =
@@ -563,11 +564,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   @spec maybe_put_refresh_token(map(), RefreshToken.t()) :: map()
 
-  defp maybe_put_refresh_token(map, %RefreshToken{id: id}) do
-    Map.put(map, "refresh_token", id)
+  defp maybe_put_refresh_token(map, %RefreshToken{} = refresh_token) do
+    Map.put(map, "refresh_token", RefreshToken.serialize(refresh_token))
   end
 
-  defp maybe_put_refresh_token(map, _) do
+  defp maybe_put_refresh_token(map, nil) do
     map
   end
 

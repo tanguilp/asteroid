@@ -1,5 +1,7 @@
 defmodule AsteroidWeb.AuthorizeControllerTest do
-  use AsteroidWeb.ConnCase
+  use AsteroidWeb.ConnCase, async: true
+
+  import Asteroid.Utils
 
   alias Asteroid.Client
   alias OAuth2Utils.Scope
@@ -392,6 +394,48 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     assert access_token.data["client_id"] == "client_confidential_1"
     assert access_token.data["sub"] == "user_1"
+  end
+
+  test "Authorization granted (implicit) - access granted with capped access token lifetime", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :token,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    Process.put(:oauth2_flow_implicit_scope_config, [
+      scopes: %{
+        "scp1" => [],
+        "scp2" => [],
+        "scp3" => [],
+        "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
+      }])
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1", granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3", "scp1"])})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "access_token" => access_token,
+      "token_type" => "bearer",
+      "expires_in" => expires_in,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
+
+    assert (expires_in |> Integer.parse() |> elem(0)) >= 29
+    assert (expires_in |> Integer.parse() |> elem(0)) <= 31
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+    assert access_token.data["exp"] >= now() + 29
+    assert access_token.data["exp"] <= now() + 31
   end
 
   ##########################
