@@ -37,6 +37,7 @@ defmodule Asteroid.MixProject do
       {:apiac, path: "../apiac", override: true},
       {:apiac_auth_basic, path: "../apiac_auth_basic"},
       {:apiac_auth_bearer, path: "../apiac_auth_bearer"},
+      {:apiac_auth_client_secret_post, path: "../apiac_auth_client_secret_post"},
       {:apiac_auth_mtls, path: "../apiac_auth_mtls"},
       {:apiac_filter_ip_blacklist, path: "../apiac_filter_ip_blacklist"},
       {:apiac_filter_ip_whitelist, path: "../apiac_filter_ip_whitelist"},

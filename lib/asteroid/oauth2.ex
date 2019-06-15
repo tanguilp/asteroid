@@ -290,6 +290,6 @@ defmodule Asteroid.OAuth2 do
   @spec issuer() :: String.t()
 
   def issuer() do
-    AsteroidWeb.Endpoint.url() <> to_string(astrenv(AsteroidWeb.Endpoint)[:url][:path])
+    AsteroidWeb.Router.Helpers.url(AsteroidWeb.Endpoint)
   end
 end

@@ -8,6 +8,7 @@ use Mix.Config
 # with webpack to recompile .js and .css sources.
 config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 4000],
+  #url: [scheme: "https", host: "www.example.com", path: "/my/new/path", port: 443],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
@@ -145,6 +146,11 @@ config :asteroid, :api_oauth2_plugs,
     {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug},
+    {APIacAuthClientSecretPost,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
       set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug}
   ]
