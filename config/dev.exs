@@ -8,7 +8,7 @@ use Mix.Config
 # with webpack to recompile .js and .css sources.
 config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 4000],
-  #url: [scheme: "https", host: "www.example.com", path: "/my/new/path", port: 443],
+  #url: [scheme: "https", host: "www.example.com", path: "/account/auth", port: 443],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,

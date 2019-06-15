@@ -1,7 +1,7 @@
 # Dynamic client registration (RFC7591)
 
 Asteroid implements dynamic client registration
-([RFC7591](https://tools.ietf.org/html/rfc7591#section-2).
+([RFC7591](https://tools.ietf.org/html/rfc7591).
 
 This RFC allows dynamic creation of new OAuth2 clients on the authorization server. This can be
 used:
