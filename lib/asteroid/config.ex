@@ -872,6 +872,63 @@ defmodule Asteroid.Config do
     field :oauth2_endpoint_token_auth_methods_supported_callback,
     config_time: :runtime
 
+    @doc """
+    OAuth2 metadata service documentation URL
+    """
+
+    @type oauth2_endpoint_metadata_service_documentation :: String.t()
+
+    field :oauth2_endpoint_metadata_service_documentation,
+    config_time: :runtime
+
+    @doc """
+    OAuth2 metadata UI locales supported
+    """
+
+    @type oauth2_endpoint_metadata_ui_locales_supported :: [String.t()]
+
+    field :oauth2_endpoint_metadata_ui_locales_supported,
+    config_time: :runtime
+
+    @doc """
+    OAuth2 metadata OP policy URL
+    """
+
+    @type oauth2_endpoint_metadata_op_policy_uri :: String.t()
+
+    field :oauth2_endpoint_metadata_op_policy_uri,
+    config_time: :runtime
+
+    @doc """
+    OAuth2 metadata OP tos URL
+    """
+
+    @type oauth2_endpoint_metadata_op_tos_uri :: String.t()
+
+    field :oauth2_endpoint_metadata_op_tos_uri,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the json response on the `/.well-known/oauth-authorization-server`
+    endpoint
+    """
+
+    @type oauth2_endpoint_metadata_before_send_resp_callback :: (map() -> map())
+
+    field :oauth2_endpoint_metadata_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the
+    `/.well-known/oauth-authorization-server` endpoint
+    """
+
+    @type oauth2_endpoint_metadata_before_send_conn_callback ::
+    (Plug.Conn.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_metadata_before_send_conn_callback,
+    config_time: :runtime
+
     ### end of configuration options
   end
 

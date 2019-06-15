@@ -172,10 +172,6 @@ config :asteroid, :api_error_response_verbosity, :debug
 config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
   &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
 
-config :asteroid, :oauth2_flow_ropc_scope_config,
-  %{
-  }
-
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
 
@@ -214,10 +210,6 @@ config :asteroid, :oauth2_endpoint_revoke_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 # Flow: client credentials
-
-config :asteroid, :oauth2_flow_client_credentials_scope_config,
-  %{
-  }
 
 config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_init, false
 
@@ -339,3 +331,25 @@ config :asteroid, :oauth2_endpoint_register_client_type_callback,
 
 config :asteroid, :oauth2_endpoint_token_auth_methods_supported_callback,
   &Asteroid.OAuth2.Endpoint.token_endpoint_auth_methods_supported/0
+
+# scope configuration
+
+config :asteroid, :scope_config,
+[
+  scopes: %{
+    "scp1" => [],
+    "scp2" => [],
+    "scp3" => [],
+    "scp4" => [],
+    "scp5" => [],
+    "scp6" => []
+  }
+]
+
+# OAuth2 metadata
+
+config :asteroid, :oauth2_endpoint_metadata_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1
+
+config :asteroid, :oauth2_endpoint_metadata_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1

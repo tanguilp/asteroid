@@ -412,3 +412,16 @@ config :asteroid, :oauth2_flow_client_credentials_scope_config,
     "scope-f" => [auto: true],
   }
 
+# OAuth2 metadata
+
+config :asteroid, :oauth2_endpoint_metadata_service_documentation,
+  "https://www.example.com/authentication/documentation/"
+
+config :asteroid, :oauth2_endpoint_metadata_op_policy_uri,
+  "https://www.example.com/authentication/policy/"
+
+config :asteroid, :oauth2_endpoint_metadata_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1
+
+config :asteroid, :oauth2_endpoint_metadata_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1

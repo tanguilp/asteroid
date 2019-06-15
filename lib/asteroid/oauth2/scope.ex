@@ -14,6 +14,8 @@ defmodule Asteroid.OAuth2.Scope do
 
   The processing rules are:
   - `:auto`: the scope will automatically be granted, even when not requested
+  - `:advertise`: determine whether the scope is advertised on the `/.well-nown` URIs. Defaults
+  to `true`. If set in a incoherent way within different flows, the behaviour is unspecified.
   - `:display`: in *web flows*, display that scope to the end-user for authorization. When
   not present, shall be treated as `true`
   - `:optional`: in *web flows*, make that scope optional, so that the user can deselect it even

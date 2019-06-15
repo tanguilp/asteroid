@@ -93,7 +93,7 @@ defmodule AsteroidWeb.Router do
   end
 
   scope "/.well-known", AsteroidWeb.WellKnown do
-    get "/oauth-authorization-server", Oauth2AuthorizationServerEndpoint, :handle
+    get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
   end
 
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
