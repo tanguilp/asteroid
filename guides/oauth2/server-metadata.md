@@ -25,6 +25,7 @@ URL.
   - `"introspection_endpoint"`
   - `"introspect_endpoint_auth_methods_supported"`
   - `"code_challenge_methods_supported"`
+  - `"jwks_uri"`
   - `"service_documentation"`
   - `"ui_locales_supported"`
   - `"op_policy_uri"`

@@ -19,6 +19,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       |> put_response_types_supported()
       |> put_grant_types_supported()
       |> put_token_endpoint_auth_method_supported()
+      |> put_jwks_uri()
       |> put_revocation_endpoint()
       |> put_revocation_endpoint_auth_method_supported()
       |> put_introspection_endpoint()
@@ -169,6 +170,18 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
 
       methods when is_list(methods) ->
         Map.put(metadata, "token_endpoint_auth_methods_supported",methods)
+    end
+  end
+
+  @spec put_jwks_uri(map()) :: map()
+
+  defp put_jwks_uri(metadata) do
+    if astrenv(:crypto_keys) do
+      Map.put(metadata,
+              "jwks_uri",
+              Routes.keys_endpoint_url(AsteroidWeb.Endpoint, :handle))
+    else
+      metadata
     end
   end
 

@@ -2,7 +2,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
-  
+
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.Endpoint
   alias Asteroid.OAuth2
@@ -17,6 +17,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
     assert response["issuer"] == OAuth2.issuer()
     assert response["authorization_endpoint"] == Routes.authorize_url(Endpoint, :pre_authorize)
     assert response["token_endpoint"] == Routes.token_endpoint_url(Endpoint, :handle)
+    assert response["jwks_uri"] == Routes.keys_endpoint_url(Endpoint, :handle)
     assert response["registration_endpoint"] ==
       Routes.register_endpoint_url(Endpoint, :handle)
     assert Enum.sort(response["scopes_supported"]) ==
@@ -126,5 +127,16 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
       |> json_response(200)
 
     assert response["code_challenge_methods_supported"] == nil
+  end
+
+  test "jwks_uri not set if disabled", %{conn: conn} do
+    Process.put(:crypto_keys, nil)
+
+    response =
+      conn
+      |> get(Routes.oauth_authorization_server_endpoint_path(conn, :handle))
+      |> json_response(200)
+
+    assert response["jwks_uri"] == nil
   end
 end

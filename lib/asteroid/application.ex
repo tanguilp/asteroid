@@ -7,6 +7,7 @@ defmodule Asteroid.Application do
 
   alias Asteroid.AttributeRepository
   alias Asteroid.TokenStore
+  alias Asteroid.Crypto
 
   def start(_type, _args) do
     # List all child processes to be supervised
@@ -22,7 +23,8 @@ defmodule Asteroid.Application do
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- TokenStore.auto_install_from_config(),
-         :ok <- TokenStore.auto_start_from_config()
+         :ok <- TokenStore.auto_start_from_config(),
+         :ok <- Crypto.Key.load_from_config!()
     do
       # See https://hexdocs.pm/elixir/Supervisor.html
       # for other strategies and supported options

@@ -28,12 +28,10 @@ defmodule Asteroid.Utils do
 
   if Mix.env() == :test do
     def astrenv(key, default_value \\ nil) do
-      case Process.get(key) do
-        nil ->
-          Application.get_env(:asteroid, key, default_value)
-
-        value ->
-          value
+      if key in Keyword.keys(Process.get()) do
+        Process.get(key)
+      else
+        Application.get_env(:asteroid, key, default_value)
       end
     end
   else

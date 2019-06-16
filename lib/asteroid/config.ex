@@ -929,6 +929,51 @@ defmodule Asteroid.Config do
     field :oauth2_endpoint_metadata_before_send_conn_callback,
     config_time: :runtime
 
+    @doc """
+    Callback invoked on the json response on the `/discovery/keys` endpoint
+    """
+
+    @type oauth2_endpoint_discovery_keys_before_send_resp_callback :: (map() -> map())
+
+    field :oauth2_endpoint_discovery_keys_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `/discovery/keys` endpoint
+    """
+
+    @type oauth2_endpoint_discovery_keys_before_send_conn_callback ::
+    (Plug.Conn.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_discovery_keys_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Cryptographic keys configuration
+
+    Refer to `t:Asteroid.Crypto.Key.key_config/0` for more information.
+
+    **Security consideration**: consider storing keys in a separate configuration file
+    (such as `secret.exs`).
+    """
+
+    @type crypto_keys :: Asteroid.Crypto.Key.key_config()
+
+    field :crypto_keys,
+    config_time: :runtime
+
+    @doc """
+    Cryptographic keys cache store
+
+    The first element is a module implementing the `Asteroid.Crypto.Key.Cache` behaviour, and
+    the second element are the module's options.
+    """
+
+    @type crypto_keys_cache :: {module(), Asteroid.Crypto.Key.Cache.opts()}
+
+    field :crypto_keys_cache,
+    config_time: :runtime
+
     ### end of configuration options
   end
 

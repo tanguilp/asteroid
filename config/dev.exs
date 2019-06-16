@@ -425,3 +425,22 @@ config :asteroid, :oauth2_endpoint_metadata_before_send_resp_callback,
 
 config :asteroid, :oauth2_endpoint_metadata_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id/1
+
+# JWKs URI
+
+config :asteroid, :oauth2_endpoint_discovery_keys_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1
+
+config :asteroid, :oauth2_endpoint_discovery_keys_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id/1
+
+# crypto
+
+config :asteroid, :crypto_keys, %{
+  "key_from_file_1" => {:pem_file, [path: "priv/keys/ec-secp256r1.pem", use: :sig]},
+  "key_from_file_2" => {:pem_file, [path: "priv/keys/ec-secp521r1.pem", use: :sig]},
+  "key_from_map" => {:map, [key: {%{kty: :jose_jwk_kty_oct}, %{"k" => "P9dGnU_We5thJOOigUGtl00WmubLVAAr1kYsAUP80Sc", "kty" => "oct"}}, use: :sig]},
+  "key_auto" => {:auto_gen, [params: {:rsa, 4096}, use: :sig, advertise: false]}
+}
+
+config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}

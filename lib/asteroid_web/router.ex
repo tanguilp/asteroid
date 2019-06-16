@@ -96,6 +96,10 @@ defmodule AsteroidWeb.Router do
     get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
   end
 
+  scope "/discovery", AsteroidWeb.Discovery do
+    get "/keys", KeysEndpoint, :handle
+  end
+
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
     conn
     |> put_status(400)
