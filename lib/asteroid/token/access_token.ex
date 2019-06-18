@@ -3,6 +3,7 @@ defmodule Asteroid.Token.AccessToken do
 
   alias Asteroid.Context
   alias Asteroid.Client
+  alias Asteroid.Crypto
   alias Asteroid.Token
 
   @moduledoc """
@@ -25,7 +26,7 @@ defmodule Asteroid.Token.AccessToken do
 
   @enforce_keys [:id, :serialization_format, :data]
 
-  defstruct [:id, :refresh_token_id, :serialization_format, :data]
+  defstruct [:id, :refresh_token_id, :serialization_format, :signing_key, :signing_alg, :data]
 
   @type id :: binary()
 
@@ -33,6 +34,8 @@ defmodule Asteroid.Token.AccessToken do
     id: __MODULE__.id(),
     refresh_token_id: binary() | nil,
     serialization_format: Asteroid.Token.serialization_format(),
+    signing_key: Asteroid.Crypto.Key.name() | nil,
+    signing_alg: Asteroid.Crypto.Alg.alg_name() | nil,
     data: map()
   }
 
@@ -46,6 +49,7 @@ defmodule Asteroid.Token.AccessToken do
   - `:data`: a data `map()`
   - `:serialization_format`: an `t:Asteroid.Token.serialization_format/0` atom, defaults to
   `:opaque`
+  - `:signing_key`: an `Asteroid.Crypto.Key.name()` for the signing key
   """
 
   @spec new(Keyword.t()) :: t()
@@ -55,7 +59,8 @@ defmodule Asteroid.Token.AccessToken do
       id: opts[:id] || (raise "Missing access token id"),
       refresh_token_id: opts[:refresh_token_id] || nil,
       data: opts[:data] || %{},
-      serialization_format: opts[:serialization_format] || :opaque
+      serialization_format: opts[:serialization_format] || :opaque,
+      signing_key: opts[:signing_key]
     }
   end
 
@@ -67,6 +72,7 @@ defmodule Asteroid.Token.AccessToken do
   to this access token if any. Defaults to `nil`
   - `:serialization_format`: an `t:Asteroid.Token.serialization_format/0` atom, defaults to
   `:opaque`
+  - `:signing_key`: an `Asteroid.Crypto.Key.name()` for the signing key
   """
 
   @spec gen_new(Keyword.t()) :: t()
@@ -75,7 +81,9 @@ defmodule Asteroid.Token.AccessToken do
       id: secure_random_b64(20),
       refresh_token_id: opts[:refresh_token],
       data: %{},
-      serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
+      serialization_format: (if opts[:serialization_format], do: opts[:serialization_format], else: :opaque),
+      signing_key: opts[:signing_key],
+      signing_alg: opts[:signing_alg]
     }
   end
 
@@ -121,11 +129,15 @@ defmodule Asteroid.Token.AccessToken do
 
   @doc """
   Stores an access token
+
+  This function only stores access tokens that have an `:opaque` serialization format.
   """
 
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
-  def store(access_token, ctx \\ %{}) do
+  def store(access_token, ctx \\ %{})
+
+  def store(%__MODULE__{serialization_format: :opaque} = access_token, ctx) do
     token_store_module = astrenv(:token_store_access_token)[:module]
     token_store_opts = astrenv(:token_store_access_token)[:opts] || []
 
@@ -138,6 +150,10 @@ defmodule Asteroid.Token.AccessToken do
       {:error, _} = error ->
         error
     end
+  end
+
+  def store(access_token, _ctx) do
+    {:ok, access_token}
   end
 
   @doc """
@@ -187,7 +203,11 @@ defmodule Asteroid.Token.AccessToken do
   Serializes the access token, using its inner `t:Asteroid.Token.serialization_format/0`
   information
 
-  Supports serialization to `:opaque` serialization format.
+  Supports serialization to `:opaque` and `:jws` serialization formats.
+
+  In case of the serialization to the `jws` format:
+  - if the signing algorithm was set, uses this algorithm
+  - otherwise uses the default signer of `JOSE.JWT.sign/2`
   """
 
   @spec serialize(t()) :: String.t()
@@ -196,6 +216,34 @@ defmodule Asteroid.Token.AccessToken do
     id
   end
 
+  def serialize(%__MODULE__{serialization_format: :jws} = access_token) do
+    jwt =
+      Enum.reduce(
+        access_token.data,
+        %{},
+        fn
+          {"__asteroid" <> _, _v}, acc ->
+            acc
+
+          {k, v}, acc ->
+            Map.put(acc, k, v)
+        end
+      )
+
+    {:ok, jwk} = Crypto.Key.get(access_token.signing_key)
+
+    if access_token.signing_alg do
+      jws = JOSE.JWS.from_map(%{"alg" => access_token.signing_alg})
+
+      JOSE.JWT.sign(jwk, jws, jwt)
+      |> JOSE.JWS.compact
+      |> elem(1)
+    else
+      JOSE.JWT.sign(jwk, jwt)
+      |> JOSE.JWS.compact
+      |> elem(1)
+    end
+  end
 
   @doc """
   Returns `true` if the token is active, `false` otherwise
@@ -321,5 +369,108 @@ defmodule Asteroid.Token.AccessToken do
 
   def lifetime_for_client(_) do
     0
+  end
+
+  @doc """
+  Returns the serialization format for an access token
+
+  Formalisation format is necessarily `:opaque`, except for access tokens for which the
+  following rules apply (<FLOW> is to be replace by a `t:Asteroid.OAuth2.flow_str()/0`):
+  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_serialization_format` is set, returns
+  this value
+  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_serialization_format` is set, returns
+  this value
+  - otherwise, returns `:opaque`
+  """
+
+  @spec serialization_format(Context.t()) :: Asteroid.Token.serialization_format()
+
+  def serialization_format(%{flow: flow, client: client}) do
+    attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_serialization_format"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == "jws" do
+      :jws
+    else
+      conf_opt = String.to_atom(
+        "oauth2_flow_" <>
+        Atom.to_string(flow) <>
+        "_access_token_serialization_format")
+
+      astrenv(conf_opt, :opaque)
+    end
+  end
+
+  def serialization_format(_) do
+    :opaque
+  end
+
+  @doc """
+  Returns the signing key name for an access token
+
+  The following rules apply (<FLOW> is to be replace by a `t:Asteroid.OAuth2.flow_str()/0`):
+  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_signing_key` is set, returns
+  this value
+  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_key` is set, returns
+  this value
+  - otherwise, returns `nil`
+  """
+
+  @spec signing_key(Context.t()) :: Asteroid.Crypto.Key.name()
+
+  def signing_key(%{flow: flow, client: client}) do
+    attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_signing_key"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] != nil do
+      client.attrs[attr]
+    else
+      conf_opt = String.to_atom(
+        "oauth2_flow_" <>
+        Atom.to_string(flow) <>
+        "_access_token_signing_key")
+
+      astrenv(conf_opt, nil)
+    end
+  end
+
+  def signing_key(_) do
+    nil
+  end
+
+  @doc """
+  Returns the signing algortihm for an access token
+
+  The following rules apply (<FLOW> is to be replace by a `t:Asteroid.OAuth2.flow_str()/0`):
+  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_signing_alg` is set, returns
+  this value
+  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_alg` is set, returns
+  this value
+  - otherwise, returns `nil`
+  """
+
+  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.alg()
+
+  def signing_alg(%{flow: flow, client: client}) do
+    attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_signing_alg"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] != nil do
+      client.attrs[attr]
+    else
+      conf_opt = String.to_atom(
+        "oauth2_flow_" <>
+        Atom.to_string(flow) <>
+        "_access_token_signing_alg")
+
+      astrenv(conf_opt, nil)
+    end
+  end
+
+  def signing_alg(_) do
+    nil
   end
 end

@@ -191,6 +191,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
 
     assert response == Map.put(access_token.data, "active", true)
   end
+
   test "existing access token, correct token_type_hint param", %{conn: conn} do
     {:ok, access_token} =
       AccessToken.gen_new()
@@ -331,6 +332,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -343,7 +345,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(AsteroidWeb.Router.Helpers.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(refresh_token.data, "active", true)
+    assert response ==
+      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
   end
 
   test "existing refresh token, correct token_type_hint param", %{conn: conn} do
@@ -355,6 +358,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -368,7 +372,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(AsteroidWeb.Router.Helpers.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(refresh_token.data, "active", true)
+    assert response ==
+      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
   end
 
   test "existing refresh token, incorrect token_type_hint param", %{conn: conn} do
@@ -380,6 +385,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -393,7 +399,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(AsteroidWeb.Router.Helpers.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(refresh_token.data, "active", true)
+    assert response ==
+      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
   end
 
   test "existing refresh token, but expired", %{conn: conn} do
@@ -405,6 +412,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("exp", now() - 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -431,6 +439,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("nbf", now() + 1000)
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -457,6 +466,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("status", "revoked")
       |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
       |> RefreshToken.store(%{})
 
     req_body = %{

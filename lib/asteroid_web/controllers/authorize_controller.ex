@@ -242,7 +242,10 @@ defmodule AsteroidWeb.AuthorizeController do
   recently (cookie).
 
   The `res` parameter is a `map()` whose keys are:
-  - `:sub`: one of the following atoms (**mandatory**):
+  - `:sub`: the subject id (a `String.t()`)
+  - `:granted_scopes`: a `MapSet.t()` for the granted scope. If none was granted (because none
+  were requested, or because user did not authorize them), a empty `t:Scope.Set.t/0` must be
+  set
   """
 
   @spec authorization_granted(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
@@ -275,7 +278,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
       |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
       |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
-      |> AuthorizationCode.put_value("scope", res[:granted_scopes])
+      |> AuthorizationCode.put_value("scope", Scope.Set.to_list(res[:granted_scopes]))
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("iss", OAuth2.issuer())
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
@@ -327,14 +330,14 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:flow_result, res)
 
     {:ok, access_token} =
-      AccessToken.gen_new()
+      new_access_token(ctx)
       |> AccessToken.put_value("iat", now())
       |> AccessToken.put_value("exp",
         now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
       |> AccessToken.put_value("client_id", client.attrs["client_id"])
       |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
       |> AccessToken.put_value("sub", subject.attrs["sub"])
-      |> AccessToken.put_value("scope", res[:granted_scopes])
+      |> AccessToken.put_value("scope", Scope.Set.to_list(res[:granted_scopes]))
       |> AccessToken.put_value("__asteroid_oauth2_initial_flow", "implicit")
       |> AccessToken.put_value("iss", OAuth2.issuer())
       |> AccessToken.store(ctx)
@@ -519,5 +522,28 @@ defmodule AsteroidWeb.AuthorizeController do
   defp pkce_params_when_mandatory(_) do
     {:error, OAuth2.Request.InvalidRequestError.exception(
       parameter: "code_challenge", reason: "missing `code_challenge` parameter")}
+  end
+
+  @spec new_access_token(Context.t(), Keyword.t()) :: AccessToken.t()
+
+  defp new_access_token(ctx, access_token_opts \\ []) do
+    serialization_format = astrenv(:oauth2_access_token_serialization_format_callback).(ctx)
+
+    case serialization_format do
+      :opaque ->
+        AccessToken.gen_new(access_token_opts)
+
+      :jws ->
+        signing_key = astrenv(:oauth2_access_token_signing_key_callback).(ctx)
+        signing_alg = astrenv(:oauth2_access_token_signing_alg_callback).(ctx)
+
+        access_token_opts =
+          access_token_opts
+          |> Keyword.put(:serialization_format, serialization_format)
+          |> Keyword.put(:signing_key, signing_key)
+          |> Keyword.put(:signing_alg, signing_alg)
+
+        AccessToken.gen_new(access_token_opts)
+    end
   end
 end

@@ -4,6 +4,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   import Asteroid.Utils
 
   alias Asteroid.Client
+  alias Asteroid.Crypto
   alias OAuth2Utils.Scope
 
   ##########################
@@ -258,7 +259,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
       authz_request,
-      %{sub: "user_1"})
+      %{sub: "user_1", granted_scopes: Scope.Set.new()})
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => _, "state" => "sxgjwzedrgdfchexgim"} =
@@ -285,7 +286,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
       authz_request,
-      %{sub: "user_1"})
+      %{sub: "user_1", granted_scopes: Scope.Set.new()})
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
@@ -436,6 +437,48 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
+  end
+
+  test "Authorization granted (implicit) - access granted with JWS access token", %{conn: conn} do
+    Process.put(:oauth2_flow_implicit_access_token_serialization_format, :jws)
+    Process.put(:oauth2_flow_implicit_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_implicit_access_token_signing_alg, "RS384")
+
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        response_type: :token,
+        client: Client.load("client_confidential_1") |> elem(1),
+        redirect_uri: "https://www.example.com",
+        requested_scopes: MapSet.new(),
+        params: %{}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      authz_request,
+      %{sub: "user_1", granted_scopes: MapSet.new()})
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "access_token" => access_token,
+      "token_type" => "bearer",
+      "expires_in" => _,
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).fragment)["state"] == nil
+
+    jws_at = URI.decode_query(URI.parse(redirected_to(conn)).fragment)["access_token"]
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, access_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], jws_at)
+
+    access_token_data = Jason.decode!(access_token_str)
+
+    assert access_token_data["client_id"] == "client_confidential_1"
+    assert access_token_data["sub"] == "user_1"
   end
 
   ##########################
@@ -598,7 +641,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
       authz_request,
-      %{sub: "user_1"})
+      %{sub: "user_1", granted_scopes: Scope.Set.new()})
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)

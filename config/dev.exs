@@ -106,16 +106,21 @@ config :asteroid, :token_store_authorization_code, [
 
 config :asteroid, :attribute_repositories,
 [
+  #subject: [
+  #  module: AttributeRepositoryLdap,
+  #  init_opts: [
+  #    name: :slapd,
+  #    max_overflow: 10,
+  #    ldap_args: [hosts: ['localhost'], base: 'ou=people,dc=example,dc=org']
+  #  ],
+  #  run_opts: [instance: :slapd, base_dn: 'ou=people,dc=example,dc=org'],
+  #  auto_install: false, # AttributeRepositoryLdap has no install callback implemented
+  #  default_loaded_attributes: ["cn", "displayName", "givenName", "mail", "manager", "sn"]
+  #],
   subject: [
-    module: AttributeRepositoryLdap,
-    init_opts: [
-      name: :slapd,
-      max_overflow: 10,
-      ldap_args: [hosts: ['localhost'], base: 'ou=people,dc=example,dc=org']
-    ],
-    run_opts: [instance: :slapd, base_dn: 'ou=people,dc=example,dc=org'],
-    auto_install: false, # AttributeRepositoryLdap has no install callback implemented
-    default_loaded_attributes: ["cn", "displayName", "givenName", "mail", "manager", "sn"]
+    module: AttributeRepositoryMnesia,
+    run_opts: [instance: :subject],
+    init_opts: [instance: :subject]
   ],
   client: [
     module: AttributeRepositoryMnesia,
@@ -440,7 +445,24 @@ config :asteroid, :crypto_keys, %{
   "key_from_file_1" => {:pem_file, [path: "priv/keys/ec-secp256r1.pem", use: :sig]},
   "key_from_file_2" => {:pem_file, [path: "priv/keys/ec-secp521r1.pem", use: :sig]},
   "key_from_map" => {:map, [key: {%{kty: :jose_jwk_kty_oct}, %{"k" => "P9dGnU_We5thJOOigUGtl00WmubLVAAr1kYsAUP80Sc", "kty" => "oct"}}, use: :sig]},
-  "key_auto" => {:auto_gen, [params: {:rsa, 4096}, use: :sig, advertise: false]}
+  "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig, advertise: false]}
 }
 
 config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
+
+# JWS access tokens
+
+config :asteroid, :oauth2_access_token_serialization_format_callback,
+  &Asteroid.Token.AccessToken.serialization_format/1
+
+config :asteroid, :oauth2_access_token_signing_key_callback,
+  &Asteroid.Token.AccessToken.signing_key/1
+
+config :asteroid, :oauth2_access_token_signing_alg_callback,
+  &Asteroid.Token.AccessToken.signing_alg/1
+
+config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :jws
+
+config :asteroid, :oauth2_flow_ropc_access_token_signing_key, "key_auto"
+
+config :asteroid, :oauth2_flow_ropc_access_token_signing_alg, "RS384"

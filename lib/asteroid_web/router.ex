@@ -105,7 +105,7 @@ defmodule AsteroidWeb.Router do
     |> put_status(400)
     |> json(%{
       "error" => "invalid_request",
-      "error_description" => Exception.message(reason)
+      "error_description" => Exception.message(reason) #FIXME: verbosity
     })
   end
 end

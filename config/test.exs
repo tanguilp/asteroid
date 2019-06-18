@@ -371,3 +371,20 @@ config :asteroid, :crypto_keys, %{
 }
 
 config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
+
+# JWS access tokens
+
+config :asteroid, :oauth2_access_token_serialization_format_callback,
+  &Asteroid.Token.AccessToken.serialization_format/1
+
+config :asteroid, :oauth2_access_token_signing_key_callback,
+  &Asteroid.Token.AccessToken.signing_key/1
+
+config :asteroid, :oauth2_access_token_signing_alg_callback,
+  &Asteroid.Token.AccessToken.signing_alg/1
+
+config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :opaque
+
+config :asteroid, :oauth2_flow_ropc_access_token_signing_key, "key_auto"
+
+config :asteroid, :oauth2_flow_ropc_access_token_signing_alg, "RS384"

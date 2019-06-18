@@ -341,7 +341,39 @@ defmodule Asteroid.Config do
     unit: "seconds"
 
     @doc """
-    Callback called to determine the lifetime of an access refresh token
+    Defines the serialization format of an access token in the ROPC flow
+    """
+
+    @type oauth2_flow_ropc_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_flow_ropc_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the ROPC flow
+    """
+
+    @type oauth2_flow_ropc_access_token_signing_key ::
+    Asteroid.Crypto.Key.name()
+
+    field :oauth2_flow_ropc_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the ROPC flow
+    """
+
+    @type oauth2_flow_ropc_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_flow_ropc_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Callback called to determine the lifetime of an access token
 
     Note that client configuration takes precedence over configuration options. See
     `Asteroid.Client` fields.
@@ -356,6 +388,63 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_lifetime,
       :oauth2_flow_authorization_code_access_token_lifetime,
       :oauth2_flow_implicit_access_token_lifetime
+    ]
+
+    @doc """
+    Callback called to determine the serialization format of an access token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oauth2_access_token_serialization_format_callback ::
+    (Asteroid.Context.t() -> Asteroid.AccessToken.serialization_format())
+
+    field :oauth2_access_token_serialization_format_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_ropc_access_token_serialization_format,
+      :oauth2_flow_client_credentials_access_token_serialization_format,
+      :oauth2_flow_authorization_code_access_token_serialization_format,
+      :oauth2_flow_implicit_access_token_serialization_format
+    ]
+
+    @doc """
+    Callback called to determine the signing key name of an access token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oauth2_access_token_signing_key_callback ::
+    (Asteroid.Context.t() -> Asteroid.Crypto.Key.name())
+
+    field :oauth2_access_token_signing_key_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_ropc_access_token_signing_key,
+      :oauth2_flow_client_credentials_access_token_signing_key,
+      :oauth2_flow_authorization_code_access_token_signing_key,
+      :oauth2_flow_implicit_access_token_signing_key
+    ]
+
+    @doc """
+    Callback called to determine the signing algorithm of an access token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oauth2_access_token_signing_alg_callback ::
+    (Asteroid.Context.t() -> Asteroid.Crypto.Key.alg())
+
+    field :oauth2_access_token_signing_alg_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_ropc_access_token_signing_alg,
+      :oauth2_flow_client_credentials_access_token_signing_alg,
+      :oauth2_flow_authorization_code_access_token_signing_alg,
+      :oauth2_flow_implicit_access_token_signing_alg
     ]
 
     @doc """
@@ -536,6 +625,38 @@ defmodule Asteroid.Config do
     unit: "seconds"
 
     @doc """
+    Defines the serialization format of an access token in the client credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_flow_client_credentials_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the client credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_access_token_signing_key ::
+    Asteroid.Crypto.Key.name()
+
+    field :oauth2_flow_client_credentials_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the client credentials flow
+    """
+
+    @type oauth2_flow_client_credentials_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_flow_client_credentials_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
     Callback invoked on the json response when the grant_type is `"client_credentials"`
     """
 
@@ -643,6 +764,38 @@ defmodule Asteroid.Config do
     unit: "seconds"
 
     @doc """
+    Defines the serialization format of an access token in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_flow_authorization_code_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_access_token_signing_key ::
+    Asteroid.Crypto.Key.name()
+
+    field :oauth2_flow_authorization_code_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the authorization code flow
+    """
+
+    @type oauth2_flow_authorization_code_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_flow_authorization_code_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
     Callback invoked on the json response when the grant_type is "authorization_code"
     """
 
@@ -701,6 +854,38 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     used_by: [:oauth2_access_token_lifetime_callback],
     unit: "seconds"
+
+    @doc """
+    Defines the serialization format of an access token in the implicit flow
+    """
+
+    @type oauth2_flow_implicit_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_flow_implicit_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the implicit flow
+    """
+
+    @type oauth2_flow_implicit_access_token_signing_key ::
+    Asteroid.Crypto.Key.name()
+
+    field :oauth2_flow_implicit_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the implicit flow
+    """
+
+    @type oauth2_flow_implicit_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_flow_implicit_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is

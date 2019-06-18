@@ -32,15 +32,41 @@ defmodule Asteroid.Token do
   end
 
   @typedoc """
+  Token sort (access token, refresh token, authorization code...)
+
+  Token type is not used because it refers to how it's used by a client in OAuth2 specification
+  (which defines the `"bearer"` token type).
+  """
+
+  @type sort :: :access_token | :refresh_token | :authorization_code
+
+  @typedoc """
+  String representation of a `t:sort/0`
+
+  Must be the string conversion of a `t:sort/0` atom.
+  """
+
+  @type sort_str :: String.t()
+
+  @typedoc """
   The different formats a token may have once serialized, i.e. send on the wire (in opposition
   to the token internally used by Asteroid)
   """
 
   @type serialization_format ::
     :opaque
-    | :jwt
+    | :jws
+    | :jwe
     | :saml1
     | :saml2
+
+  @typedoc """
+  String representation of a `t:serialization_format/0`
+
+  Must be the string conversion of a `t:serialization_format/0` atom.
+  """
+
+  @type serialization_format_str :: String.t()
 
   @typedoc """
   Serialized token, as sent on the wire

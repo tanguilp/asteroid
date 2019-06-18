@@ -6,6 +6,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
+  alias Asteroid.Crypto
 
   ##########################################################################
   # General tests
@@ -415,6 +416,37 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert access_token.data["exp"] <= now() + 31
   end
 
+  test "ropc valid username, JWS access token", %{conn: conn} do
+    Process.put(:oauth2_flow_ropc_access_token_serialization_format, :jws)
+    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_ropc_access_token_signing_alg, "RS384")
+
+    req_body = %{
+      "grant_type" => "password",
+      "username" => "user_1",
+      "password" => "asteroidftw"
+    }
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert {:ok, _} = RefreshToken.get(response["refresh_token"])
+    assert response["scope"] == nil
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, _, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], response["access_token"])
+  end
+
   ##########################################################################
   # Client Credentials tests
   ##########################################################################
@@ -628,6 +660,40 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert access_token.data["exp"] <= now() + 31
   end
 
+  test "client credentials valid confidential client authentication, JWS token issued", %{conn: conn} do
+    Process.put(:oauth2_flow_client_credentials_access_token_serialization_format, :jws)
+    Process.put(:oauth2_flow_client_credentials_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_client_credentials_access_token_signing_alg, "RS384")
+
+    req_body = %{
+      "grant_type" => "client_credentials"
+    }
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+    assert response["scope"] == nil
+    assert response["refresh_token"] == nil
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, access_token_str, _} =
+      JOSE.JWS.verify_strict(jwk, ["RS384"], response["access_token"])
+
+    access_token_data = Jason.decode!(access_token_str)
+
+    assert access_token_data["sub"] == nil
+    assert access_token_data["client_id"] == "client_confidential_1"
+  end
   ##########################################################################
   # Refresh token grant types
   ##########################################################################
@@ -992,6 +1058,50 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["error"] == "invalid_scope"
   end
 
+  test "refresh token valid request confidential client, JWS access token", %{conn: conn} do
+    Process.put(:oauth2_flow_ropc_access_token_serialization_format, :jws)
+    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_ropc_access_token_signing_alg, "RS384")
+
+    {:ok, refresh_token} =
+      RefreshToken.gen_new()
+      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("sub", "user_1")
+      |> RefreshToken.put_value("exp", now() + 3600)
+      |> RefreshToken.put_value("iat", now())
+      |> RefreshToken.put_value("iss", "https://example.net")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
+      |> RefreshToken.store(%{flow: :ropc})
+
+    req_body = %{
+      "grant_type" => "refresh_token",
+      "refresh_token" => refresh_token.id
+    }
+
+    conn =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+
+    response = json_response(conn, 200)
+
+    assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
+    assert "no-cache" in Plug.Conn.get_resp_header(conn, "pragma")
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, access_token_str, _} =
+      JOSE.JWS.verify_strict(jwk, ["RS384"], response["access_token"])
+
+    access_token_data = Jason.decode!(access_token_str)
+
+    assert access_token_data["client_id"] == "client_confidential_1"
+    assert access_token_data["sub"] == "user_1"
+  end
+
   ##########################################################################
   # Authorization code grant types
   ##########################################################################
@@ -1268,9 +1378,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert access_token.data["client_id"] == code.data["client_id"]
     assert access_token.data["sub"] == code.data["sub"]
-    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
-    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
-      code.data["__asteroid_oauth2_initial_flow"]
     assert access_token.data["issuer"] == code.data["issuer"]
 
     refute access_token.data["iat"] == code.data["iat"]
@@ -1278,7 +1385,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert refresh_token.data["client_id"] == code.data["client_id"]
     assert refresh_token.data["sub"] == code.data["sub"]
-    assert refresh_token.data["redirect_uri"] == code.data["redirect_uri"]
     assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
       code.data["__asteroid_oauth2_initial_flow"]
     assert refresh_token.data["issuer"] == code.data["issuer"]
@@ -1326,9 +1432,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert access_token.data["client_id"] == code.data["client_id"]
     assert access_token.data["sub"] == code.data["sub"]
-    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
-    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
-      code.data["__asteroid_oauth2_initial_flow"]
     assert access_token.data["issuer"] == code.data["issuer"]
     assert Scope.Set.equal?(Scope.Set.new(access_token.data["issuer"]),
                             Scope.Set.new(code.data["issuer"]))
@@ -1338,7 +1441,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert refresh_token.data["client_id"] == code.data["client_id"]
     assert refresh_token.data["sub"] == code.data["sub"]
-    assert refresh_token.data["redirect_uri"] == code.data["redirect_uri"]
     assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
       code.data["__asteroid_oauth2_initial_flow"]
     assert refresh_token.data["issuer"] == code.data["issuer"]
@@ -1442,13 +1544,73 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     assert access_token.data["client_id"] == code.data["client_id"]
     assert access_token.data["sub"] == code.data["sub"]
-    assert access_token.data["redirect_uri"] == code.data["redirect_uri"]
-    assert access_token.data["__asteroid_oauth2_initial_flow"] ==
-      code.data["__asteroid_oauth2_initial_flow"]
     assert access_token.data["issuer"] == code.data["issuer"]
 
     refute access_token.data["iat"] == code.data["iat"]
     refute access_token.data["exp"] == code.data["exp"]
+  end
+
+  test "grant type code success with refresh token without scopes, with JWS access token", %{conn: conn} do
+    Process.put(:oauth2_flow_authorization_code_access_token_serialization_format, :jws)
+    Process.put(:oauth2_flow_authorization_code_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_authorization_code_access_token_signing_alg, "RS512")
+
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    # lets sleep a bit so that we can check that iat and exp of released access and refresh
+    # tokens are not the same as the ones of the authorization code, which would mean they
+    # are copied while they shouldn't
+    :timer.sleep(1500)
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["token_type"] == "bearer"
+    assert is_integer(response["expires_in"])
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, access_token_str, _} =
+      JOSE.JWS.verify_strict(jwk, ["RS512"], response["access_token"])
+
+    access_token_data = Jason.decode!(access_token_str)
+
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert access_token_data["client_id"] == code.data["client_id"]
+    assert access_token_data["sub"] == code.data["sub"]
+    assert access_token_data["issuer"] == code.data["issuer"]
+
+    refute access_token_data["iat"] == code.data["iat"]
+    refute access_token_data["exp"] == code.data["exp"]
+
+    assert refresh_token.data["client_id"] == code.data["client_id"]
+    assert refresh_token.data["sub"] == code.data["sub"]
+    assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
+      code.data["__asteroid_oauth2_initial_flow"]
+    assert refresh_token.data["issuer"] == code.data["issuer"]
+
+    refute refresh_token.data["iat"] == code.data["iat"]
+    refute refresh_token.data["exp"] == code.data["exp"]
   end
 
   test "PKCE - grant type code success with plain code challenge method", %{conn: conn} do

@@ -66,6 +66,34 @@ defmodule Asteroid.Crypto.Key do
 
   @type key_use :: :sig | :enc
 
+  @typedoc """
+  JOSE encryption or signature algorithm
+
+  Example of output of `JOSE.JWA.supports/0`:
+
+  ```elixir
+  iex> JOSE.JWA.supports()      
+  [
+    {:jwe,
+     {:alg,
+      ["A128GCMKW", "A128KW", "A192GCMKW", "A192KW", "A256GCMKW", "A256KW",
+       "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
+       "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW", "RSA1_5",
+       "dir"]},
+     {:enc,
+      ["A128CBC-HS256", "A128GCM", "A192CBC-HS384", "A192GCM", "A256CBC-HS512",
+       "A256GCM"]}, {:zip, ["DEF"]}},
+    {:jwk, {:kty, ["EC", "OKP", "RSA", "oct"]}, {:kty_OKP_crv, []}},
+    {:jws,
+     {:alg,
+      ["ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "PS256", "PS384",
+       "PS512", "RS256", "RS384", "RS512"]}}
+  ]
+  ```
+  """
+
+  @type alg :: String.t()
+
   @spec load_from_config!() :: :ok
 
   def load_from_config!() do
@@ -140,6 +168,14 @@ defmodule Asteroid.Crypto.Key do
     |> set_key_use(params[:use])
     |> set_key_id()
     |> set_advertised(params[:advertise])
+  end
+
+  @spec get(name()) :: {:ok, %JOSE.JWK{}} | {:error, Exception.t()}
+
+  def get(key_name) do
+    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+
+    cache_module.get(key_name, cache_opts)
   end
 
   @spec get_all_public() :: [%JOSE.JWK{}]

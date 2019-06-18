@@ -41,7 +41,7 @@ defmodule Asteroid.Crypto.Key.Cache.ETS do
 
   def get(key_name, _opts) do
     case :ets.lookup(@table_name, key_name) do
-      [{_, _, key}] ->
+      [{_, key}] ->
         {:ok, key}
 
       _ ->

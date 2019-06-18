@@ -95,9 +95,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token =
         if maybe_refresh_token do
-          AccessToken.gen_new(refresh_token: maybe_refresh_token.id)
+          new_access_token(ctx, refresh_token: maybe_refresh_token.id)
         else
-          AccessToken.gen_new()
+          new_access_token(ctx)
         end
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value("exp",
@@ -197,9 +197,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token =
         if maybe_refresh_token do
-          AccessToken.gen_new(refresh_token: maybe_refresh_token.id)
+          new_access_token(ctx, refresh_token: maybe_refresh_token.id)
         else
-          AccessToken.gen_new()
+          new_access_token(ctx)
         end
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value("exp",
@@ -318,9 +318,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
         access_token =
           if maybe_new_refresh_token do
-            AccessToken.gen_new(refresh_token: maybe_new_refresh_token.id)
+            new_access_token(ctx, refresh_token: maybe_new_refresh_token.id)
           else
-            AccessToken.gen_new(refresh_token: refresh_token.id)
+            new_access_token(ctx, refresh_token: refresh_token.id)
           end
           |> AccessToken.put_value("iat", now())
           |> AccessToken.put_value("exp",
@@ -415,6 +415,16 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               authz_code.data,
               RefreshToken.gen_new(),
               fn
+              #FIXME: determine how to know which fields to copy, and rewrite more elegantly
+                {"redirect_uri", _v}, acc ->
+                  acc
+
+                {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
+                  AccessToken.put_value(acc, k, v)
+
+                {"__asteroid" <> _, _v}, acc ->
+                  acc
+
                 {k, v}, acc ->
                   RefreshToken.put_value(acc, k, v)
               end
@@ -433,11 +443,21 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         Enum.reduce(
           authz_code.data,
           if maybe_refresh_token do
-            AccessToken.gen_new(refresh_token: maybe_refresh_token.id)
+            new_access_token(ctx, refresh_token: maybe_refresh_token.id)
           else
-            AccessToken.gen_new()
+            new_access_token(ctx)
           end,
           fn
+          #FIXME: determine how to know which fields to copy, and rewrite more elegantly
+            {"redirect_uri", _v}, acc ->
+              acc
+
+            {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
+              AccessToken.put_value(acc, k, v)
+
+            {"__asteroid" <> _, _v}, acc ->
+              acc
+
             {k, v}, acc ->
               AccessToken.put_value(acc, k, v)
           end
@@ -635,6 +655,29 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           |> OAuth2.PKCE.code_challenge_method_from_string()
 
         OAuth2.PKCE.verify_code_verifier(code_verifier, code_challenge, code_challenge_method)
+    end
+  end
+
+  @spec new_access_token(Context.t(), Keyword.t()) :: AccessToken.t()
+
+  defp new_access_token(ctx, access_token_opts \\ []) do
+    serialization_format = astrenv(:oauth2_access_token_serialization_format_callback).(ctx)
+
+    case serialization_format do
+      :opaque ->
+        AccessToken.gen_new(access_token_opts)
+
+      :jws ->
+        signing_key = astrenv(:oauth2_access_token_signing_key_callback).(ctx)
+        signing_alg = astrenv(:oauth2_access_token_signing_alg_callback).(ctx)
+
+        access_token_opts =
+          access_token_opts
+          |> Keyword.put(:serialization_format, serialization_format)
+          |> Keyword.put(:signing_key, signing_key)
+          |> Keyword.put(:signing_alg, signing_alg)
+
+        AccessToken.gen_new(access_token_opts)
     end
   end
 end
