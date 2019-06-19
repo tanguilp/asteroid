@@ -128,31 +128,31 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> json(resp)
     else
       {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
-        AsteroidWeb.Error.respond(conn, OAuth2.InvalidGrantError.exception(
+        AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
           grant: "password",
           reason: "incorrect username or password",
           debug_details: Exception.message(e)
         ))
 
       {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
   def handle(conn, %{"grant_type" => "password"}) do
-    AsteroidWeb.Error.respond(conn, OAuth2.Request.InvalidRequestError.exception(
+    AsteroidWeb.Error.respond_api(conn, OAuth2.Request.InvalidRequestError.exception(
       reason: "Missing `username` or `password` parameter"))
   end
 
@@ -229,16 +229,16 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> json(resp)
     else
       {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
@@ -350,28 +350,28 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback).(ctx)
         |> json(resp)
       else
-        AsteroidWeb.Error.respond(conn, ExceedingScopeError.exception(
+        AsteroidWeb.Error.respond_api(conn, ExceedingScopeError.exception(
           requested_scopes: requested_scopes,
           granted_scopes: Scope.Set.new(refresh_token.data["scope"] || [])))
       end
     else
       {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %Token.InvalidTokenError{} = e} ->
-        AsteroidWeb.Error.respond(conn, OAuth2.InvalidGrantError.exception(
+        AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
           grant: "authorization code",
           reason: "invalid authorization code",
           debug_details: Exception.message(e)))
@@ -380,7 +380,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   def handle(conn, %{"grant_type" => "refresh_token"})
   do
-    AsteroidWeb.Error.respond(conn, OAuth2.Request.InvalidRequestError.exception(
+    AsteroidWeb.Error.respond_api(conn, OAuth2.Request.InvalidRequestError.exception(
       reason: "Missing `refresh_token` parameter"))
   end
 
@@ -486,22 +486,22 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       |> json(resp)
     else
       {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %Asteroid.OAuth2.Request.InvalidRequestError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond(conn, e)
+        AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %Token.InvalidTokenError{} = e} ->
-        AsteroidWeb.Error.respond(conn, OAuth2.InvalidGrantError.exception(
+        AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
           grant: "authorization code",
           reason: "invalid authorization code",
           debug_details: Exception.message(e)))
@@ -509,17 +509,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   end
 
   def handle(conn, %{"grant_type" => "authorization_code"}) do
-    AsteroidWeb.Error.respond(conn, OAuth2.Request.InvalidRequestError.exception(
+    AsteroidWeb.Error.respond_api(conn, OAuth2.Request.InvalidRequestError.exception(
       reason: "Missing a mandatory parameter"))
   end
 
   def handle(conn, %{"grant_type" => grant_type}) do
-    AsteroidWeb.Error.respond(conn, OAuth2.UnsupportedGrantTypeError.exception(
+    AsteroidWeb.Error.respond_api(conn, OAuth2.UnsupportedGrantTypeError.exception(
       grant_type: grant_type))
   end
 
   def handle(conn, _params) do
-    AsteroidWeb.Error.respond(conn, OAuth2.Request.InvalidRequestError.exception(
+    AsteroidWeb.Error.respond_api(conn, OAuth2.Request.InvalidRequestError.exception(
       reason: "Missing `grant_type` parameter"))
   end
 

@@ -16,9 +16,9 @@ defmodule AsteroidWeb.Error do
   error
   """
 
-  @spec respond(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t()
+  @spec respond_api(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t()
 
-  def respond(conn, %OAuth2.Client.AuthenticationError{} = e) do
+  def respond_api(conn, %OAuth2.Client.AuthenticationError{} = e) do
     error_status = err_status(e)
     error_name = err_name(e)
     error_response =
@@ -32,7 +32,7 @@ defmodule AsteroidWeb.Error do
     |> json(error_response)
   end
 
-  def respond(conn, e) do
+  def respond_api(conn, e) do
     error_status = err_status(e)
     error_name = err_name(e)
     error_response =

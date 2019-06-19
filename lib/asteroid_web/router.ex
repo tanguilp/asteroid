@@ -123,7 +123,7 @@ defmodule AsteroidWeb.Router do
 
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: stack}) do
     conn
-    |> AsteroidWeb.Error.respond(OAuth2.ServerError.exception(reason: inspect(reason),
-                                                              stacktrace: stack))
+    |> AsteroidWeb.Error.respond_api(OAuth2.ServerError.exception(reason: inspect(reason),
+                                                                  stacktrace: stack))
   end
 end

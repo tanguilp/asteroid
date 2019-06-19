@@ -193,22 +193,22 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     |> json(processed_metadata)
   rescue
     e in Asteroid.OAuth2.Client.AuthenticationError ->
-      AsteroidWeb.Error.respond(conn, e)
+      AsteroidWeb.Error.respond_api(conn, e)
 
     e in Asteroid.OAuth2.Client.AuthorizationError ->
-      AsteroidWeb.Error.respond(conn, e)
+      AsteroidWeb.Error.respond_api(conn, e)
 
     e in InvalidClientMetadataFieldError ->
-      AsteroidWeb.Error.respond(conn, e)
+      AsteroidWeb.Error.respond_api(conn, e)
 
     e in InvalidRedirectURIError ->
-      AsteroidWeb.Error.respond(conn, e)
+      AsteroidWeb.Error.respond_api(conn, e)
 
     e in UnauthorizedRequestedScopesError ->
-      AsteroidWeb.Error.respond(conn, e)
+      AsteroidWeb.Error.respond_api(conn, e)
 
     _ in Scope.Set.InvalidScopeParam ->
-      AsteroidWeb.Error.respond(conn, InvalidClientMetadataFieldError.exception(
+      AsteroidWeb.Error.respond_api(conn, InvalidClientMetadataFieldError.exception(
         field: "scope",
         reason: "malformed scope param"
       ))
