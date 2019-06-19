@@ -196,7 +196,7 @@ defmodule Asteroid.TokenStore.AuthorizationCode.Riak do
   Note that you are responsible for escaping values accordingly with Solr escaping.
   """
 
-  @spec search(String.t(), Asteroid.Token.AuthorizationCode.opts()) ::
+  @spec search(String.t(), Asteroid.TokenStore.AuthorizationCode.opts()) ::
           {:ok, [Asteroid.Token.AuthorizationCode.id()]}
           | {:error, any()}
 

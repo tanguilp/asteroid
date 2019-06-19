@@ -498,11 +498,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
             grant_type = OAuth2.to_grant_type!(grant_type_str)
 
             case OAuth2.grant_type_to_flow(grant_type) do
-              flow when is_atom(flow) ->
-                Scope.Set.union(acc, OAuth2.Scope.scopes_for_flow(flow))
-
               nil ->
                 acc
+
+              flow when is_atom(flow) ->
+                Scope.Set.union(acc, OAuth2.Scope.scopes_for_flow(flow))
             end
         end
       )
@@ -552,11 +552,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
               grant_type = OAuth2.to_grant_type!(grant_type_str)
 
               case OAuth2.grant_type_to_flow(grant_type) do
-                flow when is_atom(flow) ->
-                  Scope.Set.union(acc, OAuth2.Scope.scopes_for_flow(flow))
-
                 nil ->
                   acc
+
+                flow when is_atom(flow) ->
+                  Scope.Set.union(acc, OAuth2.Scope.scopes_for_flow(flow))
               end
           end
         )

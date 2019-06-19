@@ -47,7 +47,7 @@ defmodule Asteroid.OAuth2.Scope do
   """
 
   @type scope_config_option ::
-  {:scopes, %{required(String.t()) => [scope_config_option_individual_scope_configuration()]}}
+  [{:scopes, %{required(String.t()) => [scope_config_option_individual_scope_configuration()]}}]
 
   @doc """
   Returns the merged scope configuration for a flow

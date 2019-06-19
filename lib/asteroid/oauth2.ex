@@ -294,10 +294,11 @@ defmodule Asteroid.OAuth2 do
 
   @spec to_response_type(String.t()) ::
   {:ok, response_type()}
-  | {:error, %__MODULE__.UnsupportedResponseTypeError{}}
+  | {:error, %UnsupportedResponseTypeError{}}
 
   def to_response_type("code"), do: {:ok, :code}
   def to_response_type("token"), do: {:ok, :token}
+  def to_response_type(val), do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
 
   @doc """
   Converts a `t:response_type_str/0` to a `t:response_type/0`

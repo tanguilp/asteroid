@@ -15,7 +15,7 @@ defmodule Asteroid.Crypto.Key.Cache do
     def message(_), do: "Key not found in JWK cache"
   end
 
-  alias Crypto
+  alias Asteroid.Crypto
 
   @type opts :: Keyword.t()
 

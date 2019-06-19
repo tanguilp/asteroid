@@ -11,7 +11,8 @@ defmodule Asteroid.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(Mix.env()),
-      docs: docs()
+      docs: docs(),
+      dialyzer: [plt_add_apps: [:mix]]
     ]
   end
 

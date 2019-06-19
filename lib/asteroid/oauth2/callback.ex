@@ -15,6 +15,7 @@ defmodule Asteroid.OAuth2.Callback do
   - Otherwise returns an empty list `[]`
   """
 
+  #FIXME: move somewhere else
   @spec endpoint_introspect_claims_resp(Context.t()) :: [String.t()]
 
   def endpoint_introspect_claims_resp(%{client: client}) do

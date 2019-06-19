@@ -35,7 +35,7 @@ defmodule Asteroid.Token.AccessToken do
     refresh_token_id: binary() | nil,
     serialization_format: Asteroid.Token.serialization_format(),
     signing_key: Asteroid.Crypto.Key.name() | nil,
-    signing_alg: Asteroid.Crypto.Alg.alg_name() | nil,
+    signing_alg: Asteroid.Crypto.Key.alg() | nil,
     data: map()
   }
 

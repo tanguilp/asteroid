@@ -257,7 +257,7 @@ defmodule Asteroid.TokenStore.RefreshToken.Riak do
   ```
   """
 
-  @spec search(String.t(), Asteroid.Token.RefreshToken.opts()) ::
+  @spec search(String.t(), Asteroid.TokenStore.RefreshToken.opts()) ::
           {:ok, [Asteroid.Token.RefreshToken.id()]}
           | {:error, any()}
 

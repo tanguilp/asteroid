@@ -5,6 +5,8 @@ defmodule Asteroid.Config do
 
   require Asteroid.Config.Builder
 
+  alias Asteroid.Client
+
   @typedoc """
   A map describing scope configuration
 
@@ -431,7 +433,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_access_token_serialization_format_callback ::
-    (Asteroid.Context.t() -> Asteroid.AccessToken.serialization_format())
+    (Asteroid.Context.t() -> Asteroid.Token.serialization_format())
 
     field :oauth2_access_token_serialization_format_callback,
     config_time: :runtime,
@@ -1075,7 +1077,8 @@ defmodule Asteroid.Config do
     Callback invoked to determine the client type
     """
 
-    @type oauth2_endpoint_register_client_type_callback :: (Client.t() -> OAuth2.Client.type())
+    @type oauth2_endpoint_register_client_type_callback ::
+    (Client.t() -> Asteroid.OAuth2.Client.type())
 
     field :oauth2_endpoint_register_client_type_callback,
     config_time: :runtime

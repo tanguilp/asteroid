@@ -55,6 +55,9 @@ defmodule Asteroid.Crypto.Key.Cache.ETS do
     for [key_name, key] <- :ets.match(@table_name, {:'$0', :'$1'}) do
       {key_name, key}
     end
+  rescue
+    e ->
+      {:error, e}
   end
 
   @impl Crypto.Key.Cache

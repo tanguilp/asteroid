@@ -39,21 +39,21 @@ defmodule Asteroid.TokenStore.RefreshToken do
   """
 
   @callback get_from_subject_id(Asteroid.Subject.id(), opts()) ::
-  {:ok, [Asteroid.RefreshToken.id()]} | {:error, any()}
+  {:ok, [Asteroid.Token.RefreshToken.id()]} | {:error, any()}
 
   @doc """
   Returns all the *refresh token ids* of a client
   """
 
   @callback get_from_client_id(Asteroid.Client.id(), opts()) ::
-  {:ok, [Asteroid.RefreshToken.id()]} | {:error, any()}
+  {:ok, [Asteroid.Token.RefreshToken.id()]} | {:error, any()}
 
   @doc """
   Returns all the *refresh token ids* of a device
   """
 
   @callback get_from_device_id(Asteroid.Device.id(), opts()) ::
-  {:ok, [Asteroid.RefreshToken.id()]} | {:error, any()}
+  {:ok, [Asteroid.Token.RefreshToken.id()]} | {:error, any()}
 
   @doc """
   Stores an refresh token

@@ -6,10 +6,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
+  alias Asteroid.Context
+  alias Asteroid.Token
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
-  alias Asteroid.Token
 
   defmodule ExceedingScopeError do
     @moduledoc """
@@ -505,6 +506,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           grant: "authorization code",
           reason: "invalid authorization code",
           debug_details: Exception.message(e)))
+
+      {:error, e} ->
+        AsteroidWeb.Error.respond_api(conn, OAuth2.ServerError.exception(
+          reason: Exception.message(e)))
     end
   end
 

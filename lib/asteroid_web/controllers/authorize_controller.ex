@@ -7,6 +7,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
+  alias Asteroid.Context
   alias Asteroid.Client
   alias Asteroid.Subject
   alias Asteroid.Token.{AccessToken, AuthorizationCode}
@@ -464,6 +465,10 @@ defmodule AsteroidWeb.AuthorizeController do
 
     if OAuth2.PKCE.code_challenge_valid?(code_challenge) do
       case OAuth2.PKCE.code_challenge_method_from_string(method) do
+        nil ->
+          {:error, OAuth2.Request.InvalidRequestError.exception(
+            reason: "unsupported code challenge method", parameter: "code_challenge_method")}
+
         code_challenge_method when is_atom(code_challenge_method) ->
           if code_challenge_method in astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods) do
             {:ok, {code_challenge, code_challenge_method}}
@@ -471,10 +476,6 @@ defmodule AsteroidWeb.AuthorizeController do
             {:error, OAuth2.Request.InvalidRequestError.exception(
               reason: "unsupported code challenge method", parameter: "code_challenge_method")}
           end
-
-        nil ->
-          {:error, OAuth2.Request.InvalidRequestError.exception(
-            reason: "unsupported code challenge method", parameter: "code_challenge_method")}
       end
     else
       {:error, OAuth2.Request.MalformedParamError.exception(

@@ -308,7 +308,7 @@ defmodule Asteroid.TokenStore.AccessToken.Riak do
   ```
   """
 
-  @spec search(String.t(), Asteroid.Token.AccessToken.opts()) ::
+  @spec search(String.t(), Asteroid.TokenStore.AccessToken.opts()) ::
           {:ok, [Asteroid.Token.AccessToken.id()]}
           | {:error, any()}
 
