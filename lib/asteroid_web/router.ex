@@ -6,6 +6,8 @@ defmodule AsteroidWeb.Router do
 
   import Asteroid.Utils
 
+  alias Asteroid.OAuth2
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -119,12 +121,9 @@ defmodule AsteroidWeb.Router do
     get "/keys", KeysEndpoint, :handle
   end
 
-  def handle_errors(conn, %{kind: _kind, reason: reason, stack: _stack}) do
+  def handle_errors(conn, %{kind: _kind, reason: reason, stack: stack}) do
     conn
-    |> put_status(400)
-    |> json(%{
-      "error" => "invalid_request",
-      "error_description" => Exception.message(reason) #FIXME: verbosity
-    })
+    |> AsteroidWeb.Error.respond(OAuth2.ServerError.exception(reason: inspect(reason),
+                                                              stacktrace: stack))
   end
 end

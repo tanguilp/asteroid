@@ -133,18 +133,19 @@ defmodule Asteroid.OAuth2 do
 
     @enforce_keys [:reason]
 
-    defexception [:reason]
+    defexception [:reason, :stacktrace]
 
     @type t :: %__MODULE__{
-      reason: String.t()
+      reason: String.t(),
+      stacktrace: Exception.stacktrace()
     }
 
     @impl true
 
-    def message(%{reason: reason}) do
+    def message(%{reason: reason} = e) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "Server error: " <> reason
+          "Server error: #{reason} (stacktrace: #{inspect e.stacktrace})"
 
         :normal ->
           "Server error: " <> reason
