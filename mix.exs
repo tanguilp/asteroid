@@ -109,6 +109,8 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/terminology-conventions.md",
         "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",
+        "guides/oauth2/oauth2-core.md",
+        "guides/oauth2/pkce.md",
         "guides/oauth2/dynamic-client-registration.md",
         "guides/oauth2/server-metadata.md"
       ],
@@ -118,6 +120,8 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/terminology-conventions.md",
           "guides/oauth2/basic-configuration.md",
           "guides/oauth2/managing-scopes.md",
+          "guides/oauth2/oauth2-core.md",
+          "guides/oauth2/pkce.md",
           "guides/oauth2/dynamic-client-registration.md",
           "guides/oauth2/server-metadata.md"
         ]

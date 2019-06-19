@@ -196,6 +196,39 @@ defmodule Asteroid.Config do
       config_time: :compile
 
     @doc """
+    Plugs installed on `/.well-known/`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type well_known_plugs :: [{module(), Keyword.t()}]
+
+    field :well_known_plugs,
+      config_time: :compile
+
+    @doc """
+    Plugs installed on `/discovery/`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type discovery_plugs :: [{module(), Keyword.t()}]
+
+    field :discovery,
+      config_time: :compile
+
+    @doc """
+    Plugs installed on browser pathes
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type browser_plugs :: [{module(), Keyword.t()}]
+
+    field :browser_plugs,
+      config_time: :compile
+
+    @doc """
     List of enabled grant types
 
     It is used in OAuth2 APIs (such as `/token`) so as to determine support, and for metadata

@@ -5,6 +5,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
   alias Asteroid.Client
   alias Asteroid.Crypto
+  alias Asteroid.OAuth2
   alias OAuth2Utils.Scope
 
   ##########################
@@ -171,11 +172,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
       authz_request,
-      %{reason: :access_denied, description: "abc def"})
+      OAuth2.AccessDeniedError.exception(reason: "abc def"))
 
     assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "access_denied", "error_description" => "abc def"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
 
     refute URI.decode_query(URI.parse(redirected_to(conn)).query)["state"]
   end
@@ -193,13 +194,12 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
       authz_request,
-      %{reason: :access_denied, description: "abc def"})
+      OAuth2.AccessDeniedError.exception(reason: "abc def"))
 
     assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{
-      "error" => "access_denied",
-      "error_description" => "abc def",
-      "state" => "sxgjwzedrgdfchexgim"} = URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["state"] == "sxgjwzedrgdfchexgim"
   end
 
   test "Authorization denied - server error with no state", %{conn: conn} do
@@ -215,11 +215,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
       authz_request,
-      %{reason: :server_error, description: "abc def"})
+      OAuth2.ServerError.exception(reason: "abc def"))
 
-    assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "server_error", "error_description" => "abc def"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "server_error"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
   end
 
   test "Authorization denied - temporarily unavailable with no state", %{conn: conn} do
@@ -235,11 +234,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
       authz_request,
-      %{reason: :temporarily_unavailable, description: "abc def"})
+      OAuth2.TemporarilyUnavailableError.exception(reason: "abc def"))
 
-    assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "temporarily_unavailable", "error_description" => "abc def"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "temporarily_unavailable"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
   end
 
   ##########################

@@ -1,6 +1,4 @@
 defmodule AsteroidWeb.AuthorizeController do
-  @moduledoc false
-
   use AsteroidWeb, :controller
 
   require Logger
@@ -12,36 +10,6 @@ defmodule AsteroidWeb.AuthorizeController do
   alias Asteroid.Client
   alias Asteroid.Subject
   alias Asteroid.Token.{AccessToken, AuthorizationCode}
-
-  defmodule AccessDeniedError do
-    @moduledoc """
-    Error returned when the access was denied either because of the user not consenting or
-    the server's policy inadequation with the request (eg. scopes)
-    """
-
-    @enforce_keys [:reason]
-
-    defexception [:reason]
-
-    @type t :: %__MODULE__{
-      reason: String.t()
-    }
-
-    @impl true
-
-    def message(%{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
-        :debug ->
-          "Access denied:" <> reason
-
-        :normal ->
-          "Access denied:" <> reason
-
-        :minimal ->
-          ""
-      end
-    end
-  end
 
   defmodule Request do
     @moduledoc """
@@ -70,6 +38,10 @@ defmodule AsteroidWeb.AuthorizeController do
       params: map()
     }
   end
+
+  @doc false
+
+  @spec pre_authorize(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
   def pre_authorize(conn,
                     %{"response_type" => "code",
@@ -110,7 +82,7 @@ defmodule AsteroidWeb.AuthorizeController do
       astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
     else
       {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, AccessDeniedError.exception(
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.AccessDeniedError.exception(
           reason: Exception.message(e)))
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
@@ -175,7 +147,7 @@ defmodule AsteroidWeb.AuthorizeController do
       astrenv(:oauth2_flow_implicit_web_authorization_callback).(conn, authz_request)
     else
       {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, AccessDeniedError.exception(
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.AccessDeniedError.exception(
           reason: Exception.message(e)))
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
@@ -369,35 +341,26 @@ defmodule AsteroidWeb.AuthorizeController do
   Callback to be called when the authorization is denied, either by the user or by the
   server
 
-  The `res` parameter is a `map()` whose keys are:
-  - `:reason`: one of the following atoms (**mandatory**):
-    - `:access_denied`: the request has been denied by the user or the server (e.g. requirements
-    are not met, such as approving some scopes)
-    - `:server_error`: a server error has occured
-    - `:temporarily_unavailable`: the service is momentarily unavailable
-  - `:description`: a `String.t()` for a human-readable description on why the process has failed
-  (may be displayed to the end user), or `nil` if no reason is to be given
+  It must be called with one of the following exception:
+  - `t:Asteroid.OAuth2.AccessDeniedError.t/0` when the request was denied either because of server
+  policy or because of the user refusal
+  - `t:Asteroid.OAuth2.ServerError.t/0` in case of server error
+  - `t:Asteroid.OAuth2.TemporarilyUnavailableError.t/0` when the service is temporarily
+  unavailable. Can be useful for maintenance mode
   """
 
-  @spec authorization_denied(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
+  @spec authorization_denied(Plug.Conn.t(), Request.t(),
+  OAuth2.AccessDeniedError.t() | OAuth2.ServerError.t() | OAuth2.TemporarilyUnavailableError.t())
+  :: Plug.Conn.t()
 
-  def authorization_denied(conn, authz_request, %{reason: reason} = res)
-  when reason in [:access_denied, :server_error, :temporarily_unavailable]
+  def authorization_denied(conn, authz_request, e)
   do
-    redirect_uri = OAuth2.RedirectUri.add_params(
-      authz_request.redirect_uri,
-      %{
-        "error" => to_string(reason),
-      }
-      |> put_if_not_nil("error_description", res[:description])
-      |> put_if_not_nil("state", authz_request.params["state"])
-    )
-
     Logger.debug("#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with "
-    <> "reason: `#{inspect reason}` and description: `#{inspect res[:description]}`")
+    <> "reason: `#{e}`")
 
     conn
-    |> redirect(external: redirect_uri)
+    |> assign(:authz_request, authz_request)
+    |> AsteroidWeb.Error.respond_authorize(e)
   end
 
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::

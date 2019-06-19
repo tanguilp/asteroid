@@ -12,6 +12,9 @@ defmodule AsteroidWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    for {plug_module, plug_options} <- astrenv(:browser_plugs, []) do
+      plug plug_module, plug_options
+    end
   end
 
   pipeline :api_urlencoded do
@@ -50,6 +53,18 @@ defmodule AsteroidWeb.Router do
 
   pipeline :oauth2_endpoint_register do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_register_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :well_known do
+    for {plug_module, plug_options} <- astrenv(:well_known_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :discovery do
+    for {plug_module, plug_options} <- astrenv(:discovery_plugs, []) do
       plug plug_module, plug_options
     end
   end
@@ -93,10 +108,14 @@ defmodule AsteroidWeb.Router do
   end
 
   scope "/.well-known", AsteroidWeb.WellKnown do
+    pipe_through :well_known
+
     get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
   end
 
   scope "/discovery", AsteroidWeb.Discovery do
+    pipe_through :discovery
+
     get "/keys", KeysEndpoint, :handle
   end
 

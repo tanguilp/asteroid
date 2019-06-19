@@ -96,6 +96,94 @@ defmodule Asteroid.OAuth2 do
     end
   end
 
+  defmodule AccessDeniedError do
+    @moduledoc """
+    Error returned when the access was denied either because of the user not consenting or
+    the server's policy inadequation with the request (eg. scopes)
+    """
+
+    @enforce_keys [:reason]
+
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+
+    def message(%{reason: reason}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Access denied: " <> reason
+
+        :normal ->
+          "Access denied: " <> reason
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
+  defmodule ServerError do
+    @moduledoc """
+    Error returned in case of undetermined server error
+    """
+
+    @enforce_keys [:reason]
+
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+
+    def message(%{reason: reason}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Server error: " <> reason
+
+        :normal ->
+          "Server error: " <> reason
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
+  defmodule TemporarilyUnavailableError do
+    @moduledoc """
+    Error returned when the server is unavailable
+    """
+
+    @enforce_keys [:reason]
+
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+
+    def message(%{reason: reason}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Temporary unavailable: " <> reason
+
+        :normal ->
+          "Temporary unavailable: " <> reason
+
+        :minimal ->
+          ""
+      end
+    end
+  end
+
   @typedoc """
   OAuth2 grant types
   """

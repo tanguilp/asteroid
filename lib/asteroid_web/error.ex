@@ -10,7 +10,6 @@ defmodule AsteroidWeb.Error do
   alias Asteroid.OAuth2
   alias AsteroidWeb.API.OAuth2.TokenEndpoint
   alias AsteroidWeb.API.OAuth2.RegisterEndpoint
-  alias AsteroidWeb.AuthorizeController
 
   @doc """
   Responds with the appropriate error codes, headers and text to an OAuth2 protocol flow
@@ -78,6 +77,9 @@ defmodule AsteroidWeb.Error do
     |> render("error_redirect_uri.html")
   end
 
+  # function used when the connection is directly returned with an error. In such a case, params
+  # are in the Conn
+
   def respond_authorize(%Plug.Conn{query_params: %{"redirect_uri" => redirect_uri}} = conn, e) do
     redirect_uri = OAuth2.RedirectUri.add_params(
       redirect_uri,
@@ -92,18 +94,35 @@ defmodule AsteroidWeb.Error do
     |> redirect(external: redirect_uri)
   end
 
+  # function used when coming back from an authn / authz process. The authorization request must
+  # be put in the assigns under the :authz_request atom
+
+  def respond_authorize(%Plug.Conn{assigns: %{:authz_request => authz_request}} = conn, e) do
+    redirect_uri = OAuth2.RedirectUri.add_params(
+      authz_request.redirect_uri,
+      %{"error" => err_name(e)}
+      |> put_if_not_empty_string("error_description", Exception.message(e))
+      |> put_if_not_nil("state", authz_request.params["state"])
+    )
+
+    conn
+    |> redirect(external: redirect_uri)
+  end
+
   @spec err_name(Exception.t()) :: String.t()
 
   defp err_name(%OAuth2.UnsupportedGrantTypeError{}), do: "unsupported_grant_type"
   defp err_name(%OAuth2.UnsupportedResponseTypeError{}), do: "unsupported_response_type"
   defp err_name(%OAuth2.InvalidGrantError{}), do: "invalid_grant"
+  defp err_name(%OAuth2.AccessDeniedError{}), do: "access_denied"
+  defp err_name(%OAuth2.ServerError{}), do: "server_error"
+  defp err_name(%OAuth2.TemporarilyUnavailableError{}), do: "temporarily_unavailable"
   defp err_name(%OAuth2.Client.AuthenticationError{}), do: "invalid_client"
   defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}), do: "invalid_scope"
   defp err_name(%OAuth2.Client.AuthorizationError{}), do: "unauthorized_client"
   defp err_name(%OAuth2.Request.InvalidRequestError{}), do: "invalid_request"
   defp err_name(%OAuth2.Request.MalformedParamError{name: "scope"}), do: "invalid_scope"
   defp err_name(%OAuth2.Request.MalformedParamError{}), do: "invalid_request"
-  defp err_name(%AuthorizeController.AccessDeniedError{}), do: "access_denied"
   defp err_name(%TokenEndpoint.ExceedingScopeError{}), do: "invalid_scope"
   defp err_name(%RegisterEndpoint.InvalidClientMetadataFieldError{}), do: "invalid_client_metadata"
   defp err_name(%RegisterEndpoint.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
