@@ -27,6 +27,7 @@ defmodule Asteroid.MixProject do
   end
 
   # Specifies which paths to compile per environment.
+  defp elixirc_paths(:dev), do: ["lib", "custom_dev"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -111,6 +112,7 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",
         "guides/oauth2/oauth2-core.md",
+        "guides/oauth2/jwt-access-tokens.md",
         "guides/oauth2/pkce.md",
         "guides/oauth2/dynamic-client-registration.md",
         "guides/oauth2/server-metadata.md"
@@ -122,6 +124,7 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/basic-configuration.md",
           "guides/oauth2/managing-scopes.md",
           "guides/oauth2/oauth2-core.md",
+          "guides/oauth2/jwt-access-tokens.md",
           "guides/oauth2/pkce.md",
           "guides/oauth2/dynamic-client-registration.md",
           "guides/oauth2/server-metadata.md"
