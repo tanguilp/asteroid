@@ -59,7 +59,8 @@ defmodule Asteroid.OAuth2.Scope do
     :ropc,
     :client_credentials,
     :authorization_code,
-    :implicit
+    :implicit,
+    :device_authorization
   ] do
     scope_config = astrenv(:scope_config)
     oauth2_scope_config = astrenv(:oauth2_scope_config)
@@ -76,6 +77,9 @@ defmodule Asteroid.OAuth2.Scope do
 
         :implicit ->
           astrenv(:oauth2_flow_implicit_scope_config, [])
+
+        :device_authorization ->
+          astrenv(:oauth2_flow_device_authorization_scope_config, [])
       end
 
     merged_individual_scope_config =
@@ -216,6 +220,21 @@ defmodule Asteroid.OAuth2.Scope do
   def grant_for_flow(scopes, %{flow: :client_credentials, grant_type: :client_credentials}) do
     Enum.reduce(
       astrenv(:oauth2_flow_client_credentials_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
+  def grant_for_flow(scopes, %{flow: :device_authorization, endpoint: :device_authorization}) do
+    Enum.reduce(
+      astrenv(:oauth2_flow_device_authorization_scope_config) || [],
       scopes,
       fn
         {scope, scope_config}, acc ->

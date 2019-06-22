@@ -59,6 +59,12 @@ defmodule AsteroidWeb.Router do
     end
   end
 
+  pipeline :oauth2_endpoint_device_authorization do
+    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_device_authorization_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   pipeline :well_known do
     for {plug_module, plug_options} <- astrenv(:well_known_plugs, []) do
       plug plug_module, plug_options
@@ -75,6 +81,12 @@ defmodule AsteroidWeb.Router do
     pipe_through :browser
 
     get "/authorize", AuthorizeController, :pre_authorize
+  end
+
+  scope "/", AsteroidWeb do
+    pipe_through :browser
+
+    get "/device", DeviceController, :pre_authorize
   end
 
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
@@ -106,6 +118,13 @@ defmodule AsteroidWeb.Router do
       pipe_through :oauth2_endpoint_register
 
       post "/", RegisterEndpoint, :handle
+    end
+
+    scope "/device_authorization" do
+      pipe_through :api_json
+      pipe_through :oauth2_endpoint_device_authorization
+
+      post "/", DeviceAuthorizationEndpoint, :handle
     end
   end
 

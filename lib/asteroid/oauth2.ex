@@ -195,6 +195,7 @@ defmodule Asteroid.OAuth2 do
   | :password
   | :client_credentials
   | :refresh_token
+  | :"urn:ietf:params:oauth:grant-type:device_code"
 
   @typedoc """
   String representation of `t:grant_type/0`
@@ -204,7 +205,12 @@ defmodule Asteroid.OAuth2 do
 
   @type grant_type_str :: String.t()
 
-  @type flow :: :ropc | :client_credentials | :authorization_code | :implicit
+  @type flow ::
+  :ropc
+  | :client_credentials
+  | :authorization_code
+  | :implicit
+  | :device_authorization
 
   @typedoc """
   String representation of a `t:flow()/0`
@@ -224,7 +230,27 @@ defmodule Asteroid.OAuth2 do
 
   @type response_type_str :: String.t()
 
-  @type endpoint :: :authorize | :token | :introspect | :revoke | :register
+  @typedoc """
+  Atoms describing the endpoints
+
+  The values refer to:
+  - `:authorize`: `/authorize`
+  - `:device`: `/device`
+  - `:token`: `/api/oauth2/token`
+  - `:introspect`: `/api/oauth2/introspect`
+  - `:revoke`: `/api/oauth2/revoke`
+  - `:register`: `/api/oauth2/register`
+  - `:device_authorization`: `/api/oauth2/device_authorization`
+  """
+
+  @type endpoint ::
+  :authorize
+  | :device
+  | :token
+  | :introspect
+  | :revoke
+  | :register
+  | :device_authorization
 
   @doc """
   Converts a `t:grant_type_str/0` to a `t:grant_type/0`

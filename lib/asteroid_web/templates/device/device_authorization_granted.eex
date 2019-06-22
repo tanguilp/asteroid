@@ -1,0 +1,5 @@
+<section class="phx-hero">
+ <h1><%= gettext "Pairing successful", name: "Pairing successfull" %></h1>
+
+ <p>Your device is now paired.</p>
+</section>

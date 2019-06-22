@@ -53,6 +53,7 @@ defmodule Asteroid.MixProject do
       {:ecto_sql, "~> 3.0"},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
+      {:hammer, "~> 6.0", optionnal: true},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.9"},
       {:phoenix, "~> 1.4.0"},

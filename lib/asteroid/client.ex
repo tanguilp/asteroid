@@ -120,6 +120,27 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_endpoint_register_default_response_types"`: a list of
   `t:Asteroid.OAuth2.response_type_str/0` that replaces the specification's default
   (`["code"]`) for new clients created by this client
+  - `"__asteroid_oauth2_flow_device_authorization_device_code_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a device code in the device authorization flow
+  - `"__asteroid_oauth2_flow_device_authorization_issue_refresh_token_init"`: a `boolean()` set
+  to true if a refresh token is to be issued at the first request of the device authorization
+  flow
+  - `"__asteroid_oauth2_flow_device_authorization_issue_refresh_token_refresh"`: a `boolean()`
+  set to true if a refresh token is to be issued when refresh tokens in the device authorization
+  flow
+  - `"__asteroid_oauth2_flow_device_authorization_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the device authorization flow
+  - `"__asteroid_oauth2_flow_device_authorization_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the device authorization flow
+  - `"__asteroid_oauth2_flow_device_authorization_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the device authorization
+  flow
+  - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the device authorization
+  flow
+  - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the device authorization
+  flow
 
   ## Configuration
 

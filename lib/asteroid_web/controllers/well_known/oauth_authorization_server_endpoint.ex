@@ -24,6 +24,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       |> put_revocation_endpoint_auth_method_supported()
       |> put_introspection_endpoint()
       |> put_introspection_endpoint_auth_method_supported()
+      |> put_device_authorization_endpoint()
       |> put_code_challenge_methods_supported()
       |> put_if_not_nil("service_documentation",
                         astrenv(:oauth2_endpoint_metadata_service_documentation, nil))
@@ -230,6 +231,19 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
 
       methods when is_list(methods) ->
         Map.put(metadata, "introspection_endpoint_auth_methods_supported", methods)
+    end
+  end
+
+  @spec put_device_authorization_endpoint(map()) :: map()
+
+  defp put_device_authorization_endpoint(metadata) do
+    if :"urn:ietf:params:oauth:grant-type:device_code" in astrenv(:oauth2_grant_types_enabled, [])
+    do
+      Map.put(metadata,
+              "device_authorization_endpoint",
+              Routes.device_authorization_endpoint_url(AsteroidWeb.Endpoint, :handle))
+    else
+      metadata
     end
   end
 

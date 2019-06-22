@@ -2,7 +2,8 @@ defmodule Asteroid.TokenStore do
   @token_store_conf_keys [
     :token_store_access_token,
     :token_store_refresh_token,
-    :token_store_authorization_code
+    :token_store_authorization_code,
+    :token_store_device_code
   ]
 
   import Asteroid.Utils

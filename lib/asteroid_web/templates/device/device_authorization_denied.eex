@@ -1,0 +1,5 @@
+<section class="phx-hero">
+ <h1><%= gettext "Pairing denied", name: "Pairing denied" %></h1>
+
+ <p>Pairing the device was denied</p>
+</section>

@@ -357,7 +357,7 @@ defmodule AsteroidWeb.AuthorizeController do
   def authorization_denied(conn, authz_request, e)
   do
     Logger.debug("#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with "
-    <> "reason: `#{e}`")
+    <> "reason: `#{Exception.message(e)}`")
 
     conn
     |> assign(:authz_request, authz_request)

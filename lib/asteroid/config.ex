@@ -112,6 +112,33 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
+    Device code store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the token's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all token's implementation functions. Refer to
+    the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_device_code, [
+      module: Asteroid.TokenStore.DeviceCode.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_device_code :: Keyword.t()
+
+    field :token_store_device_code,
+      config_time: :runtime
+
+    @doc """
     Callback invoked before storing a refresh token
     """
 
@@ -140,6 +167,17 @@ defmodule Asteroid.Config do
       Asteroid.Token.AuthorizationCode.t())
 
     field :token_store_authorization_code_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing a device code
+    """
+
+    @type token_store_device_code_before_store_callback ::
+    (Asteroid.Token.DeviceCode.t(), Asteroid.Context.t() ->
+      Asteroid.Token.DeviceCode.t())
+
+    field :token_store_device_code_before_store_callback,
     config_time: :runtime
 
     @doc """
@@ -195,6 +233,17 @@ defmodule Asteroid.Config do
     @type api_oauth2_endpoint_register_plugs :: [{module(), Keyword.t()}]
 
     field :api_oauth2_endpoint_register_plugs,
+      config_time: :compile
+
+    @doc """
+    Plugs installed on `"/api/oauth2/device_authorization"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oauth2_endpoint_device_authorization_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oauth2_endpoint_device_authorization_plugs,
       config_time: :compile
 
     @doc """
@@ -293,7 +342,8 @@ defmodule Asteroid.Config do
       config_time: :runtime,
       uses: [
         :oauth2_flow_ropc_scope_config,
-        :oauth2_flow_client_credentials_scope_config
+        :oauth2_flow_client_credentials_scope_config,
+        :oauth2_flow_device_authorization_scope_config
       ]
 
     @doc """
@@ -333,7 +383,9 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_issue_refresh_token_init,
       :oauth2_flow_client_credentials_issue_refresh_token_refresh,
       :oauth2_flow_authorization_code_issue_refresh_token_init,
-      :oauth2_flow_authorization_code_issue_refresh_token_refresh
+      :oauth2_flow_authorization_code_issue_refresh_token_refresh,
+      :oauth2_flow_device_authorization_issue_refresh_token_init,
+      :oauth2_flow_device_authorization_issue_refresh_token_refresh
     ]
 
     @doc """
@@ -361,7 +413,8 @@ defmodule Asteroid.Config do
     uses: [
       :oauth2_flow_ropc_refresh_token_lifetime,
       :oauth2_flow_client_credentials_refresh_token_lifetime,
-      :oauth2_flow_authorization_code_refresh_token_lifetime
+      :oauth2_flow_authorization_code_refresh_token_lifetime,
+      :oauth2_flow_device_authorization_refresh_token_lifetime
     ]
 
     @doc """
@@ -422,7 +475,8 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_access_token_lifetime,
       :oauth2_flow_client_credentials_access_token_lifetime,
       :oauth2_flow_authorization_code_access_token_lifetime,
-      :oauth2_flow_implicit_access_token_lifetime
+      :oauth2_flow_implicit_access_token_lifetime,
+      :oauth2_flow_device_authorization_access_token_lifetime
     ]
 
     @doc """
@@ -441,7 +495,8 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_access_token_serialization_format,
       :oauth2_flow_client_credentials_access_token_serialization_format,
       :oauth2_flow_authorization_code_access_token_serialization_format,
-      :oauth2_flow_implicit_access_token_serialization_format
+      :oauth2_flow_implicit_access_token_serialization_format,
+      :oauth2_flow_device_authorization_access_token_serialization_format
     ]
 
     @doc """
@@ -460,7 +515,8 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_access_token_signing_key,
       :oauth2_flow_client_credentials_access_token_signing_key,
       :oauth2_flow_authorization_code_access_token_signing_key,
-      :oauth2_flow_implicit_access_token_signing_key
+      :oauth2_flow_implicit_access_token_signing_key,
+      :oauth2_flow_device_authorization_access_token_signing_key
     ]
 
     @doc """
@@ -479,7 +535,8 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_access_token_signing_alg,
       :oauth2_flow_client_credentials_access_token_signing_alg,
       :oauth2_flow_authorization_code_access_token_signing_alg,
-      :oauth2_flow_implicit_access_token_signing_alg
+      :oauth2_flow_implicit_access_token_signing_alg,
+      :oauth2_flow_device_authorization_access_token_signing_alg
     ]
 
     @doc """
@@ -1194,6 +1251,200 @@ defmodule Asteroid.Config do
 
     field :crypto_keys_cache,
     config_time: :runtime
+
+    @doc """
+    Scope configuration for the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_scope_config :: scope_config()
+
+    field :oauth2_flow_device_authorization_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Callback invoked on the json response when the grant_type is
+    "urn:ietf:params:oauth:grant-type:device_code"
+    """
+
+    @type oauth2_endpoint_device_authorization_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_device_authorization_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is
+    "urn:ietf:params:oauth:grant-type:device_code"
+    """
+
+    @type oauth2_endpoint_device_authorization_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_device_authorization_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Defines the lifetime of a device code in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_device_code_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_device_authorization_device_code_lifetime,
+    config_time: :runtime,
+    unit: "seconds"
+
+    @doc """
+    callback to generate the user code
+    """
+
+    @type oauth2_flow_device_authorization_user_code_callback ::
+    (Asteroid.Context.t() -> String.t())
+
+    field :oauth2_flow_device_authorization_user_code_callback,
+    config_time: :runtime,
+    unit: "seconds"
+
+    @doc """
+    Callback invoked on the `/device` endpoint to trigger the web authorization process flow
+    for the OAuth2 device authorization flow
+
+    This workflow is in charge of validating the user code, as well as authenticating and
+    authorizing (scopes...) the request. It will typically involve several step, i.e.
+    user code confirmation, authentication and optionnaly accepting scope through web pages.
+    It returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the
+    process, one of these callback shall be called:
+    - `AsteroidWeb.DeviceController.authorization_granted/3`
+    - `AsteroidWeb.DeviceController.authorization_denied/3`
+    """
+
+    @type oauth2_flow_device_authorization_web_authorization_callback ::
+    (Plug.Conn.t(), AsteroidWeb.DeviceController.Request.t() -> Plug.Conn.t())
+
+    field :oauth2_flow_device_authorization_web_authorization_callback,
+    config_time: :runtime
+
+    @doc """
+    Defines whether a refresh token should be issued when initiating a device authorization
+    flow
+    """
+
+    @type oauth2_flow_device_authorization_issue_refresh_token_init :: boolean()
+
+    field :oauth2_flow_device_authorization_issue_refresh_token_init,
+      config_time: :runtime,
+      used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the device
+    authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_issue_refresh_token_refresh :: boolean()
+
+    field :oauth2_flow_device_authorization_issue_refresh_token_refresh,
+      config_time: :runtime,
+      used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_refresh_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_device_authorization_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the serialization format of an access token in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_flow_device_authorization_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_access_token_signing_key ::
+    Asteroid.Crypto.Key.name()
+
+    field :oauth2_flow_device_authorization_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_flow_device_authorization_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the lifetime of an access token in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_access_token_lifetime :: non_neg_integer()
+
+    field :oauth2_flow_device_authorization_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback invoked on the json response when the grant_type is
+    "urn:ietf:params:oauth:grant-type:device_code"
+    """
+
+    @type oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response when the grant_type is
+    "urn:ietf:params:oauth:grant-type:device_code"
+    """
+
+    @type oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Rate limiter module and options for the device authorization flow
+
+    The module throttles the incoming requests on `/api/oauth2/token` on the device code
+    parameter.
+    """
+
+    @type oauth2_flow_device_authorization_rate_limiter ::
+    {module(), Asteroid.OAuth2.DeviceAuthorization.RateLimiter.opts()}
+
+    field :oauth2_flow_device_authorization_rate_limiter,
+    config_time: :runtime
+
+    @doc """
+    Interval in seconds between 2 requests on the `/api/oauth2/token` with the same device code
+    in the device authorization flow
+    """
+
+    @type oauth2_flow_device_authorization_rate_limiter_interval :: non_neg_integer()
+
+    field :oauth2_flow_device_authorization_rate_limiter_interval,
+    config_time: :runtime,
+    unit: "seconds"
 
     ### end of configuration options
   end

@@ -38,9 +38,13 @@ defmodule Asteroid.TokenStore.RefreshToken.Riak.Purge do
         }
 
         for refresh_token_id <- refresh_token_ids do
-          Task.start(Asteroid.TokenStore.RefreshToken.Riak,
-                     :delete,
-                     [refresh_token_id, opts, access_token_store_config])
+          # this causes Riak connection exhaustion, to investigate further
+          #Task.start(Asteroid.TokenStore.RefreshToken.Riak,
+          #           :delete,
+          #           [refresh_token_id, opts, access_token_store_config])
+          Asteroid.TokenStore.RefreshToken.Riak.delete(refresh_token_id,
+                                                       opts,
+                                                       access_token_store_config)
         end
 
         :ok

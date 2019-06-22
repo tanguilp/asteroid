@@ -279,12 +279,14 @@ defmodule Asteroid.Token.AccessToken do
     - `"__asteroid_oauth2_flow_client_credentials_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_authorization_code_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`
+    - `"__asteroid_oauth2_flow_device_authorization_access_token_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_access_token_lifetime)}
   - Otherwise returns `0`
 
   In any case, the returned value is capped by the scope configuration.
@@ -364,6 +366,20 @@ defmodule Asteroid.Token.AccessToken do
 
       _ ->
         astrenv(:oauth2_flow_implicit_access_token_lifetime, 0)
+    end
+  end
+
+  def lifetime_for_client(%{flow: :device_authorization, client: client}) do
+    attr = "__asteroid_oauth2_flow_device_authorization_access_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oauth2_flow_device_authorization_access_token_lifetime, 0)
     end
   end
 

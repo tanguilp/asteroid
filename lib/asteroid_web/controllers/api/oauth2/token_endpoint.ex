@@ -8,7 +8,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   alias OAuth2Utils.Scope
   alias Asteroid.Context
   alias Asteroid.Token
-  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
+  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode}
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
@@ -48,9 +48,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   # OAuth2 ROPC flow (resource owner password credentials)
   # https://tools.ietf.org/html/rfc6749#section-4.3.2
   #
-  def handle(conn, %{"grant_type" => "password", "username" => username, "password" => password})
+  def handle(conn,
+    %{"grant_type" => "password", "username" => username, "password" => password} = params)
   when username != nil and password != nil do
-    scope_param = conn.body_params["scope"]
+    scope_param = params["scope"]
 
     with :ok <- Asteroid.OAuth2.grant_type_enabled?(:password),
          :ok <- valid_username_param?(username),
@@ -108,7 +109,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
         |> AccessToken.put_value("iss", OAuth2.issuer())
 
-        # FIXME: handle failure case?
+      # FIXME: handle failure case?
       {:ok, access_token} = AccessToken.store(access_token, ctx)
 
       resp =
@@ -518,6 +519,130 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       reason: "Missing a mandatory parameter"))
   end
 
+  # device code
+
+  def handle(conn,
+             %{"grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+               "device_code" => device_code_param})
+  do
+    with :ok <- OAuth2.DeviceAuthorization.rate_limited?(device_code_param),
+         :ok <-
+           Asteroid.OAuth2.grant_type_enabled?(:"urn:ietf:params:oauth:grant-type:device_code"),
+         {:ok, client} <- OAuth2.Client.get_client(conn),
+         :ok <- OAuth2.Client.grant_type_authorized?(client, "urn:ietf:params:oauth:grant-type:device_code"),
+         {:ok, device_code} <- DeviceCode.get(device_code_param),
+         :ok <- device_code_granted_to_client?(device_code, client),
+         :ok <- device_code_access_granted?(device_code),
+         {:ok, subject} <- Subject.load(device_code.data["sjid"])
+    do
+      DeviceCode.delete(device_code)
+
+      client = Client.fetch_attributes(client, ["client_id"])
+      subject = Subject.fetch_attributes(subject, ["sub"])
+
+      requested_scopes = Scope.Set.new(device_code.data["requested_scopes"] || [])
+      granted_scopes = Scope.Set.new(device_code.data["granted_scope"] || [])
+
+      ctx =
+        %{}
+        |> Map.put(:endpoint, :token)
+        |> Map.put(:flow, :device_authorization)
+        |> Map.put(:grant_type, :device_code)
+        |> Map.put(:granted_scopes, granted_scopes)
+        |> Map.put(:subject, subject)
+        |> Map.put(:client, client)
+
+      maybe_refresh_token =
+        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+          {:ok, refresh_token} = # FIXME: handle {:error, reason} failure case?
+            RefreshToken.gen_new()
+            |> RefreshToken.put_value("iat", now())
+            |> RefreshToken.put_value("exp",
+                now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx))
+            |> RefreshToken.put_value("client_id", client.attrs["client_id"])
+            |> RefreshToken.put_value("sub", subject.attrs["sub"])
+            |> RefreshToken.put_value("scope", Scope.Set.to_list(granted_scopes))
+            |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "device_authorization")
+            |> RefreshToken.put_value("iss", OAuth2.issuer())
+            |> RefreshToken.store(ctx)
+
+          refresh_token
+        else
+          nil
+        end
+
+      {:ok, access_token} =
+        if maybe_refresh_token do
+          new_access_token(ctx, refresh_token: maybe_refresh_token.id)
+        else
+          new_access_token(ctx)
+        end
+        |> AccessToken.put_value("iat", now())
+        |> AccessToken.put_value("exp",
+            now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
+        |> AccessToken.put_value("client_id", client.attrs["client_id"])
+        |> AccessToken.put_value("sub", subject.attrs["sub"])
+        |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
+        |> AccessToken.put_value("iss", OAuth2.issuer())
+        |> AccessToken.store(ctx)
+
+        resp =
+          %{
+            "access_token" => AccessToken.serialize(access_token),
+            "expires_in" => access_token.data["exp"] - now(),
+            "token_type" => "bearer"
+          }
+          |> maybe_put_refresh_token(maybe_refresh_token)
+          |> put_scope_if_changed(requested_scopes, granted_scopes)
+          |> astrenv(:oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback).(ctx)
+
+
+        conn
+        |> put_status(200)
+        |> put_resp_header("cache-control", "no-store")
+        |> put_resp_header("pragma", "no-cache")
+        |> astrenv(:oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback).(ctx)
+        |> json(resp)
+    else
+      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.InvalidGrantError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %Token.InvalidTokenError{reason: "expired code"}} ->
+        AsteroidWeb.Error.respond_api(conn,
+                                      OAuth2.DeviceAuthorization.ExpiredTokenError.exception([]))
+
+      {:error, %Token.InvalidTokenError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
+          grant: "device code",
+          reason: "invalid device code",
+          debug_details: Exception.message(e)))
+
+      {:error, %OAuth2.DeviceAuthorization.AuthorizationPendingError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.DeviceAuthorization.RateLimitedError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.AccessDeniedError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+    end
+  end
+
+  def handle(conn, %{"grant_type" => "urn:ietf:params:oauth:grant-type:device_code"})
+  do
+    AsteroidWeb.Error.respond_api(conn, OAuth2.Request.InvalidRequestError.exception(
+      reason: "Missing `device_code` parameter"))
+  end
+
   def handle(conn, %{"grant_type" => grant_type}) do
     AsteroidWeb.Error.respond_api(conn, OAuth2.UnsupportedGrantTypeError.exception(
       grant_type: grant_type))
@@ -553,6 +678,36 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         grant: "authorization_code",
         reason: "invalid authorization code",
         debug_details: "request and authorization code client ids do not match")}
+    end
+  end
+
+  @spec device_code_granted_to_client?(DeviceCode.t(), Client.t()) ::
+  :ok
+  | {:error, %OAuth2.InvalidGrantError{}}
+
+  def device_code_granted_to_client?(device_code, client) do
+    if device_code.data["clid"] == client.id do
+      :ok
+    else
+      {:error, OAuth2.InvalidGrantError.exception(
+        grant: "device_code",
+        reason: "invalid device code",
+        debug_details: "device code does not match client id of the request")}
+    end
+  end
+
+  @spec device_code_access_granted?(DeviceCode.t()) :: :ok | {:error, Exception.t()}
+
+  defp device_code_access_granted?(device_code) do
+    case device_code.data["status"] do
+      "granted" ->
+        :ok
+
+      "authorization_pending" ->
+        {:error, OAuth2.DeviceAuthorization.AuthorizationPendingError.exception([])}
+
+      "denied" ->
+        {:error, OAuth2.AccessDeniedError.exception(reson: "access denied by the user")}
     end
   end
 

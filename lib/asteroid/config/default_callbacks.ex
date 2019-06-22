@@ -1,6 +1,5 @@
 defmodule Asteroid.Config.DefaultCallbacks do
   alias Asteroid.Client
-  alias Asteroid.Subject
 
   @spec issuer(Asteroid.Context.t()) :: String.t()
   def issuer(_) do

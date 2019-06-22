@@ -1,0 +1,6 @@
+<section class="phx-hero">
+ <h1><%= gettext "Pairing error", name: "Pairing error" %></h1>
+
+ <p>An error occured while pairing your device. The code that you have entered may be no longer
+ valid. Try again by relaunching the pairing process from your device.</p>
+</section>

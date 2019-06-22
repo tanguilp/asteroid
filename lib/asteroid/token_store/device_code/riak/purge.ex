@@ -1,4 +1,4 @@
-defmodule Asteroid.TokenStore.AuthorizationCode.Riak.Purge do
+defmodule Asteroid.TokenStore.DeviceCode.Riak.Purge do
   @moduledoc false
 
   use GenServer
@@ -25,18 +25,16 @@ defmodule Asteroid.TokenStore.AuthorizationCode.Riak.Purge do
   end
 
   defp purge(opts) do
-    Logger.info("#{__MODULE__}: starting authorization code purge process on #{node()}")
+    Logger.info("#{__MODULE__}: starting device code purge process on #{node()}")
 
     request = "exp_int_register:[0 TO #{:os.system_time(:second)}]"
 
-    case Asteroid.TokenStore.AuthorizationCode.Riak.search(request, opts) do
-      {:ok, authorization_code_ids} ->
-        for authorization_code_id <- authorization_code_ids do
+    case Asteroid.TokenStore.DeviceCode.Riak.search(request, opts) do
+      {:ok, device_code_ids} ->
+        for device_code_id <- device_code_ids do
           # this causes Riak connection exhaustion, to investigate further
-          #Task.start(Asteroid.TokenStore.AuthorizationCode.Riak,
-          #           :delete,
-          #           [authorization_code_id, opts])
-          Asteroid.TokenStore.AuthorizationCode.Riak.delete(authorization_code_id, opts)
+          # Task.start(Asteroid.TokenStore.DeviceCode.Riak, :delete, [device_code_id, opts])
+          Asteroid.TokenStore.DeviceCode.Riak.delete(device_code_id, opts)
         end
 
         :ok
