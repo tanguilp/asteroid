@@ -375,7 +375,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       {:error, %Token.InvalidTokenError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
           grant: "authorization code",
-          reason: "invalid authorization code",
+          reason: "invalid refresh token",
           debug_details: Exception.message(e)))
     end
   end

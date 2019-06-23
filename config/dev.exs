@@ -467,7 +467,7 @@ config :asteroid, :oauth2_access_token_signing_key_callback,
 config :asteroid, :oauth2_access_token_signing_alg_callback,
   &Asteroid.Token.AccessToken.signing_alg/1
 
-config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :jws
+  #config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :jws
 
 config :asteroid, :oauth2_flow_ropc_access_token_signing_key, "key_auto"
 
