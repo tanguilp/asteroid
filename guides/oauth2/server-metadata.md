@@ -30,6 +30,7 @@ URL.
   - `"ui_locales_supported"`
   - `"op_policy_uri"`
   - `"op_tos_uri"`
+  - `"device_authorization_endpoint"` (from [OAuth 2.0 Device Authorization Grant - section 4](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15#section-4))
 - [ ] Signed metadata
 
 ## Published metadata

@@ -342,7 +342,7 @@ defmodule Asteroid.Token.RefreshToken do
 
   def issue_refresh_token?(%{
     flow: :device_authorization,
-    grant_type: :device_code,
+    grant_type: :"urn:ietf:params:oauth:grant-type:device_code",
     client: client})
   do
     attr = "__asteroid_oauth2_flow_device_authorization_issue_refresh_token_init"

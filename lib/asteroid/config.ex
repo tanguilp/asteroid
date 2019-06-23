@@ -1314,8 +1314,8 @@ defmodule Asteroid.Config do
     user code confirmation, authentication and optionnaly accepting scope through web pages.
     It returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the
     process, one of these callback shall be called:
-    - `AsteroidWeb.DeviceController.authorization_granted/3`
-    - `AsteroidWeb.DeviceController.authorization_denied/3`
+    - `AsteroidWeb.DeviceController.authorization_granted/2`
+    - `AsteroidWeb.DeviceController.authorization_denied/2`
     """
 
     @type oauth2_flow_device_authorization_web_authorization_callback ::
