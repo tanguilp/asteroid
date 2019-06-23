@@ -39,7 +39,8 @@ defmodule AsteroidWeb.DeviceController do
   Callback to be called when the authorization is granted, typically after user code verification,
   authentication and authorization (approving scopes) process
 
-  The `res` parameter is a `map()` whose keys are:
+  The `opts` parameter is a `map()` whose keys are (all **mandatory**):
+  - `:authz_request`: the initial `Request.t()` authorization request
   - `:user_code`: the user code (`t:Asteroid.OAuth2.DeviceAuthorization.user_code/0`) that has
   ben inputed by the user and optionnaly verified within the web flow
   - `:sjid`: the `t:Asteroid.Subject.id/0` of the user having approved the request
@@ -48,28 +49,27 @@ defmodule AsteroidWeb.DeviceController do
   set
   """
 
-  @spec authorization_granted(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
+  @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_granted(conn, authz_request, res) do
-    case DeviceCode.get_from_user_code(res[:user_code]) do
+  def authorization_granted(conn, opts) do
+    case DeviceCode.get_from_user_code(opts[:user_code]) do
       {:ok, device_code} ->
-        Logger.debug("#{__MODULE__}: authorization granted (#{inspect(authz_request)}) with "
-        <> "params: `#{inspect res}`")
+        Logger.debug("#{__MODULE__}: authorization granted with params: `#{inspect opts}`")
 
-        {:ok, subject} = Subject.load(res[:sjid])
+        {:ok, subject} = Subject.load(opts[:sjid])
 
         ctx =
           %{}
           |> Map.put(:endpoint, :device)
           |> Map.put(:flow, :device_authorization)
           |> Map.put(:requested_scopes, Scope.Set.new(device_code.data["requested_scopes"] || []))
-          |> Map.put(:granted_scopes, res[:granted_scopes])
+          |> Map.put(:granted_scopes, opts[:granted_scopes])
           |> Map.put(:subject, subject)
-          |> Map.put(:flow_result, res)
+          |> Map.put(:flow_result, opts)
 
         device_code
-        |> DeviceCode.put_value("sjid", res[:sjid])
-        |> DeviceCode.put_value("granted_scopes", Scope.Set.to_list(res[:granted_scopes]))
+        |> DeviceCode.put_value("sjid", opts[:sjid])
+        |> DeviceCode.put_value("granted_scopes", Scope.Set.to_list(opts[:granted_scopes]))
         |> DeviceCode.put_value("status", "granted")
         |> DeviceCode.store(ctx)
 
@@ -81,9 +81,9 @@ defmodule AsteroidWeb.DeviceController do
       {:error, e} ->
         conn
         |> assign(:exception, e)
-        |> assign(:authz_request, authz_request)
+        |> assign(:authz_request, opts[:authz_request])
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
-        |> put_status(403)
+        |> put_status(400)
         |> render("device_authorization_error.html")
     end
   end
@@ -92,40 +92,37 @@ defmodule AsteroidWeb.DeviceController do
   Callback to be called when the authorization is denied, either by the user or by the
   server
 
-  It must be called with one of the following exception:
-  - `t:Asteroid.OAuth2.AccessDeniedError.t/0` when the request was denied either because of server
-  policy or because of the user refusal
-  - `t:Asteroid.OAuth2.ServerError.t/0` in case of server error
-  - `t:Asteroid.OAuth2.TemporarilyUnavailableError.t/0` when the service is temporarily
-  unavailable. Can be useful for maintenance mode
-
-  The last argument is the user code, if any was validated or entered by the user, to be marked
-  as denied.
+  The options are a `map()` with the following keys (all **mandatory**):
+  - `:authz_request`: the initial `Request.t()` authorization request
+  - `:user_code`: the user code, if any was validated or entered by the user, to be marked
+  as denied or `nil` if it was not verified
+  - `:error`: one of the following exceptions:
+    - `t:Asteroid.OAuth2.AccessDeniedError.t/0` when the request was denied either because of
+    server policy or because of the user refusal
+    - `t:Asteroid.OAuth2.ServerError.t/0` in case of server error
+    - `t:Asteroid.OAuth2.TemporarilyUnavailableError.t/0` when the service is temporarily
+    unavailable. Can be useful for maintenance mode
   """
 
-  @spec authorization_denied(Plug.Conn.t(), Request.t(),
-  OAuth2.AccessDeniedError.t() | OAuth2.ServerError.t() | OAuth2.TemporarilyUnavailableError.t(),
-  OAuth2.DeviceAuthorization.user_code() | nil)
-  :: Plug.Conn.t()
+  @spec authorization_denied(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_denied(conn, authz_request, e, user_code \\ nil)
-
-  def authorization_denied(conn, authz_request, %OAuth2.AccessDeniedError{} = e, nil)
+  def authorization_denied(conn, %{error: %OAuth2.AccessDeniedError{}, user_code: nil} = opts)
   do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect authz_request}) with "
-    <> "reason: `#{Exception.message(e)}`")
+    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
+    <> "reason: `#{Exception.message(opts[:error])}`")
 
     conn
-    |> assign(:exception, e)
-    |> assign(:authz_request, authz_request)
-    |> put_status(403)
+    |> assign(:exception, opts[:error])
+    |> assign(:authz_request, opts[:authz_request])
+    |> put_status(200)
     |> render("device_authorization_denied.html")
   end
 
-  def authorization_denied(conn, authz_request, %OAuth2.AccessDeniedError{} = e, user_code)
+  def authorization_denied(conn, %{error: %OAuth2.AccessDeniedError{},
+                                   user_code: user_code} = opts)
   do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect authz_request}) with "
-    <> "reason: `#{Exception.message(e)}` and user code `#{inspect user_code}`")
+    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
+    <> "reason: `#{Exception.message(opts[:error])}` and user code `#{user_code}`")
 
     case DeviceCode.get_from_user_code(user_code) do
       {:ok, device_code} ->
@@ -134,38 +131,37 @@ defmodule AsteroidWeb.DeviceController do
           |> Map.put(:endpoint, :device)
           |> Map.put(:flow, :device_authorization)
           |> Map.put(:requested_scopes, Scope.Set.new(device_code.data["scope"] || []))
-          |> Map.put(:flow_result, e)
+          |> Map.put(:flow_result, opts[:error])
 
         device_code
         |> DeviceCode.put_value("status", "denied")
         |> DeviceCode.store(ctx)
 
         conn
-        |> assign(:exception, e)
-        |> assign(:authz_request, authz_request)
-        |> put_status(403)
+        |> assign(:exception, opts[:error])
+        |> assign(:authz_request, opts[:authz_request])
+        |> put_status(200)
         |> render("device_authorization_denied.html")
 
       {:error, e} ->
         conn
         |> assign(:exception, e)
-        |> assign(:authz_request, authz_request)
+        |> assign(:authz_request, opts[:authz_request])
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
-        |> put_status(403)
+        |> put_status(400)
         |> render("device_authorization_error.html")
     end
   end
 
-  def authorization_denied(conn, authz_request, e, _user_code)
-  do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with "
-    <> "reason: `#{Exception.message(e)}`")
+  def authorization_denied(conn, opts) do
+    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
+    <> "reason: `#{Exception.message(opts[:error])}`")
 
     conn
-    |> assign(:exception, e)
-    |> assign(:authz_request, authz_request)
-    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
-    |> put_status(403)
+    |> assign(:exception, opts[:error])
+    |> assign(:authz_request, opts[:authz_request])
+    |> put_flash(:error, "An error has occured (#{Exception.message(opts[:error])})")
+    |> put_status(400)
     |> render("device_authorization_error.html")
   end
 end

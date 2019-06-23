@@ -118,10 +118,10 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
             :ok
 
           {:rate_limited, nil} ->
-            RateLimitedError.exception([])
+            {:error, RateLimitedError.exception([])}
 
           {:rate_limited, retry_after} ->
-            RateLimitedError.exception([retry_after: retry_after])
+            {:error, RateLimitedError.exception([retry_after: retry_after])}
         end
 
       nil ->

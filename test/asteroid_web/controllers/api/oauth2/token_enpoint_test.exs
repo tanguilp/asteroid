@@ -2,8 +2,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
-
-  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode}
+  
+  alias Routes, as: Routes
+  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode}
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
   alias Asteroid.Crypto
@@ -15,7 +16,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   test "no grant_type", %{conn: conn} do
     response =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle))
+      |> post(Routes.token_endpoint_path(conn, :handle))
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -25,7 +26,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), "Some plain text")
+      |> post(Routes.token_endpoint_path(conn, :handle), "Some plain text")
       |> json_response(400)
     end
   end
@@ -33,7 +34,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
   test "invalid grant_type", %{conn: conn} do
     response =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle),
+      |> post(Routes.token_endpoint_path(conn, :handle),
                                                              %{"grant_type" => "unknown"})
       |> json_response(400)
 
@@ -47,7 +48,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "password" => "asteroidftw"
     }
 
-    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, Routes.token_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="always erroneous client password")
@@ -83,7 +84,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("invalid_client", "secret"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm=)
@@ -106,7 +107,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", "Bearer weeoqxymrzmuixrtgq")
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     refute Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm=)
@@ -127,7 +128,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "client_id" => "client_public_2"
     }
 
-    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, Routes.token_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="always erroneous client password")
@@ -153,7 +154,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -169,7 +170,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
@@ -186,7 +187,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -205,7 +206,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -221,7 +222,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -237,7 +238,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -253,7 +254,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -269,7 +270,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -295,7 +296,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -327,7 +328,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -353,7 +354,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -396,7 +397,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
     assert "no-store" in Plug.Conn.get_resp_header(conn, "cache-control")
@@ -430,7 +431,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -456,7 +457,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "grant_type" => "client_credentials"
     }
 
-    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 401)
 
@@ -477,7 +478,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "invalid"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 401)
 
@@ -496,7 +497,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -522,7 +523,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -550,7 +551,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -585,7 +586,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -612,7 +613,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -639,7 +640,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -672,7 +673,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -704,7 +705,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       "refresh_token" => "xfedwgfzqyrtgmqkeiw"
     }
 
-    conn = post(conn, AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, Routes.token_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="always erroneous client password")
@@ -728,7 +729,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -743,7 +744,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -768,7 +769,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -800,7 +801,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     conn =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -834,7 +835,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -885,7 +886,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -924,7 +925,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -939,7 +940,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -963,7 +964,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -990,7 +991,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
@@ -1017,7 +1018,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -1052,7 +1053,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -1081,7 +1082,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 200)
 
@@ -1118,7 +1119,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "unsupported_grant_type"
@@ -1141,7 +1142,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(401)
 
     assert response["error"] == "invalid_client"
@@ -1156,7 +1157,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -1171,7 +1172,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -1195,7 +1196,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1220,7 +1221,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1244,7 +1245,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
     response =
       conn
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1268,7 +1269,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1284,7 +1285,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1309,7 +1310,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1334,7 +1335,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
@@ -1366,7 +1367,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1420,7 +1421,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1486,7 +1487,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1532,7 +1533,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1580,7 +1581,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1639,7 +1640,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1675,7 +1676,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -1712,7 +1713,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_grant"
@@ -1744,10 +1745,349 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(AsteroidWeb.Router.Helpers.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
+  end
+
+  ##########################################################################
+  # Device code grant type
+  ##########################################################################
+
+  test "Device flow: missing device_code parameter", %{conn: conn} do
+    req_body = %{"grant_type" => "urn:ietf:params:oauth:grant-type:device_code"}
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_request"
+  end
+
+  test "Device flow: invalid device code", %{conn: conn} do
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => "non_existant_code"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "Device flow: deactivated grant type", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI1")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    Process.put(:oauth2_grant_types_enabled, [])
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "unsupported_grant_type"
+  end
+
+  test "Device flow: client unauthorized to use device flow", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI2")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "unauthorized_client"
+  end
+
+  test "Device flow: device code issued to another client", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI3")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_2")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "invalid_grant"
+  end
+
+  test "Device flow: authorization is pending", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI4")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "authorization_pending")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "authorization_pending"
+  end
+
+  test "Device flow: access was denied by the user", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI5")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "denied")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "access_denied"
+  end
+
+  test "Device flow: device code is expired", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI6")
+      |> DeviceCode.put_value("exp", now() - 3)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "authorization_pending")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(400)
+
+    assert response["error"] == "expired_token"
+  end
+
+  test "Device flow: rate limited", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI7")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "authorization_pending")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    [_, _, _, _, _, response] =
+      for _ <- 1..6 do
+        conn
+        |> put_req_header("authorization",
+                          basic_auth_header("client_confidential_1", "password1"))
+        |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+        |> json_response(400)
+      end
+
+    assert response["error"] == "slow_down"
+  end
+
+  test "Device flow: success, no scopes", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI8")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", [])
+      |> DeviceCode.put_value("granted_scopes", [])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert is_binary(response["refresh_token"])
+    assert is_binary(response["access_token"])
+    assert is_integer(response["expires_in"])
+    assert response["token_type"] == "bearer"
+    assert response["scope"] == nil
+    assert {:error, _} = DeviceCode.get(device_code.id)
+
+    {:ok, access_token} = AccessToken.get(response["access_token"])
+    {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert refresh_token.data["client_id"] == "client_confidential_1"
+    assert refresh_token.data["sub"] == "user_1"
+    assert refresh_token.data["scope"] == []
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+    assert access_token.data["scope"] == []
+    assert access_token.refresh_token_id == refresh_token.id
+  end
+
+  test "Device flow: success with scopes (same as requested)", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI9")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", ["scp1", "scp4", "scp5"])
+      |> DeviceCode.put_value("granted_scopes", ["scp1", "scp4", "scp5"])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert is_binary(response["refresh_token"])
+    assert is_binary(response["access_token"])
+    assert is_integer(response["expires_in"])
+    assert response["token_type"] == "bearer"
+    assert response["scope"] == nil
+    assert {:error, _} = DeviceCode.get(device_code.id)
+
+    {:ok, access_token} = AccessToken.get(response["access_token"])
+    {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert refresh_token.data["client_id"] == "client_confidential_1"
+    assert refresh_token.data["sub"] == "user_1"
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(device_code.data["granted_scopes"]))
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(device_code.data["granted_scopes"]))
+    assert access_token.refresh_token_id == refresh_token.id
+  end
+
+  test "Device flow: success with scopes (different as requested)", %{conn: conn} do
+    {:ok, device_code} =
+      DeviceCode.gen_new(user_code: "ABCDEFGHI10")
+      |> DeviceCode.put_value("exp", now() + 1000)
+      |> DeviceCode.put_value("clid", "client_confidential_1")
+      |> DeviceCode.put_value("sjid", "user_1")
+      |> DeviceCode.put_value("requested_scopes", ["scp1", "scp4", "scp5"])
+      |> DeviceCode.put_value("granted_scopes", ["scp1", "scp4"])
+      |> DeviceCode.put_value("status", "granted")
+      |> DeviceCode.store(%{})
+
+    req_body = %{
+      "grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
+      "device_code" => device_code.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert is_binary(response["refresh_token"])
+    assert is_binary(response["access_token"])
+    assert is_integer(response["expires_in"])
+    assert response["token_type"] == "bearer"
+    assert Enum.sort(Scope.Set.from_scope_param!(response["scope"])) ==
+      Enum.sort(device_code.data["granted_scopes"])
+    assert {:error, _} = DeviceCode.get(device_code.id)
+
+    {:ok, access_token} = AccessToken.get(response["access_token"])
+    {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert refresh_token.data["client_id"] == "client_confidential_1"
+    assert refresh_token.data["sub"] == "user_1"
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(device_code.data["granted_scopes"]))
+    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["sub"] == "user_1"
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(device_code.data["granted_scopes"]))
+    assert access_token.refresh_token_id == refresh_token.id
   end
 
   ##########################################################################

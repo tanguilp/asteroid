@@ -100,7 +100,6 @@ defmodule Asteroid.Token.DeviceCode do
   def get(device_code_id, opts \\ [check_active: true]) do
     token_store_module = astrenv(:token_store_device_code)[:module]
     token_store_opts = astrenv(:token_store_device_code)[:opts] || []
-    IO.inspect(token_store_opts)
 
     case token_store_module.get(device_code_id, token_store_opts) do
       {:ok, device_code} when not is_nil(device_code) ->

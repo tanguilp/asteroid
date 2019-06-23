@@ -46,6 +46,8 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
           "verification_uri_complete" => verif_uri <> "?user_code=" <> device_code.user_code,
           "expires_in" => device_code.data["exp"] - now()
         }
+        |> put_if_not_nil("interval",
+                          astrenv(:oauth2_flow_device_authorization_rate_limiter_interval))
         |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
 
       conn
@@ -67,12 +69,9 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} -> # OK
         AsteroidWeb.Error.respond_api(conn, e)
 
-      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, OAuth2.InvalidGrantError.exception(
-          grant: "password",
-          reason: "incorrect username or password",
-          debug_details: Exception.message(e)
-        ))
+      {:error, %AttributeRepository.Read.NotFoundError{}} ->
+        AsteroidWeb.Error.respond_api(conn, OAuth2.Client.AuthenticationError.exception(
+          reason: :unknown_client))
     end
   end
 

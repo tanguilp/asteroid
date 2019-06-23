@@ -541,13 +541,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       subject = Subject.fetch_attributes(subject, ["sub"])
 
       requested_scopes = Scope.Set.new(device_code.data["requested_scopes"] || [])
-      granted_scopes = Scope.Set.new(device_code.data["granted_scope"] || [])
+      granted_scopes = Scope.Set.new(device_code.data["granted_scopes"] || [])
 
       ctx =
         %{}
         |> Map.put(:endpoint, :token)
         |> Map.put(:flow, :device_authorization)
-        |> Map.put(:grant_type, :device_code)
+        |> Map.put(:grant_type, :"urn:ietf:params:oauth:grant-type:device_code")
         |> Map.put(:granted_scopes, granted_scopes)
         |> Map.put(:subject, subject)
         |> Map.put(:client, client)
@@ -634,6 +634,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       {:error, %OAuth2.AccessDeniedError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, OAuth2.ServerError.exception(
+          reason: "could not read object in attribute repository: #{Exception.message(e)}"))
     end
   end
 
@@ -707,7 +711,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         {:error, OAuth2.DeviceAuthorization.AuthorizationPendingError.exception([])}
 
       "denied" ->
-        {:error, OAuth2.AccessDeniedError.exception(reson: "access denied by the user")}
+        {:error, OAuth2.AccessDeniedError.exception(reason: "access denied by the user")}
     end
   end
 

@@ -127,14 +127,9 @@ defmodule Asteroid.TokenStore.DeviceCode.Mnesia do
   def get_from_user_code(user_code, opts) do
     table_name = opts[:table_name] || :asteroid_device_code
 
-    {:ok,
+    [{_table_name, device_code_id, _user_code, _data}] = :mnesia.dirty_match_object({table_name, :_, user_code, :_})
 
-      for {_table_name, device_code_id, _user_code, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, user_code, :_})
-      do
-        device_code_id
-      end
-    }
+    get(device_code_id, opts)
   catch
     :exit, reason ->
       {:error, reason}

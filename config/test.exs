@@ -52,6 +52,10 @@ config :asteroid, :token_store_authorization_code, [
   module: Asteroid.TokenStore.AuthorizationCode.Mnesia
 ]
 
+config :asteroid, :token_store_device_code, [
+  module: Asteroid.TokenStore.DeviceCode.Mnesia
+]
+
 config :asteroid, :attribute_repositories,
 [
   subject: [
@@ -161,8 +165,18 @@ config :asteroid, :api_oauth2_endpoint_register_plugs,
     }
   ]
 
+config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
+  [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+      error_response_verbosity: :debug}
+  ]
+
 config :asteroid, :oauth2_grant_types_enabled, [
-  :authorization_code, :implicit, :password, :client_credentials, :refresh_token
+  :authorization_code, :implicit, :password, :client_credentials, :refresh_token,
+  :"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
 config :asteroid, :oauth2_response_types_enabled, [:code, :token]
@@ -170,7 +184,7 @@ config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 config :asteroid, :api_error_response_verbosity, :debug
 
 config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
-  &Asteroid.Config.DefaultCallbacks.test_ropc_username_password_callback/3
+  &CustomDev.Callback.test_ropc_username_password_callback/3
 
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
@@ -388,3 +402,38 @@ config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :opaque
 config :asteroid, :oauth2_flow_ropc_access_token_signing_key, "key_auto"
 
 config :asteroid, :oauth2_flow_ropc_access_token_signing_alg, "RS384"
+#
+# device authorization flow
+
+config :asteroid, :oauth2_endpoint_device_authorization_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_device_authorization_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :token_store_device_code_before_store_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_flow_device_authorization_device_code_lifetime, 60 * 15
+
+config :asteroid, :oauth2_flow_device_authorization_user_code_callback,
+  &Asteroid.OAuth2.DeviceAuthorization.user_code/1
+
+config :asteroid, :oauth2_flow_device_authorization_issue_refresh_token_init, true
+
+config :asteroid, :oauth2_flow_device_authorization_issue_refresh_token_refresh, false
+
+config :asteroid, :oauth2_flow_device_authorization_refresh_token_lifetime, 10 * 365 * 24 * 3600
+
+config :asteroid, :oauth2_flow_device_authorization_access_token_lifetime, 60 * 10
+
+config :asteroid, :oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback,
+  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+
+config :asteroid, :oauth2_flow_device_authorization_rate_limiter,
+  {Asteroid.OAuth2.DeviceAuthorization.RateLimiter.Hammer, []}
+
+config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5

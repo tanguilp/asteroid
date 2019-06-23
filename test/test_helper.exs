@@ -12,7 +12,8 @@ Client.gen_new(id: "client_confidential_1")
   "implicit",
   "password",
   "client_credentials",
-  "refresh_token"
+  "refresh_token",
+  "urn:ietf:params:oauth:grant-type:device_code"
 ])
 |> Client.add("response_types", ["code"])
 |> Client.add("scope", [
@@ -56,7 +57,7 @@ Client.gen_new(id: "client_public_1")
 |> Client.add("client_id", "client_public_1")
 |> Client.add("client_type", "public")
 |> Client.add("scope", ["scp1", "scp2", "scp3", "scp4", "scp5", "scp6"])
-|> Client.add("grant_types", ["authorization_code", "implicit", "refresh_token"])
+|> Client.add("grant_types", ["authorization_code", "implicit", "refresh_token", "urn:ietf:params:oauth:grant-type:device_code"])
 |> Client.store()
 
 Client.gen_new(id: "client_public_2")

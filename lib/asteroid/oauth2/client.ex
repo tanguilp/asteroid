@@ -50,10 +50,10 @@ defmodule Asteroid.OAuth2.Client do
     def message(%__MODULE__{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "The grant type is not authorized to perform this action (reason: #{inspect(reason)})"
+          "The client is not authorized to perform this action (reason: #{inspect(reason)})"
 
         :normal ->
-          "The grant type is not authorized to perform this action (reason: #{inspect(reason)})"
+          "The client is not authorized to perform this action (reason: #{inspect(reason)})"
 
         :minimal ->
           ""
