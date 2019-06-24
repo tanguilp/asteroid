@@ -25,6 +25,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
         |> Map.put(:flow, :device_authorization)
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:client, client)
+        |> Map.put(:body_params, params)
 
       {:ok, device_code} =
         DeviceCode.gen_new(user_code:

@@ -112,6 +112,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     ctx =
       %{}
       |> Map.put(:endpoint, :register)
+      |> Map.put(:body_params, input_metadata)
       |> put_if_not_nil(:client, maybe_authenticated_client)
 
     processed_metadata =

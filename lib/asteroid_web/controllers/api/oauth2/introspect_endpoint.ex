@@ -27,8 +27,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
                error_description: "Missing `token` parameter")
   end
 
-  def do_handle(%Plug.Conn{body_params: %{"token" => token}} = conn, _params, client) do
-    case conn.body_params["token_type_hint"] do
+  def do_handle(conn, %{"token" => token} = params, client) do
+    case params["token_type_hint"] do
       token_type_hint when token_type_hint in [nil, "access_token"] ->
         case AccessToken.get(token) do
           {:ok, access_token} ->
@@ -83,6 +83,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> put_if_not_nil(:subject, maybe_subject)
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :access_token) # FIXME: document it
+      |> Map.put(:body_params, conn.body_params)
 
     response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
@@ -116,6 +117,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> put_if_not_nil(:subject, maybe_subject)
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :refresh_token) # FIXME: document it
+      |> Map.put(:body_params, conn.body_params)
 
     response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
@@ -153,6 +155,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       %{}
       |> Map.put(:endpoint, :introspect)
       |> Map.put(:client, client)
+      |> Map.put(:body_params, conn.body_params)
 
     resp =
       %{"active" => false}
