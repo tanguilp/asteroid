@@ -1187,8 +1187,43 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
+    Metadata fields to be signed
+
+    The configuration option can have 3 values:
+    - `:disabled`: no metadata fields are signed
+    - `:all`: all fields are signed
+    - `[String.t()]`: a list of fields to be included in the signed statement
+    """
+
+    @type oauth2_endpoint_metadata_signed_fields :: :disabled | :all | [String.t()]
+
+    field :oauth2_endpoint_metadata_signed_fields,
+    config_time: :runtime
+
+    @doc """
+    Key name for the signed metadata fields
+    """
+
+    @type oauth2_endpoint_metadata_signing_key :: Asteroid.Crypto.Key.name()
+
+    field :oauth2_endpoint_metadata_signing_key,
+    config_time: :runtime
+
+    @doc """
+    Key algorithm for the signed metadata fields
+    """
+
+    @type oauth2_endpoint_metadata_signing_alg :: Asteroid.Crypto.Key.alg()
+
+    field :oauth2_endpoint_metadata_signing_alg,
+    config_time: :runtime
+
+    @doc """
     Callback invoked on the json response on the `/.well-known/oauth-authorization-server`
     endpoint
+
+    Note that this callback is called before optional signature of metadata fields, so that
+    added fields can be signed as well.
     """
 
     @type oauth2_endpoint_metadata_before_send_resp_callback :: (map() -> map())

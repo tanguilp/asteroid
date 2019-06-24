@@ -139,4 +139,26 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
 
     assert response["jwks_uri"] == nil
   end
+
+  test "signed_metadata published with issuer and correct signature", %{conn: conn} do
+    Process.put(:oauth2_endpoint_metadata_signed_fields,
+      ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"])
+    Process.put(:oauth2_endpoint_metadata_signing_key, "key_auto")
+    Process.put(:oauth2_endpoint_metadata_signing_alg, "PS512")
+
+    response =
+      conn
+      |> get(Routes.oauth_authorization_server_endpoint_path(conn, :handle))
+      |> json_response(200)
+
+    {:ok, jwk} = Asteroid.Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, signed_metadata_str, _} =
+      JOSE.JWS.verify_strict(jwk, ["PS512"], response["signed_metadata"])
+
+    signed_metadata = Jason.decode!(signed_metadata_str)
+
+    assert signed_metadata["issuer"] == OAuth2.issuer()
+  end
 end

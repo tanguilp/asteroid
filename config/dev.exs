@@ -431,6 +431,13 @@ config :asteroid, :oauth2_endpoint_metadata_service_documentation,
 config :asteroid, :oauth2_endpoint_metadata_op_policy_uri,
   "https://www.example.com/authentication/policy/"
 
+config :asteroid, :oauth2_endpoint_metadata_signed_fields,
+  ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"]
+
+config :asteroid, :oauth2_endpoint_metadata_signing_key, "key_auto"
+
+config :asteroid, :oauth2_endpoint_metadata_signing_alg, "PS384"
+
 config :asteroid, :oauth2_endpoint_metadata_before_send_resp_callback,
   &Asteroid.Config.DefaultCallbacks.id/1
 

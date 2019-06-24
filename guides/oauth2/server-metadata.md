@@ -31,7 +31,7 @@ URL.
   - `"op_policy_uri"`
   - `"op_tos_uri"`
   - `"device_authorization_endpoint"` (from [OAuth 2.0 Device Authorization Grant - section 4](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15#section-4))
-- [ ] Signed metadata
+- [x] Signed metadata
 
 ## Published metadata
 
@@ -172,3 +172,73 @@ will generate the following metadata:
 
 Beware, however, of changing these values in a live system, as existing tokens (such as JWTs)
 will have their issuer invalid on Asteroid since it will have changed.
+
+## Signed metadata
+
+Some or all of the fields can be signed and published as a JWS in the `"signed_metadata"` field.
+The related configuration otpions are:
+- [`:oauth2_endpoint_metadata_signed_fields`](Asteroid.Config.html#module-oauth2_endpoint_metadata_signed_fields)
+- [`:oauth2_endpoint_metadata_signing_alg`](Asteroid.Config.html#module-oauth2_endpoint_metadata_signing_alg)
+- [`:oauth2_endpoint_metadata_signing_key`](Asteroid.Config.html#module-oauth2_endpoint_metadata_signing_key)
+
+Using the following configuration:
+
+```elixir
+config :asteroid, :oauth2_endpoint_metadata_signed_fields,
+  ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"]
+
+config :asteroid, :oauth2_endpoint_metadata_signing_key, "key_auto"
+
+config :asteroid, :oauth2_endpoint_metadata_signing_alg, "PS384"
+```
+
+the `"signed_metadata"` will be published with the 3 configured fields (and the `"issuer"` field,
+which is mandatory):
+
+```json
+{
+   "authorization_endpoint":"http://localhost:4000/authorize",
+   "code_challenge_methods_supported":[
+      "S256"
+   ],
+   "device_authorization_endpoint":"http://localhost:4000/api/oauth2/device_authorization",
+   "grant_types_supported":[
+      "authorization_code",
+      "implicit",
+      "password",
+      "client_credentials",
+      "refresh_token",
+      "urn:ietf:params:oauth:grant-type:device_code"
+   ],
+   "introspection_endpoint":"http://localhost:4000/api/oauth2/introspect",
+   "introspection_endpoint_auth_methods_supported":[
+      "client_secret_basic",
+      "client_secret_post"
+   ],
+   "issuer":"http://localhost:4000",
+   "jwks_uri":"http://localhost:4000/discovery/keys",
+   "registration_endpoint":"http://localhost:4000/api/oauth2/register",
+   "response_types_supported":[
+      "code",
+      "token"
+   ],
+   "revocation_endpoint":"http://localhost:4000/api/oauth2/revoke",
+   "revocation_endpoint_auth_methods_supported":[
+      "client_secret_basic",
+      "client_secret_post"
+   ],
+   "scopes_supported":[
+      "api.access",
+      "interbank_transfer",
+      "read_account_information",
+      "read_balance"
+   ],
+   "signed_metadata":"eyJhbGciOiJQUzM4NCJ9.eyJpc3N1ZXIiOiJodHRwOi8vbG9jYWxob3N0OjQwMDAiLCJzY29wZXNfc3VwcG9ydGVkIjpbImFwaS5hY2Nlc3MiLCJpbnRlcmJhbmtfdHJhbnNmZXIiLCJyZWFkX2FjY291bnRfaW5mb3JtYXRpb24iLCJyZWFkX2JhbGFuY2UiXSwidG9rZW5fZW5kcG9pbnQiOiJodHRwOi8vbG9jYWxob3N0OjQwMDAvYXBpL29hdXRoMi90b2tlbiIsInRva2VuX2VuZHBvaW50X2F1dGhfbWV0aG9kc19zdXBwb3J0ZWQiOlsiY2xpZW50X3NlY3JldF9iYXNpYyIsImNsaWVudF9zZWNyZXRfcG9zdCIsIm5vbmUiXX0.Q4TxdVGSs6r3U26XuFUJLitHDc2vRyFTn04JcmmIPG9pKYLJ26k2YcxTpidpemRvASoS8hKBTILle593q3regDW_3kMiicE4oxP1Cs8H-xSrNRhryleqTKD_nvhnA_Uo6hizGv1hb5Vs19b_NEDa4OcYphAITVXPPp9zf4-eillQuvB7dXCLMLNiBzHPzJu2w3PqgeGnIdEKEq3kOo7X5Za24AM8BfSBqRelDhgb53M8ZYLA3auxy-AjHGqXQ6rX5n3VpftPF-AtkNulcuFDHSfHYeCazsjDuTYHv_Av9vL5k1x9HObFxneoReRlVsQhJgkakUlcD3yNq9FsXp_KEA",
+   "token_endpoint":"http://localhost:4000/api/oauth2/token",
+   "token_endpoint_auth_methods_supported":[
+      "client_secret_basic",
+      "client_secret_post",
+      "none"
+   ]
+}
+```

@@ -35,6 +35,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       |> put_if_not_nil("op_tos_uri",
                         astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil))
       |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
+      |> sign_metadata()
 
     conn
     |> astrenv(:oauth2_endpoint_metadata_before_send_conn_callback).()
@@ -260,6 +261,44 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
           |> Enum.map(&to_string/1)
 
         Map.put(metadata, "code_challenge_methods_supported", methods)
+    end
+  end
+
+  @spec sign_metadata(map()) :: map()
+
+  defp sign_metadata(metadata) do
+    case astrenv(:oauth2_endpoint_metadata_signed_fields, :disabled) do
+      :disabled ->
+        metadata
+
+      :all ->
+        Map.put(metadata, "signed_metadata", signed_statement(metadata))
+
+      fields when is_list(fields) ->
+        fields_to_be_signed = Map.take(metadata, fields ++ ["issuer"])
+
+        Map.put(metadata, "signed_metadata", signed_statement(fields_to_be_signed))
+    end
+  end
+
+  @spec signed_statement(map()) :: String.t()
+
+  defp signed_statement(to_be_signed) do
+    signing_key = astrenv(:oauth2_endpoint_metadata_signing_key)
+    signing_alg = astrenv(:oauth2_endpoint_metadata_signing_alg)
+
+    {:ok, jwk} = Asteroid.Crypto.Key.get(signing_key)
+
+    if signing_alg do
+      jws = JOSE.JWS.from_map(%{"alg" => signing_alg})
+
+      JOSE.JWT.sign(jwk, jws, to_be_signed)
+      |> JOSE.JWS.compact
+      |> elem(1)
+    else
+      JOSE.JWT.sign(jwk, to_be_signed)
+      |> JOSE.JWS.compact
+      |> elem(1)
     end
   end
 end
