@@ -11,25 +11,52 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpoint do
     with {:ok, client} <- OAuth2.Client.get_client(conn),
          :ok <- valid_token_parameter?(token, params["token_type_hint"])
     do
+      client = Client.fetch_attributes(client, ["client_id"])
+
+      # according to the specification, an error message should be returned if the token was
+      # not issued to the requesting client
+      # However, as it could leak token info, Asteroid returns 200 OK instead
+      # see also: https://security.stackexchange.com/questions/210609/oauth2-what-to-return-when-revoking-a-token-which-is-not-the-clients-rfc7009
+
       case params["token_type_hint"] do
         token_type_hint when token_type_hint in [nil, "access_token"] ->
           case AccessToken.get(token) do
-            {:ok, _} ->
-              AccessToken.delete(token)
+            {:ok, access_token} ->
+              if access_token.data["client_id"] == client.attrs["client_id"] do
+                AccessToken.delete(token)
+              end
 
             {:error, _} ->
-              RefreshToken.delete(token)
+              case RefreshToken.get(token) do
+                {:ok, refresh_token} ->
+                  if refresh_token.data["client_id"] == client.attrs["client_id"] do
+                    RefreshToken.delete(token)
+                  end
+
+                _ ->
+                  :ok
+              end
           end
 
           success_response(conn, client)
 
         "refresh_token" ->
           case RefreshToken.get(token) do
-            {:ok, _} ->
-              RefreshToken.delete(token)
+            {:ok, refresh_token} ->
+              if refresh_token.data["client_id"] == client.attrs["client_id"] do
+                RefreshToken.delete(token)
+              end
 
             {:error, _} ->
-              AccessToken.delete(token)
+              case AccessToken.get(token) do
+                {:ok, access_token} ->
+                  if access_token.data["client_id"] == client.attrs["client_id"] do
+                    AccessToken.delete(token)
+                  end
+
+                _ ->
+                  :ok
+              end
           end
 
           success_response(conn, client)

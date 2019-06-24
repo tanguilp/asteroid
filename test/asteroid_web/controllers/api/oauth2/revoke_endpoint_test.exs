@@ -200,26 +200,24 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     assert {:error, _} = AccessToken.get(access_token.id)
   end
 
-  #test "exsiting access token, issued to another client", %{conn: conn} do
-  #  {:ok, access_token} =
-  #    AccessToken.gen_new()
-  #    |> AccessToken.put_value("client_id", "client_confidential_2")
-  #    |> AccessToken.put_value("exp", now() + 3600)
-  #    |> AccessToken.store(%{})
+  test "exsiting access token, issued to another client", %{conn: conn} do
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("client_id", "client_confidential_2")
+      |> AccessToken.put_value("exp", now() + 3600)
+      |> AccessToken.store(%{})
 
-  #  req_body = %{
-  #    "token" => access_token.id,
-  #    "token_type_hint" => "refresh_token"
-  #  }
+    req_body = %{
+      "token" => access_token.id
+    }
 
-  #  response =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.revoke_endpoint_path(conn, :handle), req_body)
-  #    |> json_response(200)
+    conn
+    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+    |> post(AsteroidWeb.Router.Helpers.revoke_endpoint_path(conn, :handle), req_body)
+    |> response(200)
 
-  #  assert response == %{"active" => false}
-  #end
+    assert {:ok, _} = AccessToken.get(access_token.id)
+  end
 
   ##########################################################################
   # Endpoint test - refresh tokens
@@ -287,26 +285,24 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     assert {:error, _} = RefreshToken.get(refresh_token.id)
   end
 
-  #test "exsiting refresh token, issued to another client", %{conn: conn} do
-  #  {:ok, refresh_token} =
-  #    RefreshToken.gen_new()
-  #    |> RefreshToken.put_value("client_id", "client_confidential_2")
-  #    |> RefreshToken.put_value("exp", now() + 3600)
-  #    |> RefreshToken.store(%{})
+  test "exsiting refresh token, issued to another client", %{conn: conn} do
+    {:ok, refresh_token} =
+      RefreshToken.gen_new()
+      |> RefreshToken.put_value("client_id", "client_confidential_2")
+      |> RefreshToken.put_value("exp", now() + 3600)
+      |> RefreshToken.store(%{})
 
-  #  req_body = %{
-  #    "token" => refresh_token.id,
-  #    "token_type_hint" => "refresh_token"
-  #  }
+    req_body = %{
+      "token" => refresh_token.id
+    }
 
-  #  response =
-  #    conn
-  #    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-  #    |> post(AsteroidWeb.Router.Helpers.revoke_endpoint_path(conn, :handle), req_body)
-  #    |> json_response(200)
+    conn
+    |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+    |> post(AsteroidWeb.Router.Helpers.revoke_endpoint_path(conn, :handle), req_body)
+    |> response(200)
 
-  #  assert response == %{"active" => false}
-  #end
+    assert {:ok, _} = RefreshToken.get(refresh_token.id)
+  end
 
   ##########################################################################
   # Helper functions
