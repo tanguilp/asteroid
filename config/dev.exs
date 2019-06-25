@@ -169,7 +169,6 @@ config :pooler,
 
 config :asteroid, :api_oauth2_plugs,
   [
-    {Corsica, [max_age: 600, origins: "*"]},
     {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
     {APIacAuthBasic,
       realm: "Asteroid",
@@ -185,6 +184,7 @@ config :asteroid, :api_oauth2_plugs,
 
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
+    {Corsica, [origins: "*"]},
     {APIacFilterThrottler,
       key: &APIacFilterThrottler.Functions.throttle_by_ip_path/1,
       scale: 60_000,
@@ -206,6 +206,8 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
       set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
       error_response_verbosity: :debug}
   ]
+
+config :asteroid, :api_oauth2_endpoint_revoke_plugs, [{Corsica, [origins: "*"]}]
 
 config :asteroid, :oauth2_grant_types_enabled, [
   :authorization_code, :implicit, :password, :client_credentials, :refresh_token,

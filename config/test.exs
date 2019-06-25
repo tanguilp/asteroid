@@ -86,6 +86,7 @@ config :asteroid, :api_oauth2_plugs,
 
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
+    {Corsica, [origins: "*"]},
     {APIacAuthBasic,
       realm: "always erroneous client password",
       callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
@@ -131,6 +132,7 @@ config :asteroid, :api_oauth2_endpoint_introspect_plugs,
 
 config :asteroid, :api_oauth2_endpoint_revoke_plugs,
   [
+    {Corsica, [origins: "*"]},
     {APIacAuthBasic,
       realm: "always erroneous client password",
       callback: &Asteroid.Config.DefaultCallbacks.always_nil/2,
