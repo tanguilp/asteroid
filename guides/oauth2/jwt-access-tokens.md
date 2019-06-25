@@ -1,4 +1,4 @@
-# JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens
+# JWT Profile for Access Tokens
 
 In addition to opaque access token that must be verified against the `/api/oauth2/introspect`
 endpoint, Asteroid supports the issuance of signed JWT (i.e. JWS) access tokens.

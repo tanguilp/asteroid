@@ -7,6 +7,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
 
   alias Asteroid.OAuth2
   alias AsteroidWeb.Router.Helpers, as: Routes
+  alias AsteroidWeb.RouterAPI.Helpers, as: RoutesAPI
 
   def handle(conn, _params) do
     metadata =
@@ -67,7 +68,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       _ ->
       Map.put(metadata,
               "token_endpoint",
-              Routes.token_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              RoutesAPI.token_endpoint_url(AsteroidWeb.EndpointAPI, :handle))
     end
   end
 
@@ -76,7 +77,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_registration_endpoint(metadata) do
       Map.put(metadata,
               "registration_endpoint",
-              Routes.register_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              RoutesAPI.register_endpoint_url(AsteroidWeb.EndpointAPI, :handle))
   end
 
   @spec put_scopes_supported(map()) :: map()
@@ -192,7 +193,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_revocation_endpoint(metadata) do
       Map.put(metadata,
               "revocation_endpoint",
-              Routes.revoke_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              RoutesAPI.revoke_endpoint_url(AsteroidWeb.EndpointAPI, :handle))
   end
 
   @spec put_revocation_endpoint_auth_method_supported(map()) :: map()
@@ -216,7 +217,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_introspection_endpoint(metadata) do
       Map.put(metadata,
               "introspection_endpoint",
-              Routes.introspect_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              RoutesAPI.introspect_endpoint_url(AsteroidWeb.EndpointAPI, :handle))
   end
 
   @spec put_introspection_endpoint_auth_method_supported(map()) :: map()
@@ -242,7 +243,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
     do
       Map.put(metadata,
               "device_authorization_endpoint",
-              Routes.device_authorization_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              RoutesAPI.device_authorization_endpoint_url(AsteroidWeb.EndpointAPI, :handle))
     else
       metadata
     end

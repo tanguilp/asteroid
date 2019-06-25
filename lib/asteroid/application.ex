@@ -15,7 +15,8 @@ defmodule Asteroid.Application do
       # Start the Ecto repository
       #Asteroid.Repo,
       # Start the endpoint when the application starts
-      AsteroidWeb.Endpoint
+      AsteroidWeb.Endpoint,
+      AsteroidWeb.EndpointAPI
       # Starts a worker by calling: Asteroid.Worker.start_link(arg)
       # {Asteroid.Worker, arg},
     ]

@@ -8,6 +8,7 @@ need to be stored:
 - Cookies
 - State
 - PKCE code challenge
+- Device codes
 - ...
 
 As for attribute repositories, these stores are initialised and launched at startup.
@@ -27,6 +28,8 @@ Asteroid defines the following behaviours and implementations:
 |                    |                                        |`Asteroid.TokenStore.AccessToken.Riak`         |
 | Authorization code |`Asteroid.TokenStore.AuthorizationCode` |`Asteroid.TokenStore.AuthorizationCode.Mnesia` |
 |                    |                                        |`Asteroid.TokenStore.AuthorizationCode.Riak`   |
+| Device code	     |`Asteroid.TokenStore.DeviceCode` 	      |`Asteroid.TokenStore.DeviceCode.Mnesia` 	      |
+|                    |                                        |`Asteroid.TokenStore.DeviceCode.Riak`          |
 
 Note that you don't necessarily need to configure token stores for all the token types, but only
 for those who you'll be using. For instance, there's no need to configure a refresh token
@@ -49,6 +52,7 @@ Token stores are each configured under their own key:
 | Refresh token      | [`:token_store_refresh_token`](Asteroid.Config.html#module-token_store_refresh_token) |
 | Access token       | [`:token_store_access_token`](Asteroid.Config.html#module-token_store_access_token)  |
 | Authorization code | [`:token_store_authorization_code`](Asteroid.Config.html#module-token_store_authorization_code)  |
+| Device code 	     | [`:token_store_device_code`](Asteroid.Config.html#module-token_store_device_code)  |
 
 The options for a token store are:
 - `:module`: the name of the module implementing the token's behaviours. No default, **mandatory**

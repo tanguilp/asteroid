@@ -6,8 +6,25 @@ use Mix.Config
 # The watchers configuration can be used to run external
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
+#
 config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 4000],
+  #url: [scheme: "https", host: "www.example.com", path: "/account/auth", port: 443],
+  debug_errors: true,
+  code_reloader: true,
+  check_origin: false,
+  watchers: [
+    node: [
+      "node_modules/webpack/bin/webpack.js",
+      "--mode",
+      "development",
+      "--watch-stdin",
+      cd: Path.expand("../assets", __DIR__)
+    ]
+  ]
+
+config :asteroid, AsteroidWeb.EndpointAPI,
+  http: [port: 4001],
   #url: [scheme: "https", host: "www.example.com", path: "/account/auth", port: 443],
   debug_errors: true,
   code_reloader: true,
@@ -152,6 +169,7 @@ config :pooler,
 
 config :asteroid, :api_oauth2_plugs,
   [
+    {Corsica, [max_age: 600, origins: "*"]},
     {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
     {APIacAuthBasic,
       realm: "Asteroid",

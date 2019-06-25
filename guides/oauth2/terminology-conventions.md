@@ -12,19 +12,21 @@ The following flows are supported:
 - implicit flow
 - client credentials flow
 - resource owner password credentials flow
+- device authorization flow
 
 They are documented in `t:Asteroid.OAuth2.flow/0`.
 
-Note that the concept of flow is not per se doucmented in OAuth2 specifications, but Asteroid
+Note that the concept of flow is not per se documented in OAuth2 specifications, but Asteroid
 uses it for convenience and because neither grant types nor response types concept do help
-with segregating configuration for these flow. On the contrary, they can be overlapping: for
-instance a refresh token grant type can be issued in 3 flows (authorization code, client
-credentials and resource owner password credentials).
+with segregating configuration for these flows. On the contrary, they can be overlapping: for
+instance a refresh token **grant** can be issued in 4 flows (authorization code, client
+credentials, resource owner password credentials and device authorization), but is not necessarily
+used in these flow (issuance of a refresh token is not mandatory).
 
 ### Grant types
 
 Grant types as documented in
-[section 2 of RFC7591](https://tools.ietf.org/html/rfc7591#section-2).
+[section 2 of RFC7591](https://tools.ietf.org/html/rfc7591#section-2) and other specifications.
 
 The following grant types are supported:
 - authorization code grant type
@@ -32,6 +34,7 @@ The following grant types are supported:
 - client credentials grant type
 - resource owner password credentials grant type
 - refresh token grant type
+- device code grant type
 
 They are documented in `t:Asteroid.OAuth2.grant_type/0`.
 
