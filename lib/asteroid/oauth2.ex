@@ -244,8 +244,8 @@ defmodule Asteroid.OAuth2 do
   """
 
   @type endpoint ::
-  :authorize
-  | :device
+  :authorize                  # web flow for the authorization code or implicit flow
+  | :device                   # web flow for the device authorization flow
   | :token
   | :introspect
   | :revoke

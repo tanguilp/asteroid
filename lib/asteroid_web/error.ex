@@ -123,6 +123,7 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.Request.InvalidRequestError{}), do: "invalid_request"
   defp err_name(%OAuth2.Request.MalformedParamError{name: "scope"}), do: "invalid_scope"
   defp err_name(%OAuth2.Request.MalformedParamError{}), do: "invalid_request"
+  defp err_name(%OAuth2.Scope.UnknownRequestedScopeError{}), do: "invalid_scope"
   defp err_name(%OAuth2.DeviceAuthorization.ExpiredTokenError{}), do: "expired_token"
   defp err_name(%OAuth2.DeviceAuthorization.AuthorizationPendingError{}), do: "authorization_pending"
   defp err_name(%OAuth2.DeviceAuthorization.RateLimitedError{}), do: "slow_down"

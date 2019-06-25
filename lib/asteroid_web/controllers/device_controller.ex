@@ -67,9 +67,11 @@ defmodule AsteroidWeb.DeviceController do
           |> Map.put(:subject, subject)
           |> Map.put(:flow_result, opts)
 
+        granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
+
         device_code
         |> DeviceCode.put_value("sjid", opts[:sjid])
-        |> DeviceCode.put_value("granted_scopes", Scope.Set.to_list(opts[:granted_scopes]))
+        |> DeviceCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
         |> DeviceCode.put_value("status", "granted")
         |> DeviceCode.store(ctx)
 

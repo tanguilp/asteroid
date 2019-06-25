@@ -47,7 +47,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   # OAuth2 ROPC flow (resource owner password credentials)
   # https://tools.ietf.org/html/rfc6749#section-4.3.2
-  #
+
   def handle(conn,
     %{"grant_type" => "password", "username" => username, "password" => password} = params)
   when username != nil and password != nil do
@@ -59,6 +59,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, client} <- OAuth2.Client.get_client(conn),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "password"),
          {:ok, requested_scopes} <- get_scope(scope_param),
+         :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :ropc),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, subject} <-
            astrenv(:oauth2_flow_ropc_username_password_verify_callback).(conn, username, password)
@@ -151,6 +152,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       {:error, %OAuth2.InvalidGrantError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
@@ -166,6 +170,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, client} <- OAuth2.Client.get_authenticated_client(conn),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "client_credentials"),
          {:ok, requested_scopes} <- get_scope(scope_param),
+         :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :client_credentials),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
     do
       ctx =
@@ -242,6 +247,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
     end
   end
@@ -406,12 +414,16 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          :ok <- pkce_code_verifier_valid?(authz_code, params["code_verifier"]),
          {:ok, subject} <- Subject.load(authz_code.data["sub"])
     do
+      requested_scopes = Scope.Set.new(authz_code.data["requested_scopes"] || [])
+      granted_scopes = Scope.Set.new(authz_code.data["granted_scopes"] || [])
+
       ctx =
         %{}
         |> Map.put(:endpoint, :token)
         |> Map.put(:flow, :authorization_code)
         |> Map.put(:grant_type, :authorization_code)
-        |> Map.put(:granted_scopes, Scope.Set.new(authz_code.data["scope"] || []))
+        |> Map.put(:requested_scopes, requested_scopes)
+        |> Map.put(:granted_scopes, granted_scopes)
         |> Map.put(:subject, subject)
         |> Map.put(:client, client)
         |> Map.put(:body_params, params)
@@ -427,6 +439,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                 {"redirect_uri", _v}, acc ->
                   acc
 
+                {"requested_scopes", _v}, acc ->
+                  acc
+
+                {"granted_scopes", _v}, acc ->
+                  acc
+
                 {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
                   AccessToken.put_value(acc, k, v)
 
@@ -440,6 +458,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             |> RefreshToken.put_value("iat", now())
             |> RefreshToken.put_value("exp",
                 now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx))
+            |> RefreshToken.put_value("scope", Scope.Set.to_list(granted_scopes))
             |> RefreshToken.store(ctx)
 
           refresh_token
@@ -460,6 +479,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             {"redirect_uri", _v}, acc ->
               acc
 
+            {"requested_scopes", _v}, acc ->
+              acc
+
+            {"granted_scopes", _v}, acc ->
+              acc
+
             {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
               AccessToken.put_value(acc, k, v)
 
@@ -473,6 +498,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value("exp",
             now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
+        |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
 
       # FIXME: handle failure case?
       {:ok, access_token} = AccessToken.store(access_token, ctx)
@@ -484,6 +510,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           "token_type" => "bearer"
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
+        |> put_scope_if_changed(requested_scopes, granted_scopes)
         |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback).(ctx)
 
       conn

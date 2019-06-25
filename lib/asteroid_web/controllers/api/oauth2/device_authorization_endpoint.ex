@@ -17,6 +17,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
          {:ok, client} <- OAuth2.Client.get_client(conn),
          :ok <- OAuth2.Client.grant_type_authorized?(client, "urn:ietf:params:oauth:grant-type:device_code"),
          {:ok, requested_scopes} <- get_scope(scope_param),
+         :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :device_authorization),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
     do
       ctx =
@@ -26,6 +27,8 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:client, client)
         |> Map.put(:body_params, params)
+
+      requested_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
       {:ok, device_code} =
         DeviceCode.gen_new(user_code:
@@ -68,6 +71,9 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
         AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.UnsupportedGrantTypeError{} = e} -> # OK
+        AsteroidWeb.Error.respond_api(conn, e)
+
+      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{}} ->

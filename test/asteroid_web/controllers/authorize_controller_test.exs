@@ -151,7 +151,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "access_denied"} =
+    assert %{"error" => "invalid_scope"} =
       URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 

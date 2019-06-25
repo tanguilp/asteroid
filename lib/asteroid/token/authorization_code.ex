@@ -15,7 +15,8 @@ defmodule Asteroid.Token.AuthorizationCode do
   - `"sub"`: the `t:Asteroid.Subject.id/0` of the authorization code
   - `"client_id"`: the `t:Asteroid.Client.id/0` of the authorization code
   - `"device_id"`: the `t:Asteroid.Device.id/0` of the authorization code
-  - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the authorization code
+  - `"requested_scopes"`: a list of `OAuth2Utils.Scope.scope()` requested scopes
+  - `"granted_scopes"`: a list of `OAuth2Utils.Scope.scope()` granted scopes
   - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` during which
   the authorization code was granted
   - `"__asteroid_oauth2_pkce_code_challenge"`: the PKCE code challenge, if any

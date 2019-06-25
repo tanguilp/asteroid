@@ -9,6 +9,36 @@ defmodule Asteroid.OAuth2.Scope do
 
   import Asteroid.Utils
 
+  defmodule UnknownRequestedScopeError do
+    @moduledoc """
+    Error return when an unknown scope has been reuqested
+    """
+
+    defexception [:unknown_scopes]
+
+    @type t :: %__MODULE__{
+      unknown_scopes: Scope.Set.t()
+    }
+
+    def message(%{unknown_scopes: unknown_scopes}) do
+      case astrenv(:api_error_response_verbosity) do
+        :debug ->
+          "Unknown requested scope(s)" <>
+            if unknown_scopes do
+              " (#{Enum.join(unknown_scopes, " ")})"
+            else
+              ""
+            end
+
+          :normal ->
+            "Unknown requested scope(s)"
+
+          :minimal ->
+            ""
+      end
+    end
+  end
+
   @typedoc """
   Individual scope configuration keys
 
@@ -51,6 +81,8 @@ defmodule Asteroid.OAuth2.Scope do
 
   @doc """
   Returns the merged scope configuration for a flow
+
+  Scope configuration is merge at the key level of a individual scope configuration.
   """
 
   @spec configuration_for_flow(OAuth2.flow()) :: scope_config_option()
@@ -161,7 +193,8 @@ defmodule Asteroid.OAuth2.Scope do
     :ropc,
     :client_credentials,
     :authorization_code,
-    :implicit
+    :implicit,
+    :device_authorization
   ] do
     Enum.reduce(
       configuration_for_flow(flow)[:scopes] || %{},
@@ -174,30 +207,69 @@ defmodule Asteroid.OAuth2.Scope do
   end
 
   @doc """
+  Returns `:ok` if the scopes are enabled for the given flow, false otherwise
+  """
+
+  @spec scopes_enabled?(Scope.Set.t(), OAuth2.flow()) ::
+  :ok
+  | {:error, %UnknownRequestedScopeError{}}
+
+  def scopes_enabled?(scopes, flow) do
+    enabled_scopes_for_flow = scopes_for_flow(flow)
+
+    if Scope.Set.subset?(scopes, enabled_scopes_for_flow) do
+      :ok
+    else
+      {:error, UnknownRequestedScopeError.exception(
+        unknown_scopes: Scope.Set.difference(scopes, enabled_scopes_for_flow))}
+    end
+  end
+
+  @doc """
   Computes scopes to grant during requests
 
   Note that the list of scopes allowed for a client is directly configured in the client's
   attribute repository.
 
-  ## ROPC
+  ## ROPC flow
 
   The functions adds the scopes marked as `auto: true` in accordance to the
   #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_scope_config)}
   configuration option, only during the initial request (when the username and password
   parameters are provided).
 
-  On further token renewal requests the released scopes are the ones requested and already
-  granted during the initial request.
+  On further token renewal requests the released scopes are the ones requested  and already
+  granted during the initial request, or a subset of them.
 
-  ## Client credentials
+  ## Client credentials flow
 
   The functions adds the scopes marked as `auto: true` in accordance to the
   #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_scope_config)}
   configuration option, only during the initial request.
 
   On further token renewal requests the released scopes are the ones requested and already
-  granted during the initial request, although you should probably not use refresh tokens
-  in such a flow.
+  granted during the initial request, or a subset of them, although you should probably not
+  use refresh tokens in such a flow.
+
+  ## Authorization code flow
+
+  The functions adds the scopes marked as `auto: true` in accordance to the
+  #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_scope_config)}
+  configuration option when the web flow on the `/authorize` endpoint successfully concludes.
+
+  ## Implicit flow
+
+  The functions adds the scopes marked as `auto: true` in accordance to the
+  #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_scope_config)}
+  configuration option when the web flow on the `/authorize` endpoint successfully concludes.
+
+  ## Device authorization flow
+  During the initial phase of the flow, when the client requests a device code on the
+  `/api/oauth2/device_authorization` endpoint, this function does not change the scopes.
+
+  The functions adds the scopes marked as `auto: true` in accordance to the
+  #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_scope_config)}
+  configuration option when the web flow on the `/device` endpoint successfully concludes.
   """
 
   @spec grant_for_flow(Scope.Set.t(), Context.t()) :: Scope.Set.t()
@@ -232,7 +304,41 @@ defmodule Asteroid.OAuth2.Scope do
     )
   end
 
+  def grant_for_flow(scopes, %{endpoint: :authorize, flow: :authorization_code}) do
+    Enum.reduce(
+      astrenv(:oauth2_flow_authorization_code_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
+  def grant_for_flow(scopes, %{endpoint: :authorize, flow: :implicit}) do
+    Enum.reduce(
+      astrenv(:oauth2_flow_implicit_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
   def grant_for_flow(scopes, %{flow: :device_authorization, endpoint: :device_authorization}) do
+    scopes
+  end
+
+  def grant_for_flow(scopes, %{flow: :device_authorization, endpoint: :device}) do
     Enum.reduce(
       astrenv(:oauth2_flow_device_authorization_scope_config) || [],
       scopes,

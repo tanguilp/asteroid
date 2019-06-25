@@ -13,7 +13,8 @@ global configuration……………………………………………………
    ├ authorization code flow…………………………………………………… :oauth2_flow_authorization_code_scope_config
    ├ implicit flow……………………………………………………………………………… :oauth2_flow_implicit_scope_config
    ├ client credentials flow…………………………………………………… :oauth2_flow_client_credentials_scope_config
-   ╰ ROPC flow………………………………………………………………………………………… :oauth2_flow_ropc_scope_config
+   ├ ROPC flow………………………………………………………………………………………… :oauth2_flow_ropc_scope_config
+   ╰ device authorization flow……………………………………………… :oauth2_flow_device_authorization_scope_config
 ```
 
 When using scopes in flows, configuration options of each scope to that flow are merge in a

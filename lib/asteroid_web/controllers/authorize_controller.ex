@@ -66,6 +66,7 @@ defmodule AsteroidWeb.AuthorizeController do
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
+         :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :authorization_code),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <- pkce_params(client, params)
     do
@@ -101,6 +102,9 @@ defmodule AsteroidWeb.AuthorizeController do
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
 
+      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
           reason: Exception.message(e),
@@ -134,6 +138,7 @@ defmodule AsteroidWeb.AuthorizeController do
          {:ok, client} <- Client.load(client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "token"),
+         :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :implicit),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
     do
       authz_request =
@@ -164,6 +169,9 @@ defmodule AsteroidWeb.AuthorizeController do
         AsteroidWeb.Error.respond_authorize(conn, e)
 
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
+
+      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
@@ -243,6 +251,8 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:subject, subject)
       |> Map.put(:flow_result, res)
 
+    granted_scopes = astrenv(:oauth2_scope_callback).(res[:granted_scopes], ctx)
+
     {:ok, authorization_code} =
       AuthorizationCode.gen_new()
       |> AuthorizationCode.put_value("iat", now())
@@ -251,7 +261,9 @@ defmodule AsteroidWeb.AuthorizeController do
       |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
       |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
       |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
-      |> AuthorizationCode.put_value("scope", Scope.Set.to_list(res[:granted_scopes]))
+      |> AuthorizationCode.put_value("requested_scopes",
+                                     Scope.Set.to_list(authz_request.requested_scopes))
+      |> AuthorizationCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("iss", OAuth2.issuer())
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
@@ -302,6 +314,8 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:subject, subject)
       |> Map.put(:flow_result, res)
 
+    granted_scopes = astrenv(:oauth2_scope_callback).(res[:granted_scopes], ctx)
+
     {:ok, access_token} =
       new_access_token(ctx)
       |> AccessToken.put_value("iat", now())
@@ -310,7 +324,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> AccessToken.put_value("client_id", client.attrs["client_id"])
       |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
       |> AccessToken.put_value("sub", subject.attrs["sub"])
-      |> AccessToken.put_value("scope", Scope.Set.to_list(res[:granted_scopes]))
+      |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
       |> AccessToken.put_value("__asteroid_oauth2_initial_flow", "implicit")
       |> AccessToken.put_value("iss", OAuth2.issuer())
       |> AccessToken.store(ctx)
@@ -320,7 +334,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put("access_token", AccessToken.serialize(access_token))
       |> Map.put("token_type", "bearer")
       |> Map.put("expires_in", access_token.data["exp"] - now())
-      |> put_scope_implicit_flow(authz_request.requested_scopes, res[:granted_scopes])
+      |> maybe_put_scope_implicit_flow(authz_request.requested_scopes, res[:granted_scopes])
       |> put_if_not_nil("state", authz_request.params["state"])
 
     redirect_uri =
@@ -407,9 +421,9 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
-  @spec put_scope_implicit_flow(map(), Scope.Set.t(), Scope.Set.t()) :: map()
+  @spec maybe_put_scope_implicit_flow(map(), Scope.Set.t(), Scope.Set.t()) :: map()
 
-  defp put_scope_implicit_flow(m, requested_scopes, granted_scopes) do
+  defp maybe_put_scope_implicit_flow(m, requested_scopes, granted_scopes) do
     if Scope.Set.equal?(requested_scopes, granted_scopes) do
       m
     else

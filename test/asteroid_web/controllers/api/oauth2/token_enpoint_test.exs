@@ -1,4 +1,5 @@
 defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
+  @endpoint AsteroidWeb.EndpointAPI
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
@@ -1401,7 +1402,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       AuthorizationCode.gen_new()
       |> AuthorizationCode.put_value("client_id", "client_confidential_1")
       |> AuthorizationCode.put_value("sub", "user_1")
-      |> AuthorizationCode.put_value("scope", Scope.Set.new(["scp1", "scp2", "scp5"]))
+      |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["scp1", "scp2", "scp5"]))
+      |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["scp1", "scp2", "scp5"]))
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
@@ -1427,6 +1429,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
+    assert response["scope"] == nil
     assert is_integer(response["expires_in"])
     assert {:ok, access_token} = AccessToken.get(response["access_token"])
     assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
@@ -1436,8 +1439,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert access_token.data["client_id"] == code.data["client_id"]
     assert access_token.data["sub"] == code.data["sub"]
     assert access_token.data["issuer"] == code.data["issuer"]
-    assert Scope.Set.equal?(Scope.Set.new(access_token.data["issuer"]),
-                            Scope.Set.new(code.data["issuer"]))
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
 
     refute access_token.data["iat"] == code.data["iat"]
     refute access_token.data["exp"] == code.data["exp"]
@@ -1447,11 +1450,52 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert refresh_token.data["__asteroid_oauth2_initial_flow"] ==
       code.data["__asteroid_oauth2_initial_flow"]
     assert refresh_token.data["issuer"] == code.data["issuer"]
-    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["issuer"]),
-                            Scope.Set.new(code.data["issuer"]))
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
 
     refute refresh_token.data["iat"] == code.data["iat"]
     refute refresh_token.data["exp"] == code.data["exp"]
+  end
+
+  test "grant type code success with refresh token with granted and requested scope different",
+  %{conn: conn}
+  do
+    {:ok, code} =
+      AuthorizationCode.gen_new()
+      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("sub", "user_1")
+      |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["scp1", "scp2", "scp5"]))
+      |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["scp1", "scp5"]))
+      |> AuthorizationCode.put_value("iat", now())
+      |> AuthorizationCode.put_value("exp", now() + 5)
+      |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.store()
+
+    req_body = %{
+      "grant_type" => "authorization_code",
+      "code" => AuthorizationCode.serialize(code),
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(RoutesAPI.token_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert Scope.Set.equal?(Scope.Set.new(response["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
+
+    assert {:ok, access_token} = AccessToken.get(response["access_token"])
+    assert {:ok, refresh_token} = RefreshToken.get(response["refresh_token"])
+
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
+
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
   end
 
   test "grant type code success with access and refresh token lifetime limited by scope config", %{conn: conn} do
@@ -1459,7 +1503,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       AuthorizationCode.gen_new()
       |> AuthorizationCode.put_value("client_id", "client_confidential_1")
       |> AuthorizationCode.put_value("sub", "user_1")
-      |> AuthorizationCode.put_value("scope", Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]))
+      |> AuthorizationCode.put_value("requested_scopes",
+                                     Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]))
+      |> AuthorizationCode.put_value("granted_scopes",
+                                    Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]))
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
@@ -1501,10 +1548,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert refresh_token.data["exp"] <= now() + 1001
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
-    assert Scope.Set.equal?(Scope.Set.new(access_token.data["issuer"]),
-                            Scope.Set.new(code.data["issuer"]))
-    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["issuer"]),
-                            Scope.Set.new(code.data["issuer"]))
+    assert Scope.Set.equal?(Scope.Set.new(access_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
+    assert Scope.Set.equal?(Scope.Set.new(refresh_token.data["scope"]),
+                            Scope.Set.new(code.data["granted_scopes"]))
   end
 
   test "grant type code success without refresh token without scopes", %{conn: conn} do
