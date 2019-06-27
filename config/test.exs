@@ -190,7 +190,7 @@ config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 config :asteroid, :api_error_response_verbosity, :debug
 
 config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
-  &CustomDev.Callback.test_ropc_username_password_callback/3
+  &Asteroid.Test.Callbacks.test_ropc_username_password_callback/3
 
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2

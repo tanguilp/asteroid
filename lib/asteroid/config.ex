@@ -265,7 +265,7 @@ defmodule Asteroid.Config do
 
     @type discovery_plugs :: [{module(), Keyword.t()}]
 
-    field :discovery,
+    field :discovery_plugs,
       config_time: :compile
 
     @doc """

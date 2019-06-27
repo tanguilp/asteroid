@@ -11,6 +11,13 @@ defmodule Asteroid.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(Mix.env()),
+      releases: [
+        prod: [
+          applications: [
+            riakc: :none
+          ]
+        ]
+      ],
       docs: docs(),
       dialyzer: [plt_add_apps: [:mix]]
     ]
@@ -27,8 +34,8 @@ defmodule Asteroid.MixProject do
   end
 
   # Specifies which paths to compile per environment.
-  defp elixirc_paths(:dev), do: ["lib", "custom_dev"]
-  defp elixirc_paths(:test), do: ["lib", "test/support", "custom_dev"]
+  defp elixirc_paths(:dev), do: ["lib", "custom_example"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
@@ -36,19 +43,19 @@ defmodule Asteroid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps(_) do
     [
-      {:apiac, path: "../apiac", override: true},
-      {:apiac_auth_basic, path: "../apiac_auth_basic"},
-      {:apiac_auth_bearer, path: "../apiac_auth_bearer"},
-      {:apiac_auth_client_secret_post, path: "../apiac_auth_client_secret_post"},
-      {:apiac_auth_mtls, path: "../apiac_auth_mtls"},
-      {:apiac_filter_ip_blacklist, path: "../apiac_filter_ip_blacklist"},
-      {:apiac_filter_ip_whitelist, path: "../apiac_filter_ip_whitelist"},
-      {:apiac_filter_throttler, path: "../apiac_filter_throttler"},
-      {:oauth2_utils, path: "../oauth2_utils", override: true},
-      {:attribute_repository, path: "../attribute_repository", override: true},
-      {:attribute_repository_ldap, path: "../attribute_repository_ldap"},
-      {:attribute_repository_mnesia, path: "../attribute_repository_mnesia"},
-      {:attribute_repository_riak, path: "../attribute_repository_riak"},
+      {:apiac, github: "tanguilp/apiac", tag: "0.3.0"},
+      {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic"},
+      {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer"},
+      {:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
+      {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
+      {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist"},
+      {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist"},
+      {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler"},
+      {:oauth2_utils, github: "tanguilp/oauth2_utils", override: true},
+      {:attribute_repository, github: "tanguilp/attribute_repository", override: true},
+      {:attribute_repository_ldap, github: "tanguilp/attribute_repository_ldap"},
+      {:attribute_repository_mnesia, github: "tanguilp/attribute_repository_mnesia"},
+      {:attribute_repository_riak, github: "tanguilp/attribute_repository_riak"},
       {:corsica, "~> 1.0"},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ecto_sql, "~> 3.0"},
@@ -106,13 +113,14 @@ defmodule Asteroid.MixProject do
       extras: [
         "guides/getting-started.md",
         "guides/general-architecture.md",
+        "guides/general-configuration.md",
         "guides/attribute-repositories.md",
         "guides/token-stores.md",
         "guides/protecting-apis.md",
-        "guides/general-configuration.md",
         "guides/configuring-clients.md",
         "guides/crypto-keys.md",
         "guides/network-configuration.md",
+        "guides/customizing.md",
         "guides/oauth2/terminology-conventions.md",
         "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",

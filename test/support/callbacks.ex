@@ -1,4 +1,4 @@
-defmodule CustomDev.Callback do
+defmodule Asteroid.Test.Callbacks do
   @moduledoc false
 
   alias Asteroid.Subject

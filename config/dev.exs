@@ -219,7 +219,7 @@ config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 config :asteroid, :api_error_response_verbosity, :normal
 
 config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
-  &CustomDev.Callback.test_ropc_username_password_callback/3
+  &CustomExample.Callback.test_ropc_username_password_callback/3
 
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
@@ -242,13 +242,14 @@ config :asteroid, :oauth2_endpoint_introspect_client_authorized,
   &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1
 
 config :asteroid, :oauth2_endpoint_introspect_claims_resp,
-  ["scope", "client_id", "username", "token_type", "exp", "iat", "nbf", "sub", "aud", "iss", "jti"]
+  ["scope", "client_id", "username", "token_type", "exp", "iat", "nbf", "sub", "aud", "iss", "jti", "dad_joke"]
 
 config :asteroid, :oauth2_endpoint_introspect_claims_resp_callback,
   &Asteroid.OAuth2.Callback.endpoint_introspect_claims_resp/1
 
 config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
-  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+  &CustomExample.Callback.introspect_add_subject_attributes/2
+#&Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :oauth2_endpoint_introspect_before_send_conn_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
@@ -292,7 +293,8 @@ config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1
 # access tokens
 
 config :asteroid, :token_store_access_token_before_store_callback,
-  &Asteroid.Config.DefaultCallbacks.id_first_param/2
+  &CustomExample.Callback.add_dad_joke/2
+#&Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :oauth2_access_token_lifetime_callback,
   &Asteroid.Token.AccessToken.lifetime/1
@@ -497,12 +499,6 @@ config :asteroid, :oauth2_access_token_signing_alg_callback,
   #config :asteroid, :oauth2_flow_ropc_access_token_serialization_format, :jws
 
 config :asteroid, :oauth2_flow_ropc_access_token_signing_key, "key_auto"
-
-config :asteroid, :oauth2_flow_client_credentials_access_token_serialization_format, :jws
-
-config :asteroid, :oauth2_flow_client_credentials_access_token_signing_key, "key_auto"
-
-config :asteroid, :oauth2_flow_client_credentials_access_token_signing_alg, "RS384"
 
 # device authorization flow
 
