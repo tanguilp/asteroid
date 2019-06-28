@@ -94,7 +94,7 @@ defmodule Asteroid.MixProject do
     [
       main: "getting-started",
       groups_for_modules: [
-        "Basic resources": [Asteroid.Client, Asteroid.Subject, Asteroid.Device],
+        "Resources": [Asteroid.Client, Asteroid.Subject, Asteroid.Device],
         "Tokens": [
           Asteroid.Token,
           Asteroid.Token.AccessToken,

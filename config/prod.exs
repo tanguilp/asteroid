@@ -74,4 +74,5 @@ config :phoenix, :json_library, Jason
 
 # Finally import the config/prod.secret.exs which should be versioned
 # separately.
-import_config "prod.secret.exs"
+# uncomment to actually include a secret file
+# import_config "prod.secret.exs"
