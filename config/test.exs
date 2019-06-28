@@ -216,7 +216,7 @@ config :asteroid, :oauth2_endpoint_introspect_claims_resp,
   ["scope", "client_id", "username", "token_type", "exp", "iat", "nbf", "sub", "aud", "iss", "jti"]
 
 config :asteroid, :oauth2_endpoint_introspect_claims_resp_callback,
-  &Asteroid.OAuth2.Callback.endpoint_introspect_claims_resp/1
+  &Asteroid.OAuth2.Introspect.endpoint_introspect_claims_resp/1
 
 config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
   &Asteroid.Utils.id_first_param/2

@@ -302,6 +302,21 @@ defmodule Asteroid.OAuth2.Client do
     client.attrs[attribute] == true
   end
 
+  @doc """
+  Returns the client secret from the client id of a client
+
+  Can be used in as a callback in `APIacAuthBasic` and `APIacAuthClientSecretPost` in the
+  configuration files:
+
+  ```elixir
+  {APIacAuthBasic,
+    realm: "Asteroid",
+    callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+    set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+    error_response_verbosity: :debug}
+  ```
+  """
+
   @spec get_client_secret(String.t(), String.t()) :: String.t()
 
   def get_client_secret(_realm, client_id) do
