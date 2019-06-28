@@ -1125,9 +1125,20 @@ defmodule Asteroid.Config do
     The callback should ensure that the client id does not already exists.
     """
 
-    @type oauth2_endpoint_register_gen_client_id_callback :: (map() -> String.t())
+    @type oauth2_endpoint_register_gen_client_id_callback ::
+    (map(), Asteroid.Context.t() -> String.t())
 
     field :oauth2_endpoint_register_gen_client_id_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked to generate the client *resource* id of a newly created client
+    """
+
+    @type oauth2_endpoint_register_gen_client_resource_id_callback ::
+    (map(), Asteroid.Context.t() -> AttributeRepository.resource_id())
+
+    field :oauth2_endpoint_register_gen_client_resource_id_callback,
     config_time: :runtime
 
     @doc """

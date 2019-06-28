@@ -127,7 +127,23 @@ defmodule Asteroid.OAuth2.Register do
   end
 
   @doc """
-  Generates a new client id
+  Generates a new id for the client attribute repository
+
+  This function simply returns the client id passed in the processed metadata
+
+  Rationale: the `AttributeRepository.resource_id/0` may have some constraints depending
+  on the attribute repository. For instance, LDAP id are DNs in the form of
+  `uid=client_id,ou=client,cn=example,cn=com`. In this case, the resource id cannot be the
+  same as
+  """
+
+  @spec generate_client_resource_id(processed_metadata :: map(), Asteroid.Context.t()) ::
+  AttributeRepository.resource_id()
+
+  def generate_client_resource_id(%{"client_id" => client_id}, _ctx), do: client_id
+
+  @doc """
+  Generates a new OAuth2 client id
 
   It takes into parameter the map of the parsed and controlled client metadata ready to be
   returned to the initiating client.
@@ -146,9 +162,9 @@ defmodule Asteroid.OAuth2.Register do
   - Otherwise returns a 20 bytes random string
   """
 
-  @spec generate_client_id(map()) :: String.t()
+  @spec generate_client_id(map(), Asteroid.Context.t()) :: String.t()
 
-  def generate_client_id(%{"client_name" => client_name}) when is_binary(client_name) do
+  def generate_client_id(%{"client_name" => client_name}, _ctx) when is_binary(client_name) do
     client_name_sanitized =
       client_name
       |> String.replace(~r/[^\x20-\x7E]/, "")
@@ -158,7 +174,7 @@ defmodule Asteroid.OAuth2.Register do
     gen_new_client_id_from_client_name(client_name_sanitized, 0)
   end
 
-  def generate_client_id(_) do
+  def generate_client_id(_, _ctx) do
     secure_random_b64(20)
   end
 

@@ -17,7 +17,7 @@ defmodule Asteroid.Utils do
   @doc """
   Returns the configuration option value
 
-  In tests, checks first the process dictionnary for the value and fallbacks to the standard
+  In tests, checks first the process dictionary for the value and fall backs to the standard
   configuration, so that one can set configuration at the testing process level using:
 
   ```elixir
@@ -49,4 +49,28 @@ defmodule Asteroid.Utils do
 
   def put_if_not_empty_string(map, _, ""), do: map
   def put_if_not_empty_string(map, key, value), do: Map.put(map, key, value)
+
+  @doc """
+  Returns the parameter unchanged
+  """
+
+  @spec id(any()) :: any()
+
+  def id(param), do: param
+
+  @doc """
+  Returns the first parameter unchanged
+  """
+
+  @spec id_first_param(any(), any()) :: any()
+
+  def id_first_param(param, _), do: param
+
+  @doc """
+  Always returns nil
+  """
+
+  @spec always_nil(any(), any()) :: nil
+
+  def always_nil(_, _ \\ nil), do: nil
 end

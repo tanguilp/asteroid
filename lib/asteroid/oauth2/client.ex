@@ -301,4 +301,16 @@ defmodule Asteroid.OAuth2.Client do
 
     client.attrs[attribute] == true
   end
+
+  @spec get_client_secret(String.t(), String.t()) :: String.t()
+
+  def get_client_secret(_realm, client_id) do
+    case Client.load(client_id, attributes: ["client_secret"]) do
+      {:ok, client} ->
+        client.attrs["client_secret"]
+
+      {:error, _} ->
+        nil
+    end
+  end
 end

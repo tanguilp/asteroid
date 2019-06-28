@@ -134,6 +134,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       |> process_software_id(input_metadata)
       |> process_software_version(input_metadata)
       |> process_additional_metadata_fields(maybe_authenticated_client, input_metadata)
+      |> set_client_id(ctx)
 
     maybe_client_secret_and_hash =
       if processed_metadata["token_endpoint_auth_method"] == "client_secret_basic" or
@@ -144,18 +145,18 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
         nil
       end
 
-    client_id = astrenv(:oauth2_endpoint_register_gen_client_id_callback).(processed_metadata)
+    client_resource_id =
+      astrenv(:oauth2_endpoint_register_gen_client_resource_id_callback).(processed_metadata, ctx)
 
     new_client =
       Enum.reduce(
         processed_metadata,
-        Client.gen_new(id: client_id),
+        Client.gen_new(id: client_resource_id),
         fn
           {k, v}, acc ->
             Client.add(acc, k, v)
         end
       )
-      |> Client.add("client_id", client_id)
       |> set_new_client_type()
       |> set_client_created_by(maybe_authenticated_client)
 
@@ -185,7 +186,6 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       else
         processed_metadata
       end
-      |> Map.put("client_id", client_id)
       |> astrenv(:oauth2_endpoint_register_before_send_resp_callback).(ctx)
 
     conn
@@ -744,6 +744,15 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
           put_if_not_nil(acc, additional_field, input_metadata[additional_field])
       end
     )
+  end
+
+  @spec set_client_id(map(), Asteroid.Context.t()) :: map()
+
+  defp set_client_id(processed_metadata, ctx) do
+    client_id =
+      astrenv(:oauth2_endpoint_register_gen_client_id_callback).(processed_metadata, ctx)
+
+    Map.put(processed_metadata, "client_id", client_id)
   end
 
   @spec set_new_client_type(Client.t()) :: Client.t()

@@ -172,7 +172,7 @@ config :asteroid, :api_oauth2_plugs,
     {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]},
     {APIacAuthBasic,
       realm: "Asteroid",
-      callback: &Asteroid.Config.DefaultCallbacks.get_client_secret/2,
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
       set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
       error_response_verbosity: :debug},
     {APIacAuthClientSecretPost,
@@ -373,7 +373,10 @@ config :asteroid, :oauth2_endpoint_register_client_before_save_callback,
   &Asteroid.Config.DefaultCallbacks.id_first_param/2
 
 config :asteroid, :oauth2_endpoint_register_gen_client_id_callback,
-  &Asteroid.OAuth2.Register.generate_client_id/1
+  &Asteroid.OAuth2.Register.generate_client_id/2
+
+config :asteroid, :oauth2_endpoint_register_gen_client_resource_id_callback,
+  &Asteroid.OAuth2.Register.generate_client_resource_id/2
 
 config :asteroid, :oauth2_endpoint_register_client_type_callback,
   &Asteroid.OAuth2.Register.client_type/1

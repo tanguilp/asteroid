@@ -63,7 +63,7 @@ information.
 ## Metadata fields
 
 The `"client_id"` for new clients is derived by the
-`Asteroid.OAuth2.Register.generate_client_id/1` function from the client's name. The client id
+`Asteroid.OAuth2.Register.generate_client_id/2` function from the client's name. The client id
 generation function can be modified by the
 `:oauth2_endpoint_register_gen_client_id_callback` callback.
 
