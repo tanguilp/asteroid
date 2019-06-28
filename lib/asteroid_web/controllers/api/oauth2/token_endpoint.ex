@@ -273,7 +273,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       if Scope.Set.subset?(requested_scopes,
                            Scope.Set.new(refresh_token.data["scope"] || [])) do
         maybe_subject =
-          case Subject.load(refresh_token.data["sub"]) do
+          case Subject.load_from_unique_attribute("sub", refresh_token.data["sub"]) do
             {:ok, subject} ->
               subject
 
@@ -412,7 +412,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          :ok <- authorization_code_granted_to_client?(authz_code, client),
          :ok <- redirect_uris_match?(authz_code, redirect_uri),
          :ok <- pkce_code_verifier_valid?(authz_code, params["code_verifier"]),
-         {:ok, subject} <- Subject.load(authz_code.data["sub"])
+         {:ok, subject} <- Subject.load_from_unique_attribute("sub", authz_code.data["sub"])
     do
       requested_scopes = Scope.Set.new(authz_code.data["requested_scopes"] || [])
       granted_scopes = Scope.Set.new(authz_code.data["granted_scopes"] || [])
@@ -566,7 +566,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          {:ok, device_code} <- DeviceCode.get(device_code_param),
          :ok <- device_code_granted_to_client?(device_code, client),
          :ok <- device_code_access_granted?(device_code),
-         {:ok, subject} <- Subject.load(device_code.data["sjid"])
+         {:ok, subject} <- Subject.load_from_unique_attribute("sub", device_code.data["sjid"])
     do
       DeviceCode.delete(device_code)
 

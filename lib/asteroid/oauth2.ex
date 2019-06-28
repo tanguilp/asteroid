@@ -186,6 +186,12 @@ defmodule Asteroid.OAuth2 do
   end
 
   @typedoc """
+  An OAuth2 client_id
+  """
+
+  @type client_id :: String.t()
+
+  @typedoc """
   OAuth2 grant types
   """
 

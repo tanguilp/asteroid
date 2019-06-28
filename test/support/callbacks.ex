@@ -9,7 +9,7 @@ defmodule Asteroid.Test.Callbacks do
     :: {:ok, Asteroid.Subject.t()} | {:error, atom()}
 
   def test_ropc_username_password_callback(_conn, username, password) do
-    case Subject.load(username, attributes: ["password"]) do
+    case Subject.load_from_unique_attribute("sub", username, attributes: ["password"]) do
       {:ok, sub} ->
         if sub.attrs["password"] == password do
           {:ok, sub}

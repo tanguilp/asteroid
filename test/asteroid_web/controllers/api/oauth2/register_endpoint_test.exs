@@ -36,7 +36,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
-    assert {:ok, _} = Client.load(response["client_id"])
+    assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
   test ":authenticated_clients policy, unauthenticated client not authorized to create new clients", %{conn: conn} do
@@ -95,7 +95,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
-    assert {:ok, _} = Client.load(response["client_id"])
+    assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
   test ":authorized_clients policy, unauthenticated client not authorized to create new clients", %{conn: conn} do
@@ -143,7 +143,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
-    assert {:ok, _} = Client.load(response["client_id"])
+    assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
   test ":authorized_clients policy, client authorized to create new clients, auth bearer", %{conn: conn} do
@@ -167,7 +167,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
-    assert {:ok, _} = Client.load(response["client_id"])
+    assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
   test "invalid redirect uri", %{conn: conn} do
@@ -422,7 +422,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
-    assert {:ok, _} = Client.load(response["client_id"])
+    assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
   test "additional metadata added to result pus all standard attributes", %{conn: conn} do
@@ -493,7 +493,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["field_3"] == nil
     assert response["field_4"] == "value 4"
 
-    assert {:ok, client} = Client.load(response["client_id"])
+    assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
     client = Client.fetch_attributes(client, [
       "client_name", "client_name_i18n", "redirect_uris", "token_endpoint_auth_method",
@@ -552,7 +552,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       Scope.Set.new(Scope.Set.from_scope_param!(response["scope"])),
       Scope.Set.new(Scope.Set.from_scope_param!("scp11 scp13 scp19 scp17 scp18")))
 
-    assert {:ok, client} = Client.load(response["client_id"])
+    assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
     client = Client.fetch_attributes(client, ["scope"])
 
@@ -598,7 +598,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert response["grant_types"] == ["authorization_code"]
     assert response["response_types"] == ["code"]
 
-    assert {:ok, client} = Client.load(response["client_id"])
+    assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
     client = Client.fetch_attributes(client, ["jwks"])
 
@@ -624,7 +624,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       Enum.sort(["authorization_code", "client_credentials", "password"])
     assert response["response_types"] == ["code"]
 
-    assert {:ok, client} = Client.load(response["client_id"])
+    assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
     client = Client.fetch_attributes(client, [
       "client_id", "token_endpoint_auth_method", "grant_types", "response_types"])

@@ -69,7 +69,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   defp introspect_access_token(conn, access_token, client) do
     maybe_subject =
-      case Subject.load(access_token.data["sub"]) do
+      case Subject.load_from_unique_attribute("sub", access_token.data["sub"]) do
         {:ok, subject} ->
           subject
 
@@ -103,7 +103,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
   @spec introspect_refresh_token(Plug.Conn.t(), RefreshToken.t(), Client.t()) :: Plug.Conn.t()
   defp introspect_refresh_token(conn, refresh_token, client) do
     maybe_subject =
-      case Subject.load(refresh_token.data["sub"]) do
+      case Subject.load_from_unique_attribute("sub", refresh_token.data["sub"]) do
         {:ok, subject} ->
           subject
 

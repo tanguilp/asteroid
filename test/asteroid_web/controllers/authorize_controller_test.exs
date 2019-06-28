@@ -3,7 +3,6 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
   import Asteroid.Utils
 
-  alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
   alias OAuth2Utils.Scope
@@ -163,7 +162,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -185,7 +184,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{"state" => "sxgjwzedrgdfchexgim"}
@@ -206,7 +205,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -225,7 +224,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -248,7 +247,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{"state" => "sxgjwzedrgdfchexgim"}
@@ -275,7 +274,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -304,7 +303,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :token,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{"state" => "sxgjwzedrgdfchexgim"}
@@ -334,7 +333,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :token,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -365,7 +364,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :token,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
         params: %{"state" => "sxgjwzedrgdfchexgim"}
@@ -399,7 +398,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :token,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
         params: %{"state" => "sxgjwzedrgdfchexgim"}
@@ -445,7 +444,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :token,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -605,7 +604,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
                 fn conn, request ->
                   request_map =
                     Map.from_struct(%{request |
-                      client: Map.from_struct(request.client),
+                      client_id: request.client_id,
                       requested_scopes: Scope.Set.to_list(request.requested_scopes)
                     })
 
@@ -628,7 +627,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         response_type: :code,
-        client: Client.load("client_confidential_1") |> elem(1),
+        client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         pkce_code_challenge: String.duplicate("x", 50),

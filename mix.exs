@@ -117,7 +117,7 @@ defmodule Asteroid.MixProject do
         "guides/attribute-repositories.md",
         "guides/token-stores.md",
         "guides/protecting-apis.md",
-        "guides/configuring-clients.md",
+        "guides/configuring-resources.md",
         "guides/crypto-keys.md",
         "guides/network-configuration.md",
         "guides/customizing.md",

@@ -109,7 +109,7 @@ defmodule Asteroid.OAuth2.Client do
 
   def get_authenticated_client(conn) do
     if APIac.authenticated?(conn) do
-      case Client.load(APIac.client(conn)) do
+      case Client.load_from_unique_attribute("client_id", APIac.client(conn)) do
         {:ok, client} ->
           {:ok, client}
 
@@ -141,7 +141,7 @@ defmodule Asteroid.OAuth2.Client do
 
       client_id ->
         if OAuth2Utils.valid_client_id_param?(client_id) do
-          case Client.load(client_id) do
+          case Client.load_from_unique_attribute("client_id", client_id) do
             {:ok, client} ->
               if public?(client) do
                 if not has_credentials?(client) do
@@ -320,7 +320,8 @@ defmodule Asteroid.OAuth2.Client do
   @spec get_client_secret(String.t(), String.t()) :: String.t()
 
   def get_client_secret(_realm, client_id) do
-    case Client.load(client_id, attributes: ["client_secret"]) do
+    case Client.load_from_unique_attribute("client_id",client_id, attributes: ["client_secret"])
+    do
       {:ok, client} ->
         client.attrs["client_secret"]
 

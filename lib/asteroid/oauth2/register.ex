@@ -130,11 +130,6 @@ defmodule Asteroid.OAuth2.Register do
   Generates a new id for the client attribute repository
 
   This function simply returns the client id passed in the processed metadata
-
-  Rationale: the `AttributeRepository.resource_id/0` may have some constraints depending
-  on the attribute repository. For instance, LDAP id are DNs in the form of
-  `uid=client_id,ou=client,cn=example,cn=com`. In this case, the resource id cannot be the
-  same as
   """
 
   @spec generate_client_resource_id(processed_metadata :: map(), Asteroid.Context.t()) ::
@@ -200,7 +195,7 @@ defmodule Asteroid.OAuth2.Register do
           client_name <> "_" <> Integer.to_string(n)
       end
 
-    case Client.load(client_name_suffixed, attributes: []) do
+    case Client.load_from_unique_attribute("client_id", client_name_suffixed, attributes: []) do
       {:error, %AttributeRepository.Read.NotFoundError{}} ->
         # the client doesn't exist
         client_name_suffixed

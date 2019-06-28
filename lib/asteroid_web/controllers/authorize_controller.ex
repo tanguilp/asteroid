@@ -17,11 +17,11 @@ defmodule AsteroidWeb.AuthorizeController do
     Struct with the necessary information to process an web authorization request
     """
 
-    @enforce_keys [:response_type, :client, :redirect_uri, :requested_scopes, :params]
+    @enforce_keys [:response_type, :client_id, :redirect_uri, :requested_scopes, :params]
 
     defstruct [
       :response_type,
-      :client,
+      :client_id,
       :redirect_uri,
       :requested_scopes,
       :pkce_code_challenge,
@@ -31,7 +31,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
     @type t :: %__MODULE__{
       response_type: OAuth2.response_type(),
-      client: Client.t(),
+      client_id: OAuth2.client_id(),
       redirect_uri: OAuth2.RedirectUri.t(),
       requested_scopes: Scope.Set.t(),
       pkce_code_challenge: OAuth2.PKCE.code_challenge() | nil,
@@ -63,17 +63,19 @@ defmodule AsteroidWeb.AuthorizeController do
          :ok <- Asteroid.OAuth2.response_type_enabled?(:code),
          :ok <- client_id_valid?(client_id),
          :ok <- redirect_uri_valid?(redirect_uri),
-         {:ok, client} <- Client.load(client_id),
+         {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "code"),
          :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :authorization_code),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <- pkce_params(client, params)
     do
+      client = Client.fetch_attributes(client, ["client_id"])
+
       authz_request =
         %Request{
           response_type: :code,
-          client: client,
+          client_id: client.attrs["client_id"],
           redirect_uri: redirect_uri,
           requested_scopes: requested_scopes,
           pkce_code_challenge: maybe_code_challenge,
@@ -135,16 +137,18 @@ defmodule AsteroidWeb.AuthorizeController do
          :ok <- Asteroid.OAuth2.response_type_enabled?(:token),
          :ok <- client_id_valid?(client_id),
          :ok <- redirect_uri_valid?(redirect_uri),
-         {:ok, client} <- Client.load(client_id),
+         {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, "token"),
          :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :implicit),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
     do
+      client = Client.fetch_attributes(client, ["client_id"])
+
       authz_request =
         %Request{
           response_type: :token,
-          client: client,
+          client_id: client.attrs["client_id"],
           redirect_uri: redirect_uri,
           requested_scopes: requested_scopes,
           params: params
@@ -188,7 +192,7 @@ defmodule AsteroidWeb.AuthorizeController do
   def pre_authorize(conn, %{"redirect_uri" => redirect_uri, "client_id" => client_id} = params) do
     with :ok <- client_id_valid?(client_id),
          :ok <- redirect_uri_valid?(redirect_uri),
-         {:ok, client} <- Client.load(client_id),
+         {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri)
     do
       if params["response_type"] do
@@ -233,11 +237,13 @@ defmodule AsteroidWeb.AuthorizeController do
 
   def authorization_granted(conn, %Request{response_type: :code} = authz_request, res)
   do
-    client = Client.fetch_attributes(authz_request.client, ["client_id"])
+    client =
+      Client.load_from_unique_attribute("client_id", authz_request.client_id)
+      |> elem(1)
+      |> Client.fetch_attributes(["client_id"])
 
     subject =
-      res[:sub]
-      |> Subject.load() # returns {:ok, subject}
+      Subject.load_from_unique_attribute("sub", res[:sub]) # returns {:ok, subject}
       |> elem(1)
       |> Subject.fetch_attributes(["sub"])
 
@@ -296,11 +302,13 @@ defmodule AsteroidWeb.AuthorizeController do
 
   def authorization_granted(conn, %Request{response_type: :token} = authz_request, res)
   do
-    client = Client.fetch_attributes(authz_request.client, ["client_id"])
+    client =
+      Client.load_from_unique_attribute("client_id", authz_request.client_id)
+      |> elem(1)
+      |> Client.fetch_attributes(["client_id"])
 
     subject =
-      res[:sub]
-      |> Subject.load() # returns {:ok, subject}
+      Subject.load_from_unique_attribute("sub", res[:sub]) # returns {:ok, subject}
       |> elem(1)
       |> Subject.fetch_attributes(["sub"])
 
