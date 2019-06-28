@@ -480,9 +480,6 @@ config :asteroid, :oauth2_endpoint_discovery_keys_before_send_conn_callback,
 # crypto
 
 config :asteroid, :crypto_keys, %{
-  "key_from_file_1" => {:pem_file, [path: "priv/keys/ec-secp256r1.pem", use: :sig]},
-  "key_from_file_2" => {:pem_file, [path: "priv/keys/ec-secp521r1.pem", use: :sig]},
-  "key_from_map" => {:map, [key: {%{kty: :jose_jwk_kty_oct}, %{"k" => "P9dGnU_We5thJOOigUGtl00WmubLVAAr1kYsAUP80Sc", "kty" => "oct"}}, use: :sig]},
   "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig, advertise: false]}
 }
 
