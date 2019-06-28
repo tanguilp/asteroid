@@ -105,25 +105,19 @@ config :asteroid, Asteroid.Repo,
 ######################################################################
 
 config :asteroid, :token_store_access_token, [
-  #module: Asteroid.TokenStore.AccessToken.Riak,
-  #opts: [bucket_type: "ephemeral_token"]
   module: Asteroid.TokenStore.AccessToken.Mnesia
 ]
 
 config :asteroid, :token_store_refresh_token, [
-  #module: Asteroid.TokenStore.RefreshToken.Mnesia
-  module: Asteroid.TokenStore.RefreshToken.Riak,
-  opts: [bucket_type: "token"]
+  module: Asteroid.TokenStore.RefreshToken.Mnesia
 ]
 
 config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.TokenStore.AuthorizationCode.Riak,
-  opts: [bucket_type: "ephemeral_token"]
+  module: Asteroid.TokenStore.AuthorizationCode.Mnesia
 ]
 
 config :asteroid, :token_store_device_code, [
-  module: Asteroid.TokenStore.DeviceCode.Riak,
-  opts: [bucket_type: "ephemeral_token"]
+  module: Asteroid.TokenStore.DeviceCode.Mnesia
 ]
 
 config :asteroid, :attribute_repositories,
@@ -141,8 +135,8 @@ config :asteroid, :attribute_repositories,
   #],
   subject: [
     module: AttributeRepositoryMnesia,
-    run_opts: [instance: :subject],
-    init_opts: [instance: :subject]
+    init_opts: [instance: :subject],
+    run_opts: [instance: :subject]
   ],
   client: [
     module: AttributeRepositoryMnesia,
@@ -150,9 +144,9 @@ config :asteroid, :attribute_repositories,
     run_opts: [instance: :client]
   ],
   device: [
-    module: AttributeRepositoryRiak,
-    run_opts: [instance: :device, bucket_type: "device"],
-    auto_start: false
+    module: AttributeRepositoryMnesia,
+    init_opts: [instance: :device],
+    run_opts: [instance: :device]
   ]
 ]
 
