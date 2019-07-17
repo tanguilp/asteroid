@@ -1,0 +1,101 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Register a new security key</p>
+  <img src="<%= Routes.static_path(@conn, "/images/fingerprint-scanning.svg") %>"/><br/>
+  <p><em><%= @subject.attrs["sub"] %></em>, press your authenticator now!</p>
+</section>
+
+<section>
+  <p style="text-align:right"><a href="/authorize_scopes">Skip</a></p>
+  <p>
+  <%= form_for @conn, Routes.register_webauthn_key_path(@conn, :index), [as: :key, id: "waf"], fn f -> %>
+    <%= hidden_input f, :rawID, id: "rawID" %>
+    <%= hidden_input f, :type, id: "type" %>
+    <%= hidden_input f, :clientDataJSON, id: "clientDataJSON" %>
+    <%= hidden_input f, :attestationObject, id: "attestationObject" %>
+    <%= submit "Skip", style: "visibility:hidden" %>
+  <% end %>
+  </p>
+</section>
+
+<section>
+  <p style="font-size:0.6em; color: grey">Image from <a style="color: grey"href="https://www.flaticon.com/free-icon/fingerprint-scanning_25930">
+  https://www.flaticon.com/free-icon/fingerprint-scanning_25930</a></p>
+</section>
+<script>
+var challenge_b64 = "<%= @challenge %>";
+var rp_id = "<%= @rp_id %>";
+var user = "<%= @subject.attrs["sub"] %>";
+
+function _arrayBufferToString( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode( bytes[ i ] );
+  }
+  return binary;
+}
+
+function _arrayBufferToBase64( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode( bytes[ i ] );
+  }
+  return window.btoa( binary );
+}
+
+function _base64ToArrayBuffer(base64) {
+    var binary_string =  window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function triggerAttestation(){
+  var attestation_conveyance_preference = "none";
+
+  challenge = _base64ToArrayBuffer(challenge_b64);
+
+  navigator.credentials.create({
+    publicKey: {
+      // random, cryptographically secure, at least 16 bytes
+      challenge: challenge,
+      // relying party
+      rp: {
+        id: rp_id,
+        name: 'Wax FTW'
+      },
+      user: {
+        id: new Uint8Array(16),
+        name: user,
+        displayName: user
+      },
+      pubKeyCredParams: [
+        {
+          type: "public-key", alg: -7 // "ES256" IANA COSE Algorithms registry
+        }
+      ],
+      attestation: attestation_conveyance_preference
+    }
+  }).then(function (newCredential) {
+    document.getElementById('rawID').value = _arrayBufferToBase64(newCredential.rawId);
+    document.getElementById('type').value = newCredential.type;
+    document.getElementById('clientDataJSON').value =
+      _arrayBufferToString(newCredential.response.clientDataJSON)
+    document.getElementById('attestationObject').value =
+      _arrayBufferToBase64(newCredential.response.attestationObject)
+
+    document.getElementById('waf').submit();
+  }).catch(function (err) {
+    console.log(err);
+  });
+}
+
+triggerAttestation();
+</script>

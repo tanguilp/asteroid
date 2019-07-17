@@ -1,0 +1,84 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Register a new security key</p>
+  <img src="<%= Routes.static_path(@conn, "/images/fingerprint-scanning.svg") %>"/><br/>
+  <p><em><%= @subject.attrs["sub"] %></em>, press your authenticator now!</p>
+
+  <%= form_for @conn, Routes.webauthn_login_path(@conn, :index), [as: :webauthn, id: "waf"], fn f -> %>
+    <%= hidden_input f, :rawID, id: "rawID" %>
+    <%= hidden_input f, :type, id: "type" %>
+    <%= hidden_input f, :clientDataJSON, id: "clientDataJSON" %>
+    <%= hidden_input f, :authenticatorData, id: "authenticatorData" %>
+    <%= hidden_input f, :sig, id: "sig" %>
+  <% end %>
+</section>
+
+<section>
+  <p style="font-size:0.6em; color: grey">Image from <a style="color: grey"href="https://www.flaticon.com/free-icon/fingerprint-scanning_25930">
+  https://www.flaticon.com/free-icon/fingerprint-scanning_25930</a></p>
+</section>
+
+<script>
+function _arrayBufferToString( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode( bytes[ i ] );
+  }
+  return binary;
+}
+
+function _arrayBufferToBase64( buffer ) {
+  var binary = '';
+  var bytes = new Uint8Array( buffer );
+  var len = bytes.byteLength;
+  for (var i = 0; i < len; i++) {
+    binary += String.fromCharCode( bytes[ i ] );
+  }
+  return window.btoa( binary );
+}
+
+function _base64ToArrayBuffer(base64) {
+    var binary_string =  window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array( len );
+    for (var i = 0; i < len; i++)        {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function triggerAuthenticate(){
+  navigator.credentials.get({
+    publicKey: {
+      challenge: _base64ToArrayBuffer("<%= @challenge %>"),
+
+      allowCredentials: [
+      <%= for cred_id <- @cred_ids do %>
+        {
+          id: _base64ToArrayBuffer("<%= cred_id %>"),
+          type: "public-key",
+          transports: ["usb", "nfc", "ble"]
+        },
+      <% end %>
+      ]
+    }
+  }).then(function (newCredential) {
+    document.getElementById('rawID').value = _arrayBufferToBase64(newCredential.rawId);
+    document.getElementById('type').value = newCredential.type;
+    document.getElementById('clientDataJSON').value =
+      _arrayBufferToString(newCredential.response.clientDataJSON)
+    document.getElementById('authenticatorData').value =
+      _arrayBufferToBase64(newCredential.response.authenticatorData)
+    document.getElementById('sig').value =
+      _arrayBufferToBase64(newCredential.response.signature)
+
+    document.getElementById('waf').submit();
+  }).catch((err) => {
+    console.log(err);
+  });
+}
+
+triggerAuthenticate()
+</script>

@@ -1,0 +1,32 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Please select an account:</p>
+  <div id="username_picker" style="margin-top:1em">
+  </div>
+
+  <p style="margin-top:2em">or <a href="username">enter a new username</a></p>
+</section>
+
+<script>
+  function loadAndDisplayKnownUsernames(){
+    var storedUsernames = JSON.parse(localStorage.getItem("usernames"));
+
+    console.log(storedUsernames);
+
+    if (storedUsernames === null || storedUsernames === []){
+      window.location.replace("/username");
+    }
+    else{
+      console.log(storedUsernames);
+      for (const username of storedUsernames) {
+        var username_html = '<p class="username_card">' +
+          '<a href="/account_select?selected=' + encodeURI(username) + '">'+
+          username + '</a></p>';
+
+        document.getElementById('username_picker').innerHTML += username_html;
+      }
+    }
+  }
+
+  loadAndDisplayKnownUsernames();
+</script>

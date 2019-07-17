@@ -36,6 +36,17 @@ defmodule AsteroidWeb.Router do
 
     get "/authorize", AuthorizeController, :pre_authorize
     get "/device", DeviceController, :pre_authorize
+    get "/account_select", AccountSelectController, :index
+    get "/username", UsernameController, :index
+    post "/username", UsernameController, :put
+    get "/password", PasswordController, :index
+    post "/password", PasswordController, :put
+    get "/register_webauthn_key", RegisterWebauthnKeyController, :index
+    post "/register_webauthn_key", RegisterWebauthnKeyController, :validate
+    get "/webauthn_login", WebauthnLoginController, :index
+    post "/webauthn_login", WebauthnLoginController, :validate
+    get "/authorize_scopes", AuthorizeScopesController, :index
+    post "/authorize_scopes", AuthorizeScopesController, :validate
   end
 
   scope "/.well-known", AsteroidWeb.WellKnown do

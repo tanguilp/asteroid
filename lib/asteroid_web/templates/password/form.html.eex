@@ -1,0 +1,12 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Please enter your password:</p>
+
+  <p style="margin-top:1em">
+  <%= form_for @conn, Routes.password_path(@conn, :put), fn f -> %>
+    <%= password_input f, :password %>
+    <%= submit "Login" %>
+  <% end %>
+  <small>Try `123456` ;)</small><br/>
+  </p>
+</section>

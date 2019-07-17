@@ -1,0 +1,28 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Please enter a username:</p>
+
+  <p style="margin-top:1em">
+  <%= form_for @conn, Routes.username_path(@conn, :index), [id: "username_form"], fn f -> %>
+    <%= text_input f, :username %>
+    <%= submit "Next" %>
+  <% end %>
+  </p>
+</section>
+
+<script>
+  function locallySaveUsernameOnSubmit(evt){
+    var newUsername = document.getElementById('username').value;
+    var storedNames = JSON.parse(localStorage.getItem("usernames")) || [];
+
+    if (!storedNames.includes(newUsername)){
+      storedNames.push(newUsername);
+    }
+
+    localStorage.setItem("usernames", JSON.stringify(storedNames));
+
+    return true;
+  }
+
+  document.getElementById('username_form').addEventListener('submit', locallySaveUsernameOnSubmit);
+</script>

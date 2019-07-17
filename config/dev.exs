@@ -135,7 +135,7 @@ config :asteroid, :attribute_repositories,
   #],
   subject: [
     module: AttributeRepositoryMnesia,
-    init_opts: [instance: :subject],
+    init_opts: [instance: :subject, mnesia_config: [disc_copies: [node()]]],
     run_opts: [instance: :subject]
   ],
   client: [

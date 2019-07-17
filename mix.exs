@@ -47,7 +47,6 @@ defmodule Asteroid.MixProject do
       {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic"},
       {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer"},
       {:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
-      {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
       {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist"},
       {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist"},
       {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler"},
@@ -62,6 +61,7 @@ defmodule Asteroid.MixProject do
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
       {:hammer, "~> 6.0", optionnal: true},
+      {:httpoison, "~> 1.0", override: true},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.9"},
       {:phoenix, "~> 1.4.0"},
@@ -72,7 +72,8 @@ defmodule Asteroid.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:postgrex, ">= 0.0.0"},
       {:riak, github: "tanguilp/riak-elixir-client"},
-      {:singleton, "~> 1.2.0"}
+      {:singleton, "~> 1.2.0"},
+      {:wax, github: "tanguilp/wax", tag: "0.1.2"}
     ]
   end
 
