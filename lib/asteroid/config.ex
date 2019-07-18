@@ -777,7 +777,7 @@ defmodule Asteroid.Config do
     to the request. It will typically involve several step, i.e. display of web pages. It does
     returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
     one of these callback shall be called:
-    - `AsteroidWeb.AuthorizeController.authorization_granted/3`
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
     - `AsteroidWeb.AuthorizeController.authorization_denied/3`
     """
 
@@ -926,7 +926,7 @@ defmodule Asteroid.Config do
     to the request. It will typically involve several step, i.e. display of web pages. It does
     returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
     one of these callback shall be called:
-    - `AsteroidWeb.AuthorizeController.authorization_granted/3`
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
     - `AsteroidWeb.AuthorizeController.authorization_denied/3`
     """
 

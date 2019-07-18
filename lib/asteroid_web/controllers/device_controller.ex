@@ -95,7 +95,8 @@ defmodule AsteroidWeb.DeviceController do
   server
 
   The options are a `map()` with the following keys (all **mandatory**):
-  - `:authz_request`: the initial `Request.t()` authorization request
+  - `:authz_request`: the initial `t:AsteroidWeb.AuthorizeController.Request.t/0` authorization
+  request
   - `:user_code`: the user code, if any was validated or entered by the user, to be marked
   as denied or `nil` if it was not verified
   - `:error`: one of the following exceptions:

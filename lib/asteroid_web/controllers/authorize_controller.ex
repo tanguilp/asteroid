@@ -226,38 +226,38 @@ defmodule AsteroidWeb.AuthorizeController do
   authorization (approving scopes) process, or in case an authentication already occured
   recently (cookie).
 
-  The `res` parameter is a `map()` whose keys are:
-  - `:sub`: the subject id (a `String.t()`)
-  - `:granted_scopes`: a `MapSet.t()` for the granted scope. If none was granted (because none
-  were requested, or because user did not authorize them), a empty `t:Scope.Set.t/0` must be
-  set
+  The `opts` parameter is a `map()` whose keys are (all are **mandatory**):
+  - `:authz_request`: the initial `t:AsteroidWeb.AuthorizeController.Request.t/0` authorization
+  request
+  - `:subject`: the `t:Asteroid.Subject.t/0` of the user having approved the request
+  - `:granted_scopes`: a `t:OAuth2Utils.Scope.Set.t/0` for the granted scope. If none was granted
+  (because none were requested, or because user did not authorize them), an empty
+  `t:OAuth2Utils.Scope.Set.t/0` must be set
   """
 
-  @spec authorization_granted(Plug.Conn.t(), Request.t(), map()) :: Plug.Conn.t()
+  @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_granted(conn, %Request{response_type: :code} = authz_request, res)
-  do
-    client =
-      Client.load_from_unique_attribute("client_id", authz_request.client_id)
-      |> elem(1)
-      |> Client.fetch_attributes(["client_id"])
+  def authorization_granted(conn, %{authz_request: %Request{response_type: :code}} = opts) do
+    authz_request = opts[:authz_request]
 
-    subject =
-      Subject.load_from_unique_attribute("sub", res[:sub]) # returns {:ok, subject}
-      |> elem(1)
-      |> Subject.fetch_attributes(["sub"])
+    {:ok, client} =
+      Client.load_from_unique_attribute("client_id",
+                                        authz_request.client_id,
+                                        attributes: ["client_id"])
+
+    subject = Subject.fetch_attributes(opts[:subject], ["sub"])
 
     ctx =
       %{}
       |> Map.put(:endpoint, :authorize)
       |> Map.put(:flow, :authorization_code)
       |> Map.put(:requested_scopes, authz_request.requested_scopes)
-      |> Map.put(:granted_scopes, res[:granted_scopes])
+      |> Map.put(:granted_scopes, opts[:granted_scopes])
       |> Map.put(:client, client)
       |> Map.put(:subject, subject)
-      |> Map.put(:flow_result, res)
+      |> Map.put(:flow_result, opts)
 
-    granted_scopes = astrenv(:oauth2_scope_callback).(res[:granted_scopes], ctx)
+    granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
     {:ok, authorization_code} =
       AuthorizationCode.gen_new()
@@ -300,29 +300,27 @@ defmodule AsteroidWeb.AuthorizeController do
     |> redirect(external: redirect_uri)
   end
 
-  def authorization_granted(conn, %Request{response_type: :token} = authz_request, res)
-  do
-    client =
-      Client.load_from_unique_attribute("client_id", authz_request.client_id)
-      |> elem(1)
-      |> Client.fetch_attributes(["client_id"])
+  def authorization_granted(conn, %{authz_request: %Request{response_type: :token}} = opts) do
+    authz_request = opts[:authz_request]
 
-    subject =
-      Subject.load_from_unique_attribute("sub", res[:sub]) # returns {:ok, subject}
-      |> elem(1)
-      |> Subject.fetch_attributes(["sub"])
+    {:ok, client} =
+      Client.load_from_unique_attribute("client_id",
+                                        authz_request.client_id,
+                                        attributes: ["client_id"])
+
+    subject = Subject.fetch_attributes(opts[:subject], ["sub"])
 
     ctx =
       %{}
       |> Map.put(:endpoint, :authorize)
       |> Map.put(:flow, :implicit)
       |> Map.put(:requested_scopes, authz_request.requested_scopes)
-      |> Map.put(:granted_scopes, res[:granted_scopes])
+      |> Map.put(:granted_scopes, opts[:granted_scopes])
       |> Map.put(:client, client)
       |> Map.put(:subject, subject)
-      |> Map.put(:flow_result, res)
+      |> Map.put(:flow_result, opts)
 
-    granted_scopes = astrenv(:oauth2_scope_callback).(res[:granted_scopes], ctx)
+    granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
     {:ok, access_token} =
       new_access_token(ctx)
@@ -342,7 +340,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put("access_token", AccessToken.serialize(access_token))
       |> Map.put("token_type", "bearer")
       |> Map.put("expires_in", access_token.data["exp"] - now())
-      |> maybe_put_scope_implicit_flow(authz_request.requested_scopes, res[:granted_scopes])
+      |> maybe_put_scope_implicit_flow(authz_request.requested_scopes, opts[:granted_scopes])
       |> put_if_not_nil("state", authz_request.params["state"])
 
     redirect_uri =
@@ -364,26 +362,30 @@ defmodule AsteroidWeb.AuthorizeController do
   Callback to be called when the authorization is denied, either by the user or by the
   server
 
-  It must be called with one of the following exception:
-  - `t:Asteroid.OAuth2.AccessDeniedError.t/0` when the request was denied either because of server
-  policy or because of the user refusal
-  - `t:Asteroid.OAuth2.ServerError.t/0` in case of server error
-  - `t:Asteroid.OAuth2.TemporarilyUnavailableError.t/0` when the service is temporarily
-  unavailable. Can be useful for maintenance mode
+  The options are a `map()` with the following keys (all **mandatory**):
+  - `:authz_request`: the initial `t:AsteroidWeb.AuthorizeController.Request.t/0` authorization
+  request
+  - `:error`: one of the following exceptions:
+    - `t:Asteroid.OAuth2.AccessDeniedError.t/0` when the request was denied either because of
+    server
+    policy or because of the user refusal
+    - `t:Asteroid.OAuth2.ServerError.t/0` in case of server error
+    - `t:Asteroid.OAuth2.TemporarilyUnavailableError.t/0` when the service is temporarily
+    unavailable. Can be useful for maintenance mode
   """
 
-  @spec authorization_denied(Plug.Conn.t(), Request.t(),
-  OAuth2.AccessDeniedError.t() | OAuth2.ServerError.t() | OAuth2.TemporarilyUnavailableError.t())
-  :: Plug.Conn.t()
+  @spec authorization_denied(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_denied(conn, authz_request, e)
+  def authorization_denied(conn, opts)
   do
+    authz_request = opts[:authz_request]
+
     Logger.debug("#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with "
-    <> "reason: `#{Exception.message(e)}`")
+    <> "reason: `#{Exception.message(opts[:error])}`")
 
     conn
     |> assign(:authz_request, authz_request)
-    |> AsteroidWeb.Error.respond_authorize(e)
+    |> AsteroidWeb.Error.respond_authorize(opts[:error])
   end
 
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::

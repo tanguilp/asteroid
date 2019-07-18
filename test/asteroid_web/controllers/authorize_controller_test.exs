@@ -5,6 +5,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
+  alias Asteroid.Subject
   alias OAuth2Utils.Scope
 
   ##########################
@@ -170,8 +171,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
-      authz_request,
-      OAuth2.AccessDeniedError.exception(reason: "abc def"))
+      %{
+        authz_request: authz_request,
+        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
@@ -192,8 +195,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
-      authz_request,
-      OAuth2.AccessDeniedError.exception(reason: "abc def"))
+      %{
+        authz_request: authz_request,
+        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
@@ -213,8 +218,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
-      authz_request,
-      OAuth2.ServerError.exception(reason: "abc def"))
+      %{
+        authz_request: authz_request,
+        error: OAuth2.ServerError.exception(reason: "abc def")
+      })
 
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "server_error"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
@@ -232,8 +239,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_denied(
       conn,
-      authz_request,
-      OAuth2.TemporarilyUnavailableError.exception(reason: "abc def"))
+      %{
+        authz_request: authz_request,
+        error: OAuth2.TemporarilyUnavailableError.exception(reason: "abc def")
+      })
 
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "temporarily_unavailable"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
@@ -255,8 +264,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: Scope.Set.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => _, "state" => "sxgjwzedrgdfchexgim"} =
@@ -282,8 +294,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: Scope.Set.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
@@ -311,8 +326,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: MapSet.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
@@ -341,8 +359,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: MapSet.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
@@ -372,8 +393,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3"])})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3"])
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
@@ -414,8 +438,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3", "scp1"])})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3", "scp1"])
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
@@ -452,8 +479,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: MapSet.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
@@ -637,8 +667,11 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     conn = AsteroidWeb.AuthorizeController.authorization_granted(
       conn,
-      authz_request,
-      %{sub: "user_1", granted_scopes: Scope.Set.new()})
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
