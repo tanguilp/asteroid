@@ -338,6 +338,9 @@ config :asteroid, :oauth2_flow_authorization_code_pkce_allowed_methods, [:S256]
 config :asteroid, :oauth2_flow_authorization_code_pkce_client_callback,
   &Asteroid.OAuth2.Client.must_use_pkce?/1
 
+config :asteroid, :oauth2_flow_authorization_code_web_authorization_callback,
+  &AsteroidWeb.AccountSelectController.start_webflow/2
+
 # implicit flow
 
 config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60

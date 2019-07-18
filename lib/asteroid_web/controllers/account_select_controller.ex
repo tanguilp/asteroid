@@ -3,6 +3,12 @@ defmodule AsteroidWeb.AccountSelectController do
 
   alias Asteroid.Subject
 
+  def start_webflow(conn, %AsteroidWeb.AuthorizeController.Request{} = authz_request) do
+    conn
+    |> put_session(:authz_request, authz_request)
+    |> redirect(to: "/account_select")
+  end
+
   def index(conn, %{"selected" => username}) do
     case Subject.load_from_unique_attribute("sub", username) do
       {:ok, subject} ->

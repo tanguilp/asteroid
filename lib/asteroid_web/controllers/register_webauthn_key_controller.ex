@@ -1,6 +1,8 @@
 defmodule AsteroidWeb.RegisterWebauthnKeyController do
   use AsteroidWeb, :controller
 
+  import Asteroid.Utils
+
   require Logger
 
   alias Asteroid.Subject
@@ -9,19 +11,28 @@ defmodule AsteroidWeb.RegisterWebauthnKeyController do
   def index(conn, _params) do
     case get_session(conn, :subject) do
       %Subject{} = subject ->
-        subject = Subject.fetch_attributes(subject, ["sub"])
+        subject = Subject.fetch_attributes(subject, ["sub", "webauthn_key_reg_last_proposed"])
 
-        challenge = Wax.new_registration_challenge([origin: Routes.url(conn), rp_id: :auto])
+        if (subject.attrs["webauthn_key_reg_last_proposed"] || 0) + 3600 < now() do
+          :ok =
+            subject
+            |> Subject.add("webauthn_key_reg_last_proposed", now())
+            |> Subject.store()
 
-        Logger.debug("Wax: generated attestation challenge #{inspect(challenge)}")
+          challenge = Wax.new_registration_challenge([origin: Routes.url(conn), rp_id: :auto])
 
-        conn
-        |> put_session(:challenge, challenge)
-        |> render("register_key.html",
-          challenge: Base.encode64(challenge.bytes),
-          rp_id: challenge.rp_id,
-          subject: subject
-        )
+          Logger.debug("Wax: generated attestation challenge #{inspect(challenge)}")
+
+          conn
+          |> put_session(:challenge, challenge)
+          |> render("register_key.html",
+            challenge: Base.encode64(challenge.bytes),
+            rp_id: challenge.rp_id,
+            subject: subject
+          )
+        else
+          redirect(conn, to: "/authorize_scopes")
+        end
 
       nil ->
         redirect(conn, to: "/") #FIXME: return error

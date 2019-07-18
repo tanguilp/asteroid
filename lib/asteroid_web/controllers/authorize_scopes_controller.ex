@@ -8,6 +8,7 @@ defmodule AsteroidWeb.AuthorizeScopesController do
 
   def index(conn, _params) do
     #FIXME: authenticated ?
+    IO.inspect(get_session(conn, :authz_request))
 
     requested_scopes_config = requested_scopes_config(conn)
 
