@@ -10,7 +10,7 @@
   "asn1ex": {:git, "https://github.com/vicentfg/asn1ex.git", "0255348e2fffbdfd1eef7b46f71dc733318a36a0", [ref: "0255348e2fffbdfd1eef7b46f71dc733318a36a0"]},
   "attribute_repository": {:git, "https://github.com/tanguilp/attribute_repository.git", "dfbe52bba681dc6ae4a2c228a522d00bc9fc0e7e", []},
   "attribute_repository_ldap": {:git, "https://github.com/tanguilp/attribute_repository_ldap.git", "11a31a234d03f06182eb9f8b7e068bf5da36bf51", []},
-  "attribute_repository_mnesia": {:git, "https://github.com/tanguilp/attribute_repository_mnesia.git", "c7acf32ff536ad88e2774c3240bbf23abf078d81", []},
+  "attribute_repository_mnesia": {:git, "https://github.com/tanguilp/attribute_repository_mnesia.git", "9e8d6284716bbbe8d24b6f551cd295fbaf5d7674", []},
   "attribute_repository_riak": {:git, "https://github.com/tanguilp/attribute_repository_riak.git", "b4ad04c7b2e9d64e72193b1c3bcf9f738f3dd7fc", []},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "cbor": {:git, "https://github.com/yjh0502/cbor-erlang.git", "b5c9dbc2de15753b2db15e13d88c11738c2ac292", [ref: "b5c9dbc2de15753b2db15e13d88c11738c2ac292"]},

@@ -48,6 +48,7 @@ defmodule Asteroid.Application do
   defp create_clients() do
     Client.gen_new(id: "client1")
     |> Client.add("client_id", "client1")
+    |> Client.add("client_name", "Le client")
     |> Client.add("client_type", "confidential")
     |> Client.add("client_secret", "clientpassword1")
     |> Client.add("grant_types", [
