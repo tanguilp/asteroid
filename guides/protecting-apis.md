@@ -7,6 +7,7 @@ $ mix phx.routes && mix phx.routes AsteroidWeb.RouterAPI
                           authorize_path  GET  /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
                              device_path  GET  /device                                  AsteroidWeb.DeviceController :pre_authorize
 oauth_authorization_server_endpoint_path  GET  /.well-known/oauth-authorization-server  AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
+oauth_authorization_server_endpoint_path  GET  /.well-known/openid-configuration        AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
                       keys_endpoint_path  GET  /discovery/keys                          AsteroidWeb.Discovery.KeysEndpoint :handle
 
                token_endpoint_path  POST  /api/oauth2/token                      AsteroidWeb.API.OAuth2.TokenEndpoint :handle
@@ -35,7 +36,8 @@ api
 discovery……………………………………………………………………………………………… :discovery_plugs
 ╰─ keys
 .well-known………………………………………………………………………………………… :well_known_plugs
-╰─ oauth-authorization-server
+├─ oauth-authorization-server
+╰─ openid-configuration
 ```
 
 Plugs configured at an upper level are not discarded but on the contrary exexcuted first.
