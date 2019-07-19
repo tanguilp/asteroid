@@ -207,7 +207,7 @@ config :asteroid, :oauth2_response_types_enabled, [:code, :token]
 config :asteroid, :api_error_response_verbosity, :normal
 
 config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
-  &CustomExample.Callback.test_ropc_username_password_callback/3
+  &Custom.Callback.test_ropc_username_password_callback/3
 
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
@@ -281,8 +281,7 @@ config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1
 # access tokens
 
 config :asteroid, :token_store_access_token_before_store_callback,
-  &CustomExample.Callback.add_dad_joke/2
-#&Asteroid.Utils.id_first_param/2
+  &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_access_token_lifetime_callback,
   &Asteroid.Token.AccessToken.lifetime/1

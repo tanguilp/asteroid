@@ -12,7 +12,8 @@
   <%= form_for @conn, Routes.authorize_scopes_path(@conn, :index),
   [style: "padding-left:2em;padding-right:2em;text-align:left"], fn f -> %>
     <%= for scope <- @scopes do %>
-      <%= checkbox f, "scopes[#{scope[:name]}]", onclick: "return false;",
+      <%= checkbox f, "scopes[#{scope[:name]}]",
+        onclick: "return #{scope[:optional] and !scope[:already_authorized]};",
         checked: true, readonly: !scope[:optional] || scope[:already_authorized] %>
       <%= scope[:label] %> <br/>
     <% end %>

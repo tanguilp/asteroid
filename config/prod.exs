@@ -212,6 +212,7 @@ config :asteroid, :well_known_plugs,
 ####################### Crypto configuration #########################
 
 config :asteroid, :crypto_keys, %{
+  "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig]}
 }
 
 config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
@@ -398,6 +399,9 @@ config :asteroid, :oauth2_flow_ropc_issue_refresh_token_refresh, false
 config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1 week
 
 config :asteroid, :oauth2_flow_ropc_access_token_lifetime, 60 * 10
+
+config :asteroid, :oauth2_flow_ropc_username_password_verify_callback,
+  &Custom.Callback.test_ropc_username_password_callback/3
 
 # client credentials
 

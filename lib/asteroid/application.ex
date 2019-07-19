@@ -7,6 +7,7 @@ defmodule Asteroid.Application do
 
   alias Asteroid.AttributeRepository
   alias Asteroid.Client
+  alias Asteroid.Subject
   alias Asteroid.TokenStore
   alias Asteroid.Crypto
 
@@ -28,8 +29,9 @@ defmodule Asteroid.Application do
          :ok <- TokenStore.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
-      # creating clients for the demo app
+      # creating clients and subjects for the demo app
       create_clients()
+      create_subjects()
 
       # See https://hexdocs.pm/elixir/Supervisor.html
       # for other strategies and supported options
@@ -66,5 +68,31 @@ defmodule Asteroid.Application do
     ])
     |> Client.add("redirect_uris", ["http://www.example.com/oauth2_redirect"])
     |> Client.store()
+
+    Client.gen_new(id: "client2")
+    |> Client.add("client_id", "client2")
+    |> Client.add("client_type", "confidential")
+    |> Client.add("client_secret", "clientpassword2")
+    |> Client.add("grant_types", ["client_credentials"])
+    |> Client.add("scope", [
+      "read_balance",
+      "read_account_information",
+      "interbank_transfer",
+      "asteroid.introspect"
+    ])
+    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_serialization_format",
+                  "jws")
+    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_signing_key",
+                  "key_auto")
+    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_signing_alg",
+                  "PS256")
+    |> Client.store()
+  end
+
+  def create_subjects() do
+    Subject.gen_new(id: "user_demo")
+    |> Subject.add("sub", "user_demo")
+    |> Subject.add("password", "asteroidftw")
+    |> Subject.store()
   end
 end
