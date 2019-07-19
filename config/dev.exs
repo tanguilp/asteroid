@@ -90,19 +90,13 @@ config :mnesia,
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
 
-# Configure your database
-config :asteroid, Asteroid.Repo,
-  username: "postgres",
-  password: "postgres",
-  database: "asteroid_dev",
-  hostname: "localhost",
-  pool_size: 10
-
 ######################################################################
 ######################################################################
 ################## Asteroid configuration ############################
 ######################################################################
 ######################################################################
+
+####################### Token stores #################################
 
 config :asteroid, :token_store_access_token, [
   module: Asteroid.TokenStore.AccessToken.Mnesia
@@ -294,11 +288,6 @@ config :asteroid, :oauth2_access_token_lifetime_callback,
   &Asteroid.Token.AccessToken.lifetime/1
 
 config :asteroid, :oauth2_flow_ropc_access_token_lifetime, 60 * 10
-
-config :asteroid, :client_credentials_issue_refresh_token, false
-
-config :asteroid, :client_credentials_scope_callback,
-  &Asteroid.Utils.id_first_param/2
 
 # authorization codes
 
