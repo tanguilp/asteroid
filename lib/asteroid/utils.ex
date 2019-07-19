@@ -73,4 +73,8 @@ defmodule Asteroid.Utils do
   @spec always_nil(any(), any()) :: nil
 
   def always_nil(_, _ \\ nil), do: nil
+
+  @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
+
+  def conn_not_authenticated?(conn), do: not APIac.authenticated?(conn)
 end
