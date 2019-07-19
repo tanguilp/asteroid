@@ -53,6 +53,7 @@ defmodule AsteroidWeb.Router do
     pipe_through :well_known
 
     get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
+    get "/openid-configuration", OauthAuthorizationServerEndpoint, :handle
   end
 
   scope "/discovery", AsteroidWeb.Discovery do

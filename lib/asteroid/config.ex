@@ -778,7 +778,7 @@ defmodule Asteroid.Config do
     returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
     one of these callback shall be called:
     - `AsteroidWeb.AuthorizeController.authorization_granted/2`
-    - `AsteroidWeb.AuthorizeController.authorization_denied/3`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
     """
 
     @type oauth2_flow_authorization_code_web_authorization_callback ::
@@ -927,7 +927,7 @@ defmodule Asteroid.Config do
     returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
     one of these callback shall be called:
     - `AsteroidWeb.AuthorizeController.authorization_granted/2`
-    - `AsteroidWeb.AuthorizeController.authorization_denied/3`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
     """
 
     @type oauth2_flow_implicit_web_authorization_callback ::

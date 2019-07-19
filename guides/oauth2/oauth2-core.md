@@ -87,7 +87,7 @@ registered redirect URIs), handles PKCE parameters (for the authorization code f
   - returns the relevant OAuth2 error otherwise
 - output process: when completed the user defined authentication and authorization process calls:
   - `AsteroidWeb.AuthorizeController.authorization_granted/2` in case of success
-  - `AsteroidWeb.AuthorizeController.authorization_denied/3` in case of failure or user denial
+  - `AsteroidWeb.AuthorizeController.authorization_denied/2` in case of failure or user denial
     - this functions will redirect to the calling client with the OAuth2 parameters, and create
     the tokens (access token or authorization code) when needed
 

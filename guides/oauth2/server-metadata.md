@@ -7,7 +7,7 @@ This RFC allows advertising metadata related to the OAuth2 server, and to be use
 automated fashion by OAuth2 clients.
 
 OAuth2 server metadata is made available on the `/.well-known/oauth-authorization-server`
-URL.
+and `/.well-known/oauth-authorization-server` URLs.
 
 ## Support
 
