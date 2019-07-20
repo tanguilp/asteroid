@@ -11,7 +11,7 @@ use Mix.Config
 # before starting your production server.
 
 config :asteroid, AsteroidWeb.Endpoint,
-  http: [:inet6, {:system, "PORT"}],
+  http: [:inet6, 433],
   url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 443, scheme: "https"],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   server: true,
@@ -19,8 +19,8 @@ config :asteroid, AsteroidWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 config :asteroid, AsteroidWeb.EndpointAPI,
-  http: [:inet6, {:system, "PORT_API"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 8443, scheme: "https"],
+  http: [:inet6, 4001],
+  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 4001, scheme: "https"],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
