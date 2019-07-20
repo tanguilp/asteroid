@@ -491,4 +491,4 @@ config :asteroid, :oauth2_flow_device_authorization_scope_config, []
 # Finally import the config/prod.secret.exs which should be versioned
 # separately.
 # uncomment to actually include a secret file
-import_config "prod.secret.exs"
+#import_config "prod.secret.exs"
