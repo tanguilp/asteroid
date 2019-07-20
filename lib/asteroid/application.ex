@@ -33,8 +33,6 @@ defmodule Asteroid.Application do
       create_clients()
       create_subjects()
 
-      IO.inspect(Mix.env())
-
       # See https://hexdocs.pm/elixir/Supervisor.html
       # for other strategies and supported options
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]

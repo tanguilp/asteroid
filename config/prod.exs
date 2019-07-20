@@ -13,7 +13,6 @@ use Mix.Config
 config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 433],
   url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 443, scheme: "https"],
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE"),
   cache_static_manifest: "priv/static/cache_manifest.json"
@@ -21,7 +20,6 @@ config :asteroid, AsteroidWeb.Endpoint,
 config :asteroid, AsteroidWeb.EndpointAPI,
   http: [port: 4883],
   url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 4883, scheme: "https"],
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
 
