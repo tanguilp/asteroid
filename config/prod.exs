@@ -20,7 +20,7 @@ config :asteroid, AsteroidWeb.Endpoint,
 
 config :asteroid, AsteroidWeb.EndpointAPI,
   http: [:inet6, 4001],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 4001, scheme: "https"],
+  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 4006, scheme: "https"],
   force_ssl: [rewrite_on: [:x_forwarded_proto]],
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
