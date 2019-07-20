@@ -36,7 +36,7 @@ defmodule Asteroid.MixProject do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:dev), do: ["lib", "custom"]
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib", "custom"]
+  defp elixirc_paths(:prod), do: ["lib", "custom"]
 
   # Specifies your project dependencies.
   #
