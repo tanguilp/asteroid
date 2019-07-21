@@ -11,17 +11,14 @@ use Mix.Config
 # before starting your production server.
 
 config :asteroid, AsteroidWeb.Endpoint,
-  load_from_system_env: true,
   http: [port: {:system, "PORT"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 80],
+  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 443, scheme: "https"],
   server: true,
-  secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE"),
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
 
 config :asteroid, AsteroidWeb.EndpointAPI,
-  load_from_system_env: true,
   http: [port: {:system, "PORT_API"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 8080],
+  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 8443],
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
 
@@ -488,7 +485,3 @@ config :asteroid, :oauth2_flow_ropc_scope_config, []
 
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
 
-# Finally import the config/prod.secret.exs which should be versioned
-# separately.
-# uncomment to actually include a secret file
-#import_config "prod.secret.exs"
