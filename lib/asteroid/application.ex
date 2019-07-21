@@ -18,7 +18,7 @@ defmodule Asteroid.Application do
       #Asteroid.Repo,
       # Start the endpoint when the application starts
       AsteroidWeb.Endpoint,
-      AsteroidWeb.EndpointAPI
+      #AsteroidWeb.EndpointAPI
       # Starts a worker by calling: Asteroid.Worker.start_link(arg)
       # {Asteroid.Worker, arg},
     ]
