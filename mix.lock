@@ -9,7 +9,7 @@
   "apiac_filter_throttler": {:git, "https://github.com/tanguilp/apiac_filter_throttler.git", "1e9f7fb9bb5ba2751816af14f2186d3f0cf34f74", []},
   "attribute_repository": {:git, "https://github.com/tanguilp/attribute_repository.git", "dfbe52bba681dc6ae4a2c228a522d00bc9fc0e7e", []},
   "attribute_repository_ldap": {:git, "https://github.com/tanguilp/attribute_repository_ldap.git", "11a31a234d03f06182eb9f8b7e068bf5da36bf51", []},
-  "attribute_repository_mnesia": {:git, "https://github.com/tanguilp/attribute_repository_mnesia.git", "c7acf32ff536ad88e2774c3240bbf23abf078d81", []},
+  "attribute_repository_mnesia": {:git, "https://github.com/tanguilp/attribute_repository_mnesia.git", "9e8d6284716bbbe8d24b6f551cd295fbaf5d7674", []},
   "attribute_repository_riak": {:git, "https://github.com/tanguilp/attribute_repository_riak.git", "b4ad04c7b2e9d64e72193b1c3bcf9f738f3dd7fc", []},
   "base64url": {:hex, :base64url, "0.0.1", "36a90125f5948e3afd7be97662a1504b934dd5dac78451ca6e9abf85a10286be", [:rebar], [], "hexpm"},
   "certifi": {:hex, :certifi, "2.5.1", "867ce347f7c7d78563450a18a6a28a8090331e77fa02380b4a21962a65d36ee5", [:rebar3], [{:parse_trans, "~>3.3", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},

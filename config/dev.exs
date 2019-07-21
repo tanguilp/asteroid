@@ -23,22 +23,6 @@ config :asteroid, AsteroidWeb.Endpoint,
     ]
   ]
 
-config :asteroid, AsteroidWeb.EndpointAPI,
-  http: [port: 4001],
-  #url: [scheme: "https", host: "www.example.com", path: "/account/auth", port: 443],
-  debug_errors: true,
-  code_reloader: true,
-  check_origin: false,
-  watchers: [
-    node: [
-      "node_modules/webpack/bin/webpack.js",
-      "--mode",
-      "development",
-      "--watch-stdin",
-      cd: Path.expand("../assets", __DIR__)
-    ]
-  ]
-
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

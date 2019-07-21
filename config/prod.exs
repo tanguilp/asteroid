@@ -16,12 +16,6 @@ config :asteroid, AsteroidWeb.Endpoint,
   server: true,
   cache_static_manifest: "priv/static/cache_manifest.json"
 
-config :asteroid, AsteroidWeb.EndpointAPI,
-  http: [:inet6, port: System.get_env("PORT_API") || 8443],
-  url: [host: "example.com", port: 8443, scheme: "https"],
-  force_ssl: [rewrite_on: [:x_forwarded_proto]],
-  server: true
-
 # Do not print debug messages in production
 config :logger, level: :info
 

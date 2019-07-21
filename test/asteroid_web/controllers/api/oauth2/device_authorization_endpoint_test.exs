@@ -4,10 +4,8 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
-  alias AsteroidWeb.RouterAPI.Helpers, as: RoutesAPI
+  alias AsteroidWeb.Router.Helpers, as: Routes
   alias Asteroid.Token.DeviceCode
-
-  @endpoint AsteroidWeb.EndpointAPI
 
   # error cases
 
@@ -16,7 +14,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     conn =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -32,7 +30,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "invalid"))
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -47,7 +45,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     conn =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -62,7 +60,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -76,7 +74,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -88,7 +86,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
@@ -102,7 +100,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -116,7 +114,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])
@@ -143,7 +141,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])
@@ -174,7 +172,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])

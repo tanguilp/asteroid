@@ -4,9 +4,8 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   import Asteroid.Utils
 
   alias AsteroidWeb.Router.Helpers, as: Routes
-  alias AsteroidWeb.RouterAPI.Helpers, as: RoutesAPI
   alias AsteroidWeb.Endpoint
-  alias AsteroidWeb.EndpointAPI
+  alias AsteroidWeb.Endpoint
   alias Asteroid.OAuth2
   alias OAuth2Utils.Scope
 
@@ -18,10 +17,10 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
 
     assert response["issuer"] == OAuth2.issuer()
     assert response["authorization_endpoint"] == Routes.authorize_url(Endpoint, :pre_authorize)
-    assert response["token_endpoint"] == RoutesAPI.token_endpoint_url(EndpointAPI, :handle)
+    assert response["token_endpoint"] == Routes.token_endpoint_url(Endpoint, :handle)
     assert response["jwks_uri"] == Routes.keys_endpoint_url(Endpoint, :handle)
     assert response["registration_endpoint"] ==
-      RoutesAPI.register_endpoint_url(EndpointAPI, :handle)
+      Routes.register_endpoint_url(Endpoint, :handle)
     assert Enum.sort(response["scopes_supported"]) ==
       Scope.Set.new()
       |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:ropc))
@@ -46,13 +45,13 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
     assert response["ui_locales_supported"] == nil
     assert response["op_policy_uri"] == nil
     assert response["op_tos_uri"] == nil
-    assert response["revocation_endpoint"] == RoutesAPI.revoke_endpoint_url(EndpointAPI, :handle)
+    assert response["revocation_endpoint"] == Routes.revoke_endpoint_url(Endpoint, :handle)
     assert Enum.sort(response["revocation_endpoint_auth_methods_supported"]) ==
       OAuth2.Endpoint.revoke_endpoint_auth_methods_supported()
       |> Enum.map(&to_string/1)
       |> Enum.sort()
     assert response["introspection_endpoint"] ==
-      RoutesAPI.introspect_endpoint_url(EndpointAPI, :handle)
+      Routes.introspect_endpoint_url(Endpoint, :handle)
     assert Enum.sort(response["introspection_endpoint_auth_methods_supported"]) ==
       OAuth2.Endpoint.introspect_endpoint_auth_methods_supported()
       |> Enum.map(&to_string/1)

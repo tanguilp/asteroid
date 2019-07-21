@@ -6,10 +6,6 @@ config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 4000],
   server: false
 
-config :asteroid, AsteroidWeb.EndpointAPI,
-  http: [port: 4001],
-  server: false
-
 # Print only warnings and errors during test
 config :logger, level: :warn
 

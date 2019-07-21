@@ -3,18 +3,17 @@
 Asteroid provides with numerous APIs and web endpoints as shown by the `mix phx.routes` commande:
 
 ```bash
-$ mix phx.routes && mix phx.routes AsteroidWeb.RouterAPI
-                          authorize_path  GET  /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
-                             device_path  GET  /device                                  AsteroidWeb.DeviceController :pre_authorize
-oauth_authorization_server_endpoint_path  GET  /.well-known/oauth-authorization-server  AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
-oauth_authorization_server_endpoint_path  GET  /.well-known/openid-configuration        AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
-                      keys_endpoint_path  GET  /discovery/keys                          AsteroidWeb.Discovery.KeysEndpoint :handle
-
-               token_endpoint_path  POST  /api/oauth2/token                      AsteroidWeb.API.OAuth2.TokenEndpoint :handle
-          introspect_endpoint_path  POST  /api/oauth2/introspect                 AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
-              revoke_endpoint_path  POST  /api/oauth2/revoke                     AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
-            register_endpoint_path  POST  /api/oauth2/register                   AsteroidWeb.API.OAuth2.RegisterEndpoint :handle
-device_authorization_endpoint_path  POST  /api/oauth2/device_authorization       AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint :handle
+$ mix phx.routes
+                          authorize_path  GET   /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
+                             device_path  GET   /device                                  AsteroidWeb.DeviceController :pre_authorize
+                     token_endpoint_path  POST  /api/oauth2/token                        AsteroidWeb.API.OAuth2.TokenEndpoint :handle
+                introspect_endpoint_path  POST  /api/oauth2/introspect                   AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
+                    revoke_endpoint_path  POST  /api/oauth2/revoke                       AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
+                  register_endpoint_path  POST  /api/oauth2/register                     AsteroidWeb.API.OAuth2.RegisterEndpoint :handle
+      device_authorization_endpoint_path  POST  /api/oauth2/device_authorization         AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint :handle
+oauth_authorization_server_endpoint_path  GET   /.well-known/oauth-authorization-server  AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
+oauth_authorization_server_endpoint_path  GET   /.well-known/openid-configuration        AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
+                      keys_endpoint_path  GET   /discovery/keys                          AsteroidWeb.Discovery.KeysEndpoint :handle
 ```
 
 At compile-time, Asteroid loads from configuration a list of plugs to configure on each

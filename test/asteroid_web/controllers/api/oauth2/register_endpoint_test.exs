@@ -2,11 +2,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
   use AsteroidWeb.ConnCase, async: true
 
   alias OAuth2Utils.Scope
-  alias AsteroidWeb.RouterAPI.Helpers, as: RoutesAPI
+  alias AsteroidWeb.Router.Helpers, as: Routes
   alias Asteroid.Client
   alias Asteroid.Token.AccessToken
-
-  @endpoint AsteroidWeb.EndpointAPI
 
   # error cases
 
@@ -14,7 +12,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), "Some plain text")
+      |> post(Routes.register_endpoint_path(conn, :handle), "Some plain text")
       |> json_response(400)
     end
   end
@@ -29,7 +27,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_one"
@@ -47,7 +45,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
     Process.put(:oauth2_endpoint_register_authorization_policy, :authenticated_clients)
 
-    conn = post(conn, RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+    conn = post(conn, Routes.register_endpoint_path(conn, :handle), req_body)
     response = json_response(conn, 401)
 
     assert response["error"] == "invalid_client"
@@ -68,7 +66,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "invalid"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
 
     response = json_response(conn, 401)
 
@@ -88,7 +86,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_three"
@@ -106,7 +104,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
 
     response =
       conn
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(401)
 
     assert response["error"] == "invalid_client"
@@ -121,7 +119,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
@@ -136,7 +134,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_six"
@@ -160,7 +158,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_six'"
@@ -184,7 +182,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_redirect_uri"
@@ -200,7 +198,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -216,7 +214,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -234,7 +232,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -252,7 +250,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -270,7 +268,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -287,7 +285,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -313,7 +311,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -330,7 +328,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -347,7 +345,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -364,7 +362,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -382,7 +380,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -400,7 +398,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
@@ -415,7 +413,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty"
@@ -462,7 +460,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty_one"
@@ -544,7 +542,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_3", "password3"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty_two"
@@ -590,7 +588,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty_three"
@@ -615,7 +613,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_3", "password3"))
-      |> post(RoutesAPI.register_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty_four"
