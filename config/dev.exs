@@ -322,9 +322,6 @@ config :asteroid, :oauth2_endpoint_token_auth_methods_supported_callback,
 config :asteroid, :oauth2_endpoint_introspect_client_authorized,
   &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1
 
-config :asteroid, :oauth2_flow_authorization_code_web_authorization_callback,
-  &AsteroidWeb.AccountSelectController.start_webflow/2
-
 config :asteroid, :oauth2_endpoint_introspect_claims_resp, [
   "scope",
   "client_id",
@@ -435,6 +432,9 @@ config :asteroid, :oauth2_flow_authorization_code_pkce_allowed_methods, [:S256]
 
 config :asteroid, :oauth2_flow_authorization_code_pkce_client_callback,
   &Asteroid.OAuth2.Client.must_use_pkce?/1
+
+config :asteroid, :oauth2_flow_authorization_code_web_authorization_callback,
+  &AsteroidWeb.AccountSelectController.start_webflow/2
 
 # implicit
 
