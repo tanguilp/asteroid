@@ -98,6 +98,10 @@ config :asteroid, :token_store_refresh_token, [
 config :asteroid, :token_store_authorization_code, [
   module: Asteroid.TokenStore.AuthorizationCode.Mnesia
 ]
+
+config :asteroid, :token_store_device_code, [
+  module: Asteroid.TokenStore.DeviceCode.Mnesia
+]
 ```
 
 ## Startup

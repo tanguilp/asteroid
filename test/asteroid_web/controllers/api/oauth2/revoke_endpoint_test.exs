@@ -4,9 +4,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
   import Asteroid.Utils
 
   alias Asteroid.Token.{RefreshToken, AccessToken}
-  alias AsteroidWeb.RouterAPI.Helpers, as: RoutesAPI
-
-  @endpoint AsteroidWeb.EndpointAPI
+  alias AsteroidWeb.Router.Helpers, as: Routes
 
   ##########################################################################
   # General tests
@@ -16,7 +14,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), "Some plain text")
+      |> post(Routes.revoke_endpoint_path(conn, :handle), "Some plain text")
       |> json_response(400)
     end
   end
@@ -29,7 +27,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -43,7 +41,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -58,7 +56,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "unsupported_token_type"
@@ -69,7 +67,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
       "token" => "egxeghqearfza"
     }
     conn =
-      post(conn, RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      post(conn, Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="always erroneous client password")
@@ -103,7 +101,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("invalid_client", "secret"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm=)
@@ -121,7 +119,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
       "token" => "onetokenewxoqziurmfaiy"
     }
 
-    conn = post(conn, RoutesAPI.revoke_endpoint_path(conn, :handle),
+    conn = post(conn, Routes.revoke_endpoint_path(conn, :handle),
                                                                           req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
@@ -156,7 +154,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200) == ""
     assert {:error, _} = AccessToken.get(access_token.id)
@@ -177,7 +175,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200) == ""
     assert {:error, _} = AccessToken.get(access_token.id)
@@ -198,7 +196,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200) == ""
     assert {:error, _} = AccessToken.get(access_token.id)
@@ -217,7 +215,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
 
     conn
     |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-    |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+    |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
     |> response(200)
 
     assert {:ok, _} = AccessToken.get(access_token.id)
@@ -241,7 +239,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200) == ""
     assert {:error, _} = RefreshToken.get(refresh_token.id)
@@ -262,7 +260,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200) == ""
     assert {:error, _} = RefreshToken.get(refresh_token.id)
@@ -283,7 +281,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
 
     assert response(conn, 200)
     assert {:error, _} = RefreshToken.get(refresh_token.id)
@@ -302,7 +300,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpointTest do
 
     conn
     |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-    |> post(RoutesAPI.revoke_endpoint_path(conn, :handle), req_body)
+    |> post(Routes.revoke_endpoint_path(conn, :handle), req_body)
     |> response(200)
 
     assert {:ok, _} = RefreshToken.get(refresh_token.id)

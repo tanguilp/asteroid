@@ -16,12 +16,6 @@ config :asteroid, AsteroidWeb.Endpoint,
   server: true,
   secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
 
-config :asteroid, AsteroidWeb.EndpointAPI,
-  http: [port: {:system, "PORT_API"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 8443],
-  server: true,
-  secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE")
-
 # Do not print debug messages in production
 config :logger, level: :debug
 
@@ -80,6 +74,19 @@ config :phoenix, :json_library, Jason
 
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}
+
+# to use Riak uncomment and configure the following lines
+
+#config :pooler,
+#  pools: [
+#    [
+#      name: :riak,
+#      group: :riak,
+#      max_count: 10,
+#      init_count: 5,
+#      start_mfa: {Riak.Connection, :start_link, ['127.0.0.1', 8087]}
+#    ]
+#  ]
 
 ######################################################################
 ######################################################################
