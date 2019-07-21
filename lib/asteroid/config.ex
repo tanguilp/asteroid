@@ -322,6 +322,18 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
+    Verbosity level for the API's error messages
+
+    The `:debug` level can return information useful to attackers. The `:minimal` level can
+    break the specification's support.
+    """
+
+    @type api_error_response_verbosity :: :debug | :normal | :minimal
+
+    field :api_error_response_verbosity,
+    config_time: :runtime
+
+    @doc """
     Scope configuration for the ROPC flow
     """
 
