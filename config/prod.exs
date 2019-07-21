@@ -484,4 +484,3 @@ config :asteroid, :oauth2_flow_client_credentials_scope_config, []
 config :asteroid, :oauth2_flow_ropc_scope_config, []
 
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
-
