@@ -480,7 +480,34 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
 
 ####################### Scope configuration ##########################
 
-config :asteroid, :scope_config, []
+config :asteroid, :scope_config, [
+  scopes: %{
+    "read_balance" => [
+      label: %{
+        "en" => "Read my account balance",
+        "fr" => "Lire mes soldes de compte",
+        "ru" => "Читать баланс счета"
+      }
+    ],
+    "read_account_information" => [
+      optional: true,
+      label: %{
+        "en" => "Read my account transactions",
+        "fr" => "Consulter la liste de mes transactions bancaires",
+        "ru" => "Читать транзакции по счету"
+      }
+    ],
+    "interbank_transfer" => [
+      max_refresh_token_lifetime: 3600 * 24 * 30 * 3,
+      max_access_token_lifetime: 3 * 60,
+      label: %{
+        "en" => "Make bank transfers",
+        "fr" => "Réaliser des virements",
+        "ru" => "Делать банковские переводы"
+      }
+    ]
+  }
+]
 
 config :asteroid, :oauth2_scope_config, []
 
