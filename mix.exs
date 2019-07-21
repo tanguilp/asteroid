@@ -67,7 +67,7 @@ defmodule Asteroid.MixProject do
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
-      # {:riak, github: "tanguilp/riak-elixir-client"},
+      {:riak, github: "tanguilp/riak-elixir-client", only: :dev},
       {:singleton, "~> 1.2.0"}
     ]
   end
@@ -116,7 +116,9 @@ defmodule Asteroid.MixProject do
         "guides/configuring-resources.md",
         "guides/crypto-keys.md",
         "guides/network-configuration.md",
+        "guides/configuring-riak.md",
         "guides/customizing.md",
+        "guides/running-demo-app.md",
         "guides/oauth2/terminology-conventions.md",
         "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",
@@ -127,8 +129,7 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/pkce.md",
         "guides/oauth2/dynamic-client-registration.md",
         "guides/oauth2/device-flow.md",
-        "guides/oauth2/server-metadata.md",
-        "guides/running-demo-app.md"
+        "guides/oauth2/server-metadata.md"
       ],
       groups_for_extras:
       [
