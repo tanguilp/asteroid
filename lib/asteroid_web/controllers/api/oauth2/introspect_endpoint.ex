@@ -177,6 +177,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
 
   @spec scope_list_to_param(map()) :: map()
 
+  defp scope_list_to_param(%{"scope" => []} = m) do
+    Map.delete(m, "scope")
+  end
+
   defp scope_list_to_param(%{"scope" => scopes} = m) when is_list(scopes) do
     Map.put(m, "scope", Enum.join(scopes, " "))
   end

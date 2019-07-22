@@ -24,10 +24,17 @@ defmodule AsteroidWeb.Discovery.KeysEndpoint do
             end
         end
       )
+      |> put_keys()
       |> astrenv(:oauth2_endpoint_discovery_keys_before_send_resp_callback).()
 
     conn
     |> astrenv(:oauth2_endpoint_discovery_keys_before_send_conn_callback).()
     |> json(key_list)
+  end
+
+  @spec put_keys([map()]) :: map()
+
+  defp put_keys(key_list) do
+    %{"keys" => key_list}
   end
 end
