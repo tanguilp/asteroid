@@ -11,10 +11,8 @@ use Mix.Config
 # before starting your production server.
 
 config :asteroid, AsteroidWeb.Endpoint,
-  http: [port: {:system, "PORT"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 443, scheme: "https"],
+  http: [port: 4000],
   server: true,
-  secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE"),
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 
