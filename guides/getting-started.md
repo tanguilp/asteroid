@@ -15,13 +15,13 @@ Mix 1.9
 After installing elixir and mix, launch the command:
 
 ```bash
-$ git clone https://github.com/tanguilp/asteroid.git
+git clone https://github.com/tanguilp/asteroid.git
 
-$ cd asteroid/
+cd asteroid/
 
-$ mix deps.get
+mix deps.get
 
-$ iex -S mix phx.server
+iex -S mix phx.server
 ```
 
 Dialyzer is included in the dependencies, and you can check type correctness running:
