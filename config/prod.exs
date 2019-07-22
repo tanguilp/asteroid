@@ -229,9 +229,9 @@ config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
 config :asteroid, :oauth2_grant_types_enabled, [
   :authorization_code,
   #:implicit,
-  #:password,
-  #:client_credentials,
-  #:refresh_token,
+  :password,
+  :client_credentials,
+  :refresh_token,
   #:"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
