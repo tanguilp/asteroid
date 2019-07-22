@@ -26,7 +26,9 @@ The following resources are preconfigured:
 - subjects:
   - `"user_demo"` with the password field set to `"asteroidftw"`
 
-## How to run locally
+Note that introspection is set for both clients.
+
+## Run locally
 
 First check out to the `demo_auth_workflow` branch. Then retrieve the dependencies (this includes
 the Wax Webauthn library) and finally run the server:
@@ -39,7 +41,7 @@ mix deps.get
 iex -S mix phx.server
 ```
 
-## URL and curl commands
+### URL and curl commands
 
 URLs to trigger the workflow (with `http://localhost:4000`):
 - [http://localhost:4000/authorize?response_type=code&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect](http://localhost:4000/authorize?response_type=code&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect)
@@ -58,3 +60,58 @@ curl -u client1:clientpassword1 -d "grant_type=client_credentials" http://localh
 
 curl -u client2:clientpassword2 -d "grant_type=client_credentials" http://localhost:4001/api/oauth2/token | jq
 ```
+
+## Run on Gigalixir
+
+After setting up your Gigalixir account, checkout to the `demo_auth_workflow_gigalixir` branch
+and push it to Gigalixir:
+
+```bash
+$ git checkout demo_auth_workflow_gigalixir
+
+$ git push gigalixir demo_auth_workflow_gigalixir:master
+```
+
+After a few minutes, the application is deployed and can be accessed.
+
+## Testing with oauth.tools
+
+[oauth.tools](https://oauth.tools/) is a website that allows testing different OAuth2 and
+OpenID Connect flows.
+
+**Beware**, OAuth2 parameters route through their servers, including application and user
+passwords. **Don't user it with real world applications**.
+
+It is however very convenient for testing. For instance, after deploying the application
+on Gigalixir, go through the following steps to test the demo.
+
+First, open the site and clic "Environments". A configuration window shows up, enter the
+issuer (which happens to be the base URL):
+
+![Metadata before load](../guides/media/oauth_tools_screenshots/metadata-before-load.png)
+
+and then clic on "Discover". The OAuth2 parameters are automatically loaded:
+
+![Metadata loaded](../guides/media/oauth_tools_screenshots/metadata-loaded.png)
+
+It remains to configure the clients, as shown here:
+
+![Client configuration loaded](../guides/media/oauth_tools_screenshots/client-configuration.png)
+
+Then go back to the main page (no need to save) and clic on "+ Start flow", then on
+"Authorization code":
+
+![Select authorization code flow](../guides/media/oauth_tools_screenshots/authorization-code-flow.png)
+
+Select `"client1"` as the test client, select the scopes (or none) and activate PKCE if you
+wish:
+
+![Authorization code flow settings](../guides/media/oauth_tools_screenshots/autz-code-flow-select-client-and-scopes.png)
+
+Then clic on "Run" at the bottom:
+
+![Authorization code flow run](../guides/media/oauth_tools_screenshots/authz-code-flow-run.png)
+
+You should be redirected to the web authentication workflow of the demo application:
+
+![Asteroid form](../guides/media/oauth_tools_screenshots/asteroid-username-form.png)
