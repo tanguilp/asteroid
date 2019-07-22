@@ -11,10 +11,8 @@ use Mix.Config
 # before starting your production server.
 
 config :asteroid, AsteroidWeb.Endpoint,
-  http: [port: {:system, "PORT"}],
-  url: [host: System.get_env("APP_NAME") <> ".gigalixirapp.com", port: 443, scheme: "https"],
+  http: [port: 4000],
   server: true,
-  secret_key_base: Map.fetch!(System.get_env(), "SECRET_KEY_BASE"),
   cache_static_manifest: "priv/static/cache_manifest.json"
 
 
@@ -181,7 +179,7 @@ config :asteroid, :api_oauth2_plugs,
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
-    #{Corsica, [origins: "*"]},
+    {Corsica, [origins: "*"]},
     # uncomment the following line to enable throttling for public clients on the
     # /api/oauth2/token endpoint
     #{APIacFilterThrottler,
@@ -194,12 +192,13 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
 
 config :asteroid, :api_oauth2_endpoint_introspect_plugs,
   [
+    {Corsica, [origins: "*"]},
   ]
 
 config :asteroid, :api_oauth2_endpoint_revoke_plugs,
   [
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
-    #{Corsica, [origins: "*"]}
+    {Corsica, [origins: "*"]}
   ]
 
 config :asteroid, :api_oauth2_endpoint_register_plugs,
@@ -212,10 +211,12 @@ config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
 
 config :asteroid, :discovery_plugs,
   [
+    {Corsica, [origins: "*"]},
   ]
 
 config :asteroid, :well_known_plugs,
   [
+    {Corsica, [origins: "*"]},
   ]
 
 ####################### Crypto configuration #########################

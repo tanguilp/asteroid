@@ -9,7 +9,6 @@ use Mix.Config
 #
 config :asteroid, AsteroidWeb.Endpoint,
   http: [port: 4000],
-  #url: [scheme: "https", host: "www.example.com", path: "/account/auth", port: 443],
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
