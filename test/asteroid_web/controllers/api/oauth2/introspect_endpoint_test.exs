@@ -173,6 +173,36 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       Scope.Set.new(access_token.data["scope"]))
   end
 
+  test "existing access token, no token_type_hint param, basic auth with no scopes", %{conn: conn} do
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("scope", [])
+      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("token_type", "strange_type")
+      |> AccessToken.put_value("exp", now() + 3600)
+      |> AccessToken.put_value("iat", now())
+      |> AccessToken.put_value("iss", "https://example.net")
+      |> AccessToken.store(%{})
+
+    req_body = %{
+      "token" => access_token.id
+    }
+
+    response =
+      conn
+      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> json_response(200)
+
+    assert response["active"] == true
+    assert response["iss"] == access_token.data["iss"]
+    assert response["client_id"] == access_token.data["client_id"]
+    assert response["token_type"] == access_token.data["token_type"]
+    assert response["exp"] == access_token.data["exp"]
+    assert response["iat"] == access_token.data["iat"]
+    assert response["scope"] == nil
+  end
+
   test "existing access token, no token_type_hint param, bearer auth", %{conn: conn} do
     {:ok, access_token} =
       AccessToken.gen_new()
