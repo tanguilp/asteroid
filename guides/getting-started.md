@@ -1,8 +1,6 @@
 # Getting started
 
-Asteroid is an OAuth2 compliant server. Its name stands for
-"Authorization Server on sTEROIDs", "Authorization server on STEROIDs" or again
-"AuthoriSation server on sTEROIDs" (as a friendly gesture to our fellows in the UK).
+Asteroid is an OAuth2 compliant server. Its name stands for "Authorization Server on sTEROIDs".
 
 ## Compatibility
 
@@ -10,23 +8,23 @@ OTP21+
 
 Elixir 17+
 
-Mix 1.9 (for releases)
+Mix 1.9
 
 ## Downloading and starting Asteroid in development mode
 
 After installing elixir and mix, launch the command:
 
 ```bash
-$ git clone https://github.com/tanguilp/asteroid.git
+git clone https://github.com/tanguilp/asteroid.git
 
-$ cd asteroid/
+cd asteroid/
 
-$ mix deps.get
+mix deps.get
 
-$ iex -S mix phx.server
+iex -S mix phx.server
 ```
 
-Dialyzer is included in the dependencies, and you can check type correctness launching:
+Dialyzer is included in the dependencies, and you can check type correctness running:
 
 ```bash
 $ mix dialyzer
@@ -40,15 +38,15 @@ Launch the following command:
 $ MIX_ENV=test mix test
 ```
 
-## Release for production environment
+## Releases for production environment
 
-Launch the following command:
+To enable extensibility, Asteroid uses a lot of callbacks functions which are set in configuration
+files. Due to a [bug](https://bugs.erlang.org/browse/ERL-1009) in Erlang's standard library,
+Asteroid **cannot be compiled** to a release with tools like Distillery or `mix release`
+(this has been tested). Should the bug be corrected in the next OTP version, it will become
+possible to use this tools to create Asteroid releases.
 
-```bash
-$ MIX_ENV=prod mix release
-```
-
-The released binary is generated in `_build/prod/rel/prod/bin/prod`
+Until then, only Mix can be used to make Asteroid in production.
 
 ## Generating documentation
 
@@ -65,16 +63,16 @@ all `APIac.Filter`) in the `mix.exs` file. Some are also used in tests.
 
 Before releasing, make sure to remove or disable (using the `:only` option) those not needed.
 
-For instance, the `APIacAuthMTLS` dependency is listed as:
+For instance, the `APIacAuthClientSecretPost` dependency is listed as:
 
 ```elixir
-{:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
+{:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
 ```
 
 and can be either deleted or disabled in production environment by writing:
 
 ```elixir
-{:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls", only: [:dev, :test]},
+{:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post", only: [:dev, :test]},
 ```
 
 ### Security considerations
