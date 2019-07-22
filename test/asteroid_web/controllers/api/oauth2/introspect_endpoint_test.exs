@@ -5,6 +5,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
 
   alias Asteroid.Token.{RefreshToken, AccessToken}
   alias AsteroidWeb.Router.Helpers, as: Routes
+  alias OAuth2Utils.Scope
 
   ##########################################################################
   # General tests
@@ -161,7 +162,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(access_token.data, "active", true)
+    assert response["active"] == true
+    assert response["iss"] == access_token.data["iss"]
+    assert response["client_id"] == access_token.data["client_id"]
+    assert response["token_type"] == access_token.data["token_type"]
+    assert response["exp"] == access_token.data["exp"]
+    assert response["iat"] == access_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(access_token.data["scope"]))
   end
 
   test "existing access token, no token_type_hint param, bearer auth", %{conn: conn} do
@@ -191,7 +200,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(access_token.data, "active", true)
+    assert response["active"] == true
+    assert response["iss"] == access_token.data["iss"]
+    assert response["client_id"] == access_token.data["client_id"]
+    assert response["token_type"] == access_token.data["token_type"]
+    assert response["exp"] == access_token.data["exp"]
+    assert response["iat"] == access_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(access_token.data["scope"]))
   end
 
   test "existing access token, correct token_type_hint param", %{conn: conn} do
@@ -216,7 +233,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(access_token.data, "active", true)
+    assert response["active"] == true
+    assert response["iss"] == access_token.data["iss"]
+    assert response["client_id"] == access_token.data["client_id"]
+    assert response["token_type"] == access_token.data["token_type"]
+    assert response["exp"] == access_token.data["exp"]
+    assert response["iat"] == access_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(access_token.data["scope"]))
   end
 
   test "existing access token, incorrect token_type_hint param", %{conn: conn} do
@@ -241,7 +266,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response == Map.put(access_token.data, "active", true)
+    assert response["active"] == true
+    assert response["iss"] == access_token.data["iss"]
+    assert response["client_id"] == access_token.data["client_id"]
+    assert response["token_type"] == access_token.data["token_type"]
+    assert response["exp"] == access_token.data["exp"]
+    assert response["iat"] == access_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(access_token.data["scope"]))
   end
 
   test "existing access token, but expired", %{conn: conn} do
@@ -347,8 +380,16 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response ==
-      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
+    assert response["active"] == true
+    assert response["iss"] == refresh_token.data["iss"]
+    assert response["client_id"] == refresh_token.data["client_id"]
+    assert response["token_type"] == refresh_token.data["token_type"]
+    assert response["exp"] == refresh_token.data["exp"]
+    assert response["iat"] == refresh_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(refresh_token.data["scope"]))
+    assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
   test "existing refresh token, correct token_type_hint param", %{conn: conn} do
@@ -374,8 +415,16 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response ==
-      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
+    assert response["active"] == true
+    assert response["iss"] == refresh_token.data["iss"]
+    assert response["client_id"] == refresh_token.data["client_id"]
+    assert response["token_type"] == refresh_token.data["token_type"]
+    assert response["exp"] == refresh_token.data["exp"]
+    assert response["iat"] == refresh_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(refresh_token.data["scope"]))
+    assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
   test "existing refresh token, incorrect token_type_hint param", %{conn: conn} do
@@ -401,8 +450,16 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
-    assert response ==
-      Map.put(refresh_token.data, "active", true) |> Map.delete("__asteroid_oauth2_initial_flow")
+    assert response["active"] == true
+    assert response["iss"] == refresh_token.data["iss"]
+    assert response["client_id"] == refresh_token.data["client_id"]
+    assert response["token_type"] == refresh_token.data["token_type"]
+    assert response["exp"] == refresh_token.data["exp"]
+    assert response["iat"] == refresh_token.data["iat"]
+    assert Scope.Set.equal?(
+      Scope.Set.from_scope_param!(response["scope"]),
+      Scope.Set.new(refresh_token.data["scope"]))
+    assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
   test "existing refresh token, but expired", %{conn: conn} do

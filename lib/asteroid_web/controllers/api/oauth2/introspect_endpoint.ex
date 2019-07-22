@@ -91,6 +91,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       access_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
       |> Enum.into(%{})
+      |> scope_list_to_param()
       |> Map.put("active", true)
       |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
@@ -124,7 +125,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
     resp =
       refresh_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
-      |> Enum.into(%{}) # since Enum.filter/2 retunrs a list
+      |> Enum.into(%{}) # since Enum.filter/2 returns a list
+      |> scope_list_to_param()
       |> Map.put("active", true)
       |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
@@ -171,5 +173,15 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
     conn
     |> put_status(error_status)
     |> json(Enum.into(error_data, %{}))
+  end
+
+  @spec scope_list_to_param(map()) :: map()
+
+  defp scope_list_to_param(%{"scope" => scopes} = m) when is_list(scopes) do
+    Map.put(m, "scope", Enum.join(scopes, " "))
+  end
+
+  defp scope_list_to_param(m) do
+    m
   end
 end
