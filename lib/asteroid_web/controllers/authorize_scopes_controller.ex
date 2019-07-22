@@ -117,7 +117,7 @@ defmodule AsteroidWeb.AuthorizeScopesController do
 
     scope_config = OAuth2.Scope.configuration_for_flow(:authorization_code)
 
-    authz_request = get_session(conn, :authz_request) |> IO.inspect()
+    authz_request = get_session(conn, :authz_request)
 
     Enum.reduce(
       scope_config[:scopes],
