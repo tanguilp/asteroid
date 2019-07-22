@@ -2,10 +2,10 @@
 
 Authorization Server on sTEROIDs.
 
-![Asteroid](assets/static/images/asteroid.svg)
+![Asteroid](assets/static/images/asteroid.svg | width=180)
 
 Asteroid is an OAuth2 server designed for performance, extensibility and maintenability. It
-benefits from the high performance of the Erlang Virtual Machine for servers.
+benefits from the high performances and reliability of the Erlang Virtual Machine.
 
 ## Protocol support
 
