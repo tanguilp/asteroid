@@ -43,6 +43,7 @@ defmodule AsteroidWeb.Router do
 
   pipeline :oauth2 do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
+      IO.inspect({plug_module, plugs_options})
       plug plug_module, plug_options
     end
   end
