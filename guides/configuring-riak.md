@@ -2,22 +2,7 @@
 
 ## Globally
 
-To configure Riak globally, i.e running the Riak pool connections, first enable it
-in `mix.exs` changing the following line:
-
-```elixir
-{:riak, github: "tanguilp/riak-elixir-client", only: :dev},
-```
-
-to:
-
-```elixir
-{:riak, github: "tanguilp/riak-elixir-client"},
-```
-
-This modified version of the package adds a needed function.
-
-Then, you need to configure the pooler in the configuration file by uncommenting the
+You need to configure the pooler in the configuration file by uncommenting the
 following lines:
 
 
@@ -33,6 +18,8 @@ config :pooler,
     ]
   ]
 ```
+
+and setting the pool options as needed.
 
 Asteroid and associated libraries do only use pooled Riak connections.
 
