@@ -68,7 +68,7 @@ defmodule Asteroid.MixProject do
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
-      {:riak, github: "tanguilp/riak-elixir-client", only: :dev},
+      {:riak, github: "tanguilp/riak-elixir-client"},
       {:singleton, "~> 1.2.0"},
       {:wax, github: "tanguilp/wax", tag: "0.1.2"}
     ]
