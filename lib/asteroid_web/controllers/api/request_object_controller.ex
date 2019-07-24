@@ -3,15 +3,42 @@ defmodule AsteroidWeb.API.RequestObjectController do
 
   use AsteroidWeb, :controller
 
-  def show(conn, params) do
-    conn
-    |> put_status(200)
-    |> json(params)
+  import Asteroid.Utils
+
+  alias Asteroid.OAuth2
+  alias AsteroidWeb.Router.Helpers, as: Routes
+
+  def show(conn, %{"id" => key}) do
+    case OAuth2.JAR.get_stored_request_object(key) do
+      {:ok, request_object} ->
+        conn
+        |> put_status(200)
+        |> text(request_object)
+
+      {:error, _} ->
+        conn
+        |> send_resp(404, "") # FIXME: verbose level
+    end
   end
 
-  def create(conn, params) do
-    conn
-    |> put_status(200)
-    |> json(params)
+  def create(conn, %{"request_object" => request_object}) do
+    key = secure_random_b64()
+
+    to_store = %{
+      "request_object" => request_object,
+      "exp" => now() + astrenv(:oauth2_jar_request_object_lifetime)
+    }
+
+    case OAuth2.JAR.put_request_object(key, to_store) do
+      :ok ->
+        conn
+        |> put_resp_header("location",
+                           Routes.request_object_url(AsteroidWeb.Endpoint, :show, key))
+        |> send_resp(201, "")
+
+      {:error, _} ->
+        conn
+        |> send_resp(500, "") # FIXME: verbose level
+    end
   end
 end

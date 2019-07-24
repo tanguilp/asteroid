@@ -122,7 +122,8 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/pkce.md",
         "guides/oauth2/dynamic-client-registration.md",
         "guides/oauth2/device-flow.md",
-        "guides/oauth2/server-metadata.md"
+        "guides/oauth2/server-metadata.md",
+        "guides/oauth2/jar.md"
       ],
       groups_for_extras:
       [
@@ -137,7 +138,8 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/pkce.md",
           "guides/oauth2/dynamic-client-registration.md",
           "guides/oauth2/device-flow.md",
-          "guides/oauth2/server-metadata.md"
+          "guides/oauth2/server-metadata.md",
+          "guides/oauth2/jar.md"
         ]
       ]
     ]

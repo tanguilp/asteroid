@@ -113,6 +113,11 @@ config :asteroid, :token_store_device_code, [
   module: Asteroid.TokenStore.DeviceCode.Mnesia
 ]
 
+config :asteroid, :token_store_request_object, [
+  module: Asteroid.TokenStore.GenericKV.Mnesia,
+  opts: [table_name: :request_object]
+]
+
 config :asteroid, :token_store_refresh_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
@@ -265,6 +270,7 @@ config :asteroid, :oauth2_access_token_signing_key_callback,
 config :asteroid, :oauth2_access_token_signing_alg_callback,
   &Asteroid.Token.AccessToken.signing_alg/1
 
+config :asteroid, :oauth2_jar_request_object_lifetime, 3 * 60
 
 ####################### OAuth2 grant types ###########################
 

@@ -139,6 +139,33 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
+    Request object store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the token's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all token's implementation functions. Refer to
+    the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_request_object, [
+      module: Asteroid.TokenStore.GenericKV.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_request_object :: Keyword.t()
+
+    field :token_store_request_object,
+      config_time: :runtime
+
+    @doc """
     Callback invoked before storing a refresh token
     """
 
@@ -1529,6 +1556,16 @@ defmodule Asteroid.Config do
 
     field :api_request_object_plugs,
       config_time: :compile
+
+    @doc """
+    Defines the lifetime of a request object stored internally
+    """
+
+    @type oauth2_jar_request_object_lifetime :: non_neg_integer()
+
+    field :oauth2_jar_request_object_lifetime,
+    config_time: :runtime,
+    unit: "seconds"
 
     ### end of configuration options
   end
