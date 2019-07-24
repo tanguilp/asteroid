@@ -30,11 +30,11 @@ defmodule Asteroid.OAuth2.Scope do
               ""
             end
 
-          :normal ->
-            "Unknown requested scope(s)"
+        :normal ->
+          "Unknown requested scope(s)"
 
-          :minimal ->
-            ""
+        :minimal ->
+          ""
       end
     end
   end

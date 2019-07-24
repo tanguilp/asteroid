@@ -6,6 +6,8 @@ Asteroid provides with numerous APIs and web endpoints as shown by the `mix phx.
 $ mix phx.routes
                           authorize_path  GET   /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
                              device_path  GET   /device                                  AsteroidWeb.DeviceController :pre_authorize
+                     request_object_path  GET   /api/request_object/:id                  AsteroidWeb.API.RequestObjectController :show
+                     request_object_path  POST  /api/request_object                      AsteroidWeb.API.RequestObjectController :create
                      token_endpoint_path  POST  /api/oauth2/token                        AsteroidWeb.API.OAuth2.TokenEndpoint :handle
                 introspect_endpoint_path  POST  /api/oauth2/introspect                   AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
                     revoke_endpoint_path  POST  /api/oauth2/revoke                       AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
@@ -25,13 +27,14 @@ The following schema lists the configuration keys used to install plugs:
 authorize……………………………………………………………………………………………… :browser_plugs
 device……………………………………………………………………………………………………… :browser_plugs
 api
-╰─ oauth2……………………………………………………………………………………………… :api_oauth2_plugs
-   │
-   ├ token…………………………………………………………………………………………… :api_oauth2_endpoint_token_plugs
-   ├ introspect……………………………………………………………………………… :api_oauth2_endpoint_introspect_plugs
-   ├ revoke………………………………………………………………………………………… :api_oauth2_endpoint_revoke_plugs
-   ├ register…………………………………………………………………………………… :api_oauth2_endpoint_register_plugs
-   ╰ device_authorization…………………………………………………… :api_oauth2_endpoint_device_authorization_plugs
+├─ oauth2……………………………………………………………………………………………… :api_oauth2_plugs
+│  │
+│  ├ token…………………………………………………………………………………………… :api_oauth2_endpoint_token_plugs
+│  ├ introspect……………………………………………………………………………… :api_oauth2_endpoint_introspect_plugs
+│  ├ revoke………………………………………………………………………………………… :api_oauth2_endpoint_revoke_plugs
+│  ├ register…………………………………………………………………………………… :api_oauth2_endpoint_register_plugs
+│  ╰ device_authorization…………………………………………………… :api_oauth2_endpoint_device_authorization_plugs
+╰─ request_object………………………………………………………………………… :api_request_object_plugs
 discovery……………………………………………………………………………………………… :discovery_plugs
 ╰─ keys
 .well-known………………………………………………………………………………………… :well_known_plugs

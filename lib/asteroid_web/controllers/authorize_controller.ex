@@ -44,6 +44,52 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec pre_authorize(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
+  def pre_authorize(conn, %{"request" => _, "request_uri" => _}) do
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+          reason: "`request` and `request_uri` parameters cannot be used simultaneously"))
+  end
+
+  def pre_authorize(conn, %{"request" => request_object} = params) do
+    if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
+      case OAuth2.JAR.parse_and_verify(request_object) do
+        {:ok, jar_req_params} ->
+          req_params =
+            Map.merge(
+              Map.delete(params, "request"),
+              jar_req_params # takes precedence, removing any duplicate URI params
+            )
+
+          pre_authorize(conn, req_params)
+
+        {:error, e} ->
+          AsteroidWeb.Error.respond_authorize(conn, e)
+      end
+    else
+      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestNotSupported.exception([]))
+    end
+  end
+
+  def pre_authorize(conn, %{"request_uri" => request_uri} = params) do
+    if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+      with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
+           {:ok, jar_req_params} = OAuth2.JAR.parse_and_verify(jar_req_obj)
+      do
+        req_params =
+          Map.merge(
+            Map.delete(params, "request_uri"),
+            jar_req_params # takes precedence, removing any duplicate URI params
+          )
+
+        pre_authorize(conn, req_params)
+      else
+        {:error, e} ->
+          AsteroidWeb.Error.respond_authorize(conn, e)
+      end
+    else
+      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestURINotSupported.exception([]))
+    end
+  end
+
   def pre_authorize(conn,
                     %{"response_type" => "code",
                       "client_id" => client_id,

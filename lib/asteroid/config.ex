@@ -1504,6 +1504,32 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     unit: "seconds"
 
+    @doc """
+    JWT Secured Authorization Request (JAR) enabling flag
+
+    The possible values are:
+    - `:disabled`: JAR is disabled
+    - `:request_only`: on ly the `"request"` parameter is enabled
+    - `:request_uri_only`: only the `"request_uri"` is enabled
+    - `:enabled`: both the `"request"` and `"request_uri"` parameters are enabled
+    """
+
+    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
+
+    field :oauth2_jar_enabled,
+    config_time: :runtime
+
+    @doc """
+    Plugs installed on `"/api/request_object"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_request_object_plugs :: [{module(), Keyword.t()}]
+
+    field :api_request_object_plugs,
+      config_time: :compile
+
     ### end of configuration options
   end
 

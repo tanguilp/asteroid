@@ -41,6 +41,12 @@ defmodule AsteroidWeb.Router do
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
   end
 
+  pipeline :request_object do
+    for {plug_module, plug_options} <- astrenv(:api_request_object_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   pipeline :oauth2 do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
       plug plug_module, plug_options
@@ -82,6 +88,15 @@ defmodule AsteroidWeb.Router do
 
     get "/authorize", AuthorizeController, :pre_authorize
     get "/device", DeviceController, :pre_authorize
+  end
+
+  scope "/api", AsteroidWeb.API do
+    scope "/request_object" do
+      pipe_through :request_object
+
+      get "/:id", RequestObjectController, :show
+      post "/", RequestObjectController, :create
+    end
   end
 
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
