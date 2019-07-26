@@ -3,6 +3,61 @@
 Asteroid implements the draft RFC JWT Secured Authorization Request (JAR)
 ([draft-ietf-oauth-jwsreq-19](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-19)).
 
+## Signing and encryption keys
+
+A request object can be either:
+- signed then encrypted
+- signed
+
+Let's examine how Asteroid figures out which keys and algorithms to use.
+
+### JAR signature
+
+A client shall sign the request object. It uses one of its private keys to do so. It can
+communicate the list of its signing key by:
+- publishing it on a JWK URI. Asteroid uses the client's `"jwks_uri"` to retrieve those keys
+(using the `JWKSURIUpdater` library). This is the preferred method, suited for servers
+- including it in the `Asteroid.Client` `"jwks"` attribute. This is suited for mobile or javascript
+applications that cannot publish keys at an endpoint
+
+Asteroid comes with a configured list of acceptable signing algorithms with the
+[`:oauth2_jar_request_object_signing_alg_values_supported`](file:///home/tangui/coding/asteroid/doc/Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
+configuration option (which is also published in the metadata under the
+`"request_object_signing_alg_values_supported"` key).
+
+Asteroid will try all the eligible keys. An eligible key is one that fulfills **all** of the
+following conditions:
+- the `"use"` field is `"sig"` or is not set
+- the `"key_ops"` field is `"sign"` or is not set
+- the `"alg"` field is one of the those configured by
+[`:oauth2_jar_request_object_signing_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
+or is not set
+  - note that even is the key has no `"alg"` set, only algorithms listed by the option above
+  will be allowed
+
+### JAR encryption
+
+A client can optionally encrypt the request object. To do so, it needs to retrieve one public
+encryption key from Asteroid. It can do so by picking one on the
+`/discovery/keys` endpoint.
+
+It then encrypts the JWS request object and sends it in a request.
+Asteroid comes with a configured list of acceptable encryption algorithms with the
+[`:oauth2_jar_request_object_encryption_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_encryption_alg_values_supported)
+and
+[`:oauth2_jar_request_object_encryption_enc_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_encryption_enc_values_supported)
+configuration options (which are also published in the metadata under the
+`"request_object_encryption_alg_values_supported"` and
+`"request_object_encryption_enc_values_supported"` keys).
+
+Asteroid will select from its own crypto key store the keys that fulfill all of these conditions:
+- the `"use"` field is `"enc"` or is not set
+- the `"key_ops"` field is `"encrypt"` or `"deriveKey"`, or is not set
+- the `"alg"` field is one of the those configured by
+[`:oauth2_jar_request_object_encryption_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_encryption_alg_values_supported)
+or is not set
+  - note that even is the key has no `"alg"` set, only algorithms listed by the option above
+
 ## Request object store
 
 Asteroid ships with a convenience request object store that can be reached on the

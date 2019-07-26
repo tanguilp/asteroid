@@ -56,10 +56,13 @@ defmodule Asteroid.MixProject do
       {:hammer, "~> 6.0"},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.9"},
+      {:jwks_uri_updater, github: "tanguilp/jwks_uri_updater"},
+      {:oauth2_metadata_updater, github: "tanguilp/oauth2_metadata_updater", override: true},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
+      {:poison, "~> 4.0", override: true},
       {:riak, github: "tanguilp/riak-elixir-client"},
       {:singleton, "~> 1.2.0"}
     ]

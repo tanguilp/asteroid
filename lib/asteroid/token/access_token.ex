@@ -35,7 +35,7 @@ defmodule Asteroid.Token.AccessToken do
     refresh_token_id: binary() | nil,
     serialization_format: Asteroid.Token.serialization_format(),
     signing_key: Asteroid.Crypto.Key.name() | nil,
-    signing_alg: Asteroid.Crypto.Key.alg() | nil,
+    signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
     data: map()
   }
 
@@ -467,7 +467,7 @@ defmodule Asteroid.Token.AccessToken do
   - otherwise, returns `nil`
   """
 
-  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.alg()
+  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.jws_alg()
 
   def signing_alg(%{flow: flow, client: client}) do
     attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_signing_alg"

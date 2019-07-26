@@ -118,17 +118,17 @@ defmodule Asteroid.OAuth2.JAR do
   @spec verify_and_parse(String.t()) :: {:ok, map()} | {:error, Exception.t()}
 
   def verify_and_parse(request_object_str) do
-    jws =
-      if jwe?(request_object_str) do
-        decrypt_jwe(request_object_str)
-      else
-        request_object_str
-      end
+    if jwe?(request_object_str) do
+      case decrypt_jwe(request_object_str) do
+        {:ok, jws} ->
+          verify_and_parse_jws(jws)
 
-    {:ok, verify_and_parse_jws(jws)}
-  rescue
-    e ->
-      {:error, e}
+        {:error, _} = error ->
+          error
+      end
+    else
+      verify_and_parse_jws(request_object_str)
+    end
   end
 
   @spec jwe?(String.t()) :: bool()
@@ -170,6 +170,7 @@ defmodule Asteroid.OAuth2.JAR do
         fn
           jwk ->
             try do
+              # FIXME: whitelist alg and enc
               {message, %JOSE.JWE{}} = JOSE.JWE.block_decrypt(jwk, jwe)
 
               message
@@ -199,44 +200,52 @@ defmodule Asteroid.OAuth2.JAR do
             jws_alg_supported =
               astrenv(:oauth2_jar_request_object_signing_alg_values_supported) || []
 
-            eligible_jwks =
-              Client.load_from_unique_attribute("client_id",
-                                                client_id,
-                                                attributes: ["jwks", "jwks_uri"])
-              |> Client.get_jwks()
-              |> Enum.map(&JOSE.JWK.from/1)
-              |> Enum.filter(
-                fn
-                  %JOSE.JWK{fields: fields} ->
-                    (fields["use"] == "sig" or fields["use"] == nil) and
-                    (fields["key_ops"] == "sign" or fields["key_ops"] == nil) and
-                    (fields["alg"] in jws_alg_supported or fields["alg"] == nil)
-                end
-              )
+            {:ok, client} =  Client.load_from_unique_attribute("client_id",
+                                                               client_id,
+                                                               attributes: ["jwks", "jwks_uri"])
 
-            maybe_payload =
-              Enum.find_value(
-                eligible_jwks,
-                :signature_verification_failure,
-                fn
-                  jwk ->
-                    case JOSE.JWS.verify_strict(jwk, jws_alg_supported, jws) do
-                      {true, message, %JOSE.JWS{}} ->
-                        message
-
-                      _ ->
-                        false
+            case Client.get_jwks(client) do
+              {:ok, keys} ->
+                eligible_jwks =
+                  keys
+                  |> Enum.map(&JOSE.JWK.from/1)
+                  |> Enum.filter(
+                    fn
+                      %JOSE.JWK{fields: fields} ->
+                        (fields["use"] == "sig" or fields["use"] == nil) and
+                        (fields["key_ops"] == "sign" or fields["key_ops"] == nil) and
+                        (fields["alg"] in jws_alg_supported or fields["alg"] == nil)
                     end
+                  )
+
+                maybe_payload =
+                  Enum.find_value(
+                    eligible_jwks,
+                    :signature_verification_failure,
+                    fn
+                      jwk ->
+                        case JOSE.JWS.verify_strict(jwk, jws_alg_supported, jws) do
+                          {true, message, %JOSE.JWS{}} ->
+                            message
+
+                          _ ->
+                            false
+                        end
+                    end
+                  )
+
+                case maybe_payload do
+                  payload when is_binary(payload) ->
+                    {:ok, payload}
+
+                  :signature_verification_failure ->
+                    {:error, InvalidRequestObjectError.exception(
+                      reason: "JWS signature verification failed")}
                 end
-              )
 
-            case maybe_payload do
-              payload when is_binary(payload) ->
-                {:ok, payload}
-
-              :signature_verification_failure ->
+              {:error, error} ->
                 {:error, InvalidRequestObjectError.exception(
-                  reason: "JWS signature verification failed")}
+                  reason: "client keys could not be retrieved (#{inspect(error)})")}
             end
 
           _ ->
@@ -272,7 +281,7 @@ defmodule Asteroid.OAuth2.JAR do
     end
   end
 
-  @spec do_retrieve_object_internal(String.t()) :: String.t()
+  @spec do_retrieve_object_internal(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
 
   defp do_retrieve_object_internal(object_id) do
     case get_stored_request_object(object_id) do
@@ -287,7 +296,7 @@ defmodule Asteroid.OAuth2.JAR do
     end
   end
 
-  @spec do_retrieve_object_external(String.t()) :: String.t()
+  @spec do_retrieve_object_external(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
 
   defp do_retrieve_object_external(uri) do
     parsed_uri = URI.parse(uri)
@@ -311,7 +320,9 @@ defmodule Asteroid.OAuth2.JAR do
   Retrieves an object from Asteroid's request object store
   """
 
-  @spec get_stored_request_object(String.t()) :: {:ok, String.t()} | {:error, any()}
+  @spec get_stored_request_object(Asteroid.TokenStore.GenericKV.key()) ::
+  {:ok, String.t()}
+  | {:error, any()}
 
   def get_stored_request_object(key) do
     module = astrenv(:token_store_request_object)[:module]
@@ -337,7 +348,10 @@ defmodule Asteroid.OAuth2.JAR do
   Saves an object to Asteroid's request object store
   """
 
-  @spec put_request_object(String.t(), String.t()) :: :ok | {:error, any()}
+  @spec put_request_object(Asteroid.TokenStore.GenericKV.key(),
+                           Asteroid.TokenStore.GenericKV.value()) ::
+  :ok
+  | {:error, any()}
 
   def put_request_object(key, value) do
     module = astrenv(:token_store_request_object)[:module]
