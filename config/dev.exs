@@ -270,8 +270,6 @@ config :asteroid, :oauth2_access_token_signing_key_callback,
 config :asteroid, :oauth2_access_token_signing_alg_callback,
   &Asteroid.Token.AccessToken.signing_alg/1
 
-config :asteroid, :oauth2_jar_request_object_lifetime, 3 * 60
-
 ####################### OAuth2 grant types ###########################
 
 # ROPC
@@ -493,3 +491,13 @@ config :asteroid, :oauth2_flow_client_credentials_scope_config, []
 config :asteroid, :oauth2_flow_ropc_scope_config, []
 
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
+
+####################### OAuth2 JAR #################################
+#
+config :asteroid, :oauth2_jar_request_object_lifetime, 3 * 60
+
+config :asteroid, :oauth2_jar_request_uri_get_opts, [
+  follow_redirect: false,
+  max_body_length: 1024 * 20, # 20 ko
+  timeout: 1000
+]

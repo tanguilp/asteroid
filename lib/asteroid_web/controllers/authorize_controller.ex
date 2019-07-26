@@ -51,13 +51,10 @@ defmodule AsteroidWeb.AuthorizeController do
 
   def pre_authorize(conn, %{"request" => request_object} = params) do
     if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
-      case OAuth2.JAR.parse_and_verify(request_object) do
+      case OAuth2.JAR.verify_and_parse(request_object) do
         {:ok, jar_req_params} ->
           req_params =
-            Map.merge(
-              Map.delete(params, "request"),
-              jar_req_params # takes precedence, removing any duplicate URI params
-            )
+            Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
           pre_authorize(conn, req_params)
 
@@ -65,20 +62,17 @@ defmodule AsteroidWeb.AuthorizeController do
           AsteroidWeb.Error.respond_authorize(conn, e)
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestNotSupported.exception([]))
+      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestNotSupportedError.exception([]))
     end
   end
 
   def pre_authorize(conn, %{"request_uri" => request_uri} = params) do
     if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
       with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
-           {:ok, jar_req_params} = OAuth2.JAR.parse_and_verify(jar_req_obj)
+           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj)
       do
         req_params =
-          Map.merge(
-            Map.delete(params, "request_uri"),
-            jar_req_params # takes precedence, removing any duplicate URI params
-          )
+          Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
         pre_authorize(conn, req_params)
       else
@@ -86,7 +80,8 @@ defmodule AsteroidWeb.AuthorizeController do
           AsteroidWeb.Error.respond_authorize(conn, e)
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestURINotSupported.exception([]))
+      AsteroidWeb.Error.respond_authorize(conn,
+                                          OAuth2.JAR.RequestURINotSupportedError.exception([]))
     end
   end
 
@@ -579,5 +574,35 @@ defmodule AsteroidWeb.AuthorizeController do
 
         AccessToken.gen_new(access_token_opts)
     end
+  end
+
+  # this function removes the OAuth2 request attributes as specified in the JAR specification:
+  #    The Authorization Server MUST extract the set of Authorization
+  #    Request parameters from the Request Object value.  The Authorization
+  #    Server MUST only use the parameters in the Request Object even if the
+  #    same parameter is provided in the query parameter.
+  #
+  # it also deletes any "request" and "request_uri" parameter
+
+  @spec jar_delete_oauth2_request_parameters(map()) :: map()
+
+  defp jar_delete_oauth2_request_parameters(params) do
+    Enum.reduce(
+      params,
+      %{},
+      fn
+        {k, v}, acc ->
+          standard_request_params =
+            OAuth2Utils.get_parameters_for_location(:authorization_request, [:oauth2])
+
+          if k not in standard_request_params do
+            Map.put(acc, k, v)
+          else
+            acc
+          end
+      end
+    )
+    |> Map.delete("request")
+    |> Map.delete("request_uri")
   end
 end

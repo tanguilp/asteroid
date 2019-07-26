@@ -12,6 +12,8 @@ defmodule Asteroid.Client do
   - those who can't: *public clients* (mobile applications, SPAs...). In this case there are
   multiple instances of the same client running, used by different subjects
 
+  # FIXME: update with fields from Dynamic Registration
+
   ## Field naming
   The following fields have standardised meaning:
   - `"client_id"`: the client identifier (as in OAuth2) (`String.t()`)
@@ -153,4 +155,23 @@ defmodule Asteroid.Client do
   - You **SHOULD NOT** issue client secrets to public clients
   [RFC6749 - 10.1.  Client Authentication](https://tools.ietf.org/html/rfc6749#section-10.1)
   """
+
+  @doc """
+  Returns the JWKs of a client
+
+  Note that the `"jwks_uri"` field takes precedence over the `"jwks"` field. If `"jwks"` is
+  somehow unreachable, it does **not** fallback to the `"jwks"` field.
+  """
+
+  @spec get_jwks(t()) :: [Asteroid.Crypto.Key.t()]
+
+  def get_jwks(client) do
+    client = fetch_attributes(client, ["jwks", "jwks_uri"])
+
+    if client.attrs["jwks_uri"] do
+      []
+    else
+      client.attrs["jwks"]["keys"] || []
+    end
+  end
 end

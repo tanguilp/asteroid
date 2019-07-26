@@ -6,6 +6,7 @@ defmodule Asteroid.Config do
   require Asteroid.Config.Builder
 
   alias Asteroid.Client
+  alias Asteroid.Crypto
 
   @typedoc """
   A map describing scope configuration
@@ -482,8 +483,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the ROPC flow
     """
 
-    @type oauth2_flow_ropc_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_ropc_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_ropc_access_token_signing_key,
     config_time: :runtime,
@@ -493,7 +493,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the ROPC flow
     """
 
-    @type oauth2_flow_ropc_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_ropc_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_ropc_access_token_signing_alg,
     config_time: :runtime,
@@ -546,7 +546,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_access_token_signing_key_callback ::
-    (Asteroid.Context.t() -> Asteroid.Crypto.Key.name())
+    (Asteroid.Context.t() -> Crypto.Key.name())
 
     field :oauth2_access_token_signing_key_callback,
     config_time: :runtime,
@@ -566,7 +566,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_access_token_signing_alg_callback ::
-    (Asteroid.Context.t() -> Asteroid.Crypto.Key.alg())
+    (Asteroid.Context.t() -> Crypto.Key.jws_alg())
 
     field :oauth2_access_token_signing_alg_callback,
     config_time: :runtime,
@@ -770,8 +770,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the client credentials flow
     """
 
-    @type oauth2_flow_client_credentials_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_client_credentials_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_client_credentials_access_token_signing_key,
     config_time: :runtime,
@@ -781,7 +780,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the client credentials flow
     """
 
-    @type oauth2_flow_client_credentials_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_client_credentials_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_client_credentials_access_token_signing_alg,
     config_time: :runtime,
@@ -909,8 +908,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the authorization code flow
     """
 
-    @type oauth2_flow_authorization_code_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_authorization_code_access_token_signing_key,
     config_time: :runtime,
@@ -920,7 +918,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the authorization code flow
     """
 
-    @type oauth2_flow_authorization_code_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_authorization_code_access_token_signing_alg,
     config_time: :runtime,
@@ -1001,8 +999,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the implicit flow
     """
 
-    @type oauth2_flow_implicit_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_implicit_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_implicit_access_token_signing_key,
     config_time: :runtime,
@@ -1012,7 +1009,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the implicit flow
     """
 
-    @type oauth2_flow_implicit_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_implicit_access_token_signing_alg,
     config_time: :runtime,
@@ -1254,7 +1251,7 @@ defmodule Asteroid.Config do
     Key name for the signed metadata fields
     """
 
-    @type oauth2_endpoint_metadata_signing_key :: Asteroid.Crypto.Key.name()
+    @type oauth2_endpoint_metadata_signing_key :: Crypto.Key.name()
 
     field :oauth2_endpoint_metadata_signing_key,
     config_time: :runtime
@@ -1263,7 +1260,7 @@ defmodule Asteroid.Config do
     Key algorithm for the signed metadata fields
     """
 
-    @type oauth2_endpoint_metadata_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_endpoint_metadata_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_endpoint_metadata_signing_alg,
     config_time: :runtime
@@ -1320,7 +1317,7 @@ defmodule Asteroid.Config do
     (such as `secret.exs`).
     """
 
-    @type crypto_keys :: Asteroid.Crypto.Key.key_config()
+    @type crypto_keys :: Crypto.Key.key_config()
 
     field :crypto_keys,
     config_time: :runtime
@@ -1332,7 +1329,7 @@ defmodule Asteroid.Config do
     the second element are the module's options.
     """
 
-    @type crypto_keys_cache :: {module(), Asteroid.Crypto.Key.Cache.opts()}
+    @type crypto_keys_cache :: {module(), Crypto.Key.Cache.opts()}
 
     field :crypto_keys_cache,
     config_time: :runtime
@@ -1457,8 +1454,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the device authorization flow
     """
 
-    @type oauth2_flow_device_authorization_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_device_authorization_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_device_authorization_access_token_signing_key,
     config_time: :runtime,
@@ -1468,7 +1464,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the device authorization flow
     """
 
-    @type oauth2_flow_device_authorization_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_device_authorization_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_device_authorization_access_token_signing_alg,
     config_time: :runtime,
@@ -1566,6 +1562,44 @@ defmodule Asteroid.Config do
     field :oauth2_jar_request_object_lifetime,
     config_time: :runtime,
     unit: "seconds"
+
+    @doc """
+    Set the options of the HTTP request to retrieve external JAR request objects
+
+    The options are request options of `HTTPoison.Request`
+    """
+
+    @type oauth2_jar_request_uri_get_opts :: Keyword.t()
+
+    field :oauth2_jar_request_uri_get_opts,
+    config_time: :runtime
+
+    @doc """
+    List of supported signing algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
+
+    field :oauth2_jar_request_object_signing_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of supported encryption algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oauth2_jar_request_object_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of supported encryption encryption algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oauth2_jar_request_object_encryption_enc_values_supported,
+    config_time: :runtime
 
     ### end of configuration options
   end

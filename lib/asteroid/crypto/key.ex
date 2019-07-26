@@ -21,6 +21,28 @@ defmodule Asteroid.Crypto.Key do
     def message(_), do: "Invalid `:use` option (must be one of: [:sign, :enc])"
   end
 
+  @typedoc """
+  A JSON web key in its raw map format
+
+  ## Example
+
+  ```elixir
+  %{
+    "d" => "Eq5xpGnNCivDflJsRQBXHx1hdR1k6Ulwe2JZD50LpXyWPEAeP88vLNO97I\n           jlA7_GQ5sLKMgvfTeXZx9SE-7YwVol2NXOoAJe46sui395IW_GO-pWJ1O0\n           BkTGoVEn2bKVRUCgu-GjBVaYLU6f3l9kJfFNS3E0QbVdxzubSu3Mkqzjkn\n           439X0M_V51gfpRLI9JYanrC4D4qAdGcopV_0ZHHzQlBjudU2QvXt4ehNYT\n           CBr6XCLQUShb1juUO1ZdiYoFaFQT5Tw8bGUl_x_jTj3ccPDVZFD9pIuhLh\n           BOneufuBiB4cS98l2SR_RQyGWSeWjnczT0QU91p1DhOVRuOopznQ",
+    "dp" => "BwKfV3Akq5_MFZDFZCnW-wzl-CCo83WoZvnLQwCTeDv8uzluRSnm71I3Q\n           CLdhrqE2e9YkxvuxdBfpT_PI7Yz-FOKnu1R6HsJeDCjn12Sk3vmAktV2zb\n           34MCdy7cpdTh_YVr7tss2u6vneTwrA86rZtu5Mbr1C1XsmvkxHQAdYo0",
+    "dq" => "h_96-mK1R_7glhsum81dZxjTnYynPbZpHziZjeeHcXYsXaaMwkOlODsWa\n           7I9xXDoRwbKgB719rrmI2oKr6N3Do9U0ajaHF-NKJnwgjMd2w9cjz3_-ky\n           NlxAr2v4IKhGNpmM5iIgOS1VZnOZ68m6_pbLBSp3nssTdlqvd0tIiTHU",
+    "e" => "AQAB",
+    "kty" => "RSA",
+    "n" => "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx\n           HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs\n           D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH\n           SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV\n           MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8\n           NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
+    "p" => "4BzEEOtIpmVdVEZNCqS7baC4crd0pqnRH_5IB3jw3bcxGn6QLvnEtfdUdi\n           YrqBdss1l58BQ3KhooKeQTa9AB0Hw_Py5PJdTJNPY8cQn7ouZ2KKDcmnPG\n           BY5t7yLc1QlQ5xHdwW1VhvKn-nXqhJTBgIPgtldC-KDV5z-y2XDwGUc",
+    "q" => "uQPEfgmVtjL0Uyyx88GZFF1fOunH3-7cepKmtH4pxhtCoHqpWmT8YAmZxa\n           ewHgHAjLYsp1ZSe7zFYHj7C6ul7TjeLQeZD_YwD66t62wDmpe_HlB-TnBA\n           -njbglfIsRLtXlnDzQkv5dTltRJ11BKBBypeeF6689rjcJIDEz9RWdc",
+    "qi" => "IYd7DHOhrWvxkwPQsRM2tOgrjbcrfvtQJipd-DlcxyVuuM9sQLdgjVk2o\n           y26F0EmpScGLq2MowX7fhd_QJQ3ydy5cY7YIBi87w93IKLEdfnbJtoOPLU\n           W0ITrJReOgo1cq9SbsxYawBgfp_gh6A5603k2-ZQwVK0JKSHuLFkuQ3U"
+  } 
+  ```
+  """
+
+  @type t :: map()
+
   @type name :: String.t()
 
   @typedoc """
@@ -67,32 +89,51 @@ defmodule Asteroid.Crypto.Key do
   @type key_use :: :sig | :enc
 
   @typedoc """
-  JOSE encryption or signature algorithm
+  JOSE JWS signature algorithm
 
   Example of output of `JOSE.JWA.supports/0`:
 
   ```elixir
-  iex> JOSE.JWA.supports()      
-  [
-    {:jwe,
-     {:alg,
-      ["A128GCMKW", "A128KW", "A192GCMKW", "A192KW", "A256GCMKW", "A256KW",
-       "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
-       "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW", "RSA1_5",
-       "dir"]},
-     {:enc,
-      ["A128CBC-HS256", "A128GCM", "A192CBC-HS384", "A192GCM", "A256CBC-HS512",
-       "A256GCM"]}, {:zip, ["DEF"]}},
-    {:jwk, {:kty, ["EC", "OKP", "RSA", "oct"]}, {:kty_OKP_crv, []}},
-    {:jws,
-     {:alg,
-      ["ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "PS256", "PS384",
-       "PS512", "RS256", "RS384", "RS512"]}}
-  ]
+  iex> JOSE.JWA.supports() |> Enum.find(fn {:jws, _} -> true; _ -> false end) |> elem(1)
+  {:alg,
+   ["ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "PS256", "PS384",
+    "PS512", "RS256", "RS384", "RS512"]}
   ```
   """
 
-  @type alg :: String.t()
+  @type jws_alg :: String.t()
+
+  @typedoc """
+  JOSE JWE algorithm
+
+  Example of output of `JOSE.JWA.supports/0`:
+
+  ```elixir
+  iex> JOSE.JWA.supports() |> Enum.find(fn {:jwe, _, _, _} -> true; _ -> false end) |> elem(1)
+  {:alg,
+   ["A128GCMKW", "A128KW", "A192GCMKW", "A192KW", "A256GCMKW", "A256KW",
+    "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
+    "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW", "RSA1_5",
+    "dir"]}
+  ```
+  """
+
+  @type jwe_alg :: String.t()
+
+  @typedoc """
+  JOSE JWE encryption algorithm
+
+  Example of output of `JOSE.JWA.supports/0`:
+
+  ```elixir
+  iex> JOSE.JWA.supports() |> Enum.find(fn {:jwe, _, _, _} -> true; _ -> false end) |> elem(2)
+  {:enc,
+   ["A128CBC-HS256", "A128GCM", "A192CBC-HS384", "A192GCM", "A256CBC-HS512",
+    "A256GCM"]}
+  ```
+  """
+
+  @type jwe_enc :: String.t()
 
   @spec load_from_config!() :: :ok
 
@@ -177,6 +218,26 @@ defmodule Asteroid.Crypto.Key do
 
     cache_module.get(key_name, cache_opts)
   end
+
+  @doc """
+  Returns all the keys
+
+  Note that it returns the private keys
+  """
+
+  @spec get_all() :: [%JOSE.JWK{}]
+
+  def get_all() do
+    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+
+    for {_key_name, jwk} <- cache_module.get_all(cache_opts) do
+      JOSE.JWK.from(jwk)
+    end
+  end
+
+  @doc """
+  Returns all the public keys
+  """
 
   @spec get_all_public() :: [%JOSE.JWK{}]
 
