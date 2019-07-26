@@ -50,6 +50,11 @@ defmodule Asteroid.Utils do
   def put_if_not_empty_string(map, _, ""), do: map
   def put_if_not_empty_string(map, key, value), do: Map.put(map, key, value)
 
+  @spec put_if_not_empty(map(), Map.key(), [any()]) :: map()
+
+  def put_if_not_empty(map, _, []), do: map
+  def put_if_not_empty(map, key, list), do: Map.put(map, key, list)
+
   @doc """
   Returns the parameter unchanged
   """

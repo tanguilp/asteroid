@@ -493,7 +493,7 @@ config :asteroid, :oauth2_flow_ropc_scope_config, []
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
 
 ####################### OAuth2 JAR #################################
-#
+
 config :asteroid, :oauth2_jar_request_object_lifetime, 3 * 60
 
 config :asteroid, :oauth2_jar_request_uri_get_opts, [
@@ -501,3 +501,5 @@ config :asteroid, :oauth2_jar_request_uri_get_opts, [
   max_body_length: 1024 * 20, # 20 ko
   timeout: 1000
 ]
+
+config :asteroid, :oauth2_jar_request_object_signing_alg_values_supported, ["RS256", "ES384"]

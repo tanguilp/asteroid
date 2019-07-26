@@ -34,6 +34,14 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
                         astrenv(:oauth2_endpoint_metadata_op_policy_uri, nil))
       |> put_if_not_nil("op_tos_uri",
                         astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil))
+      |> put_if_not_nil("request_object_signing_alg_values_supported",
+                        astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
+      |> put_if_not_empty("request_object_encryption_alg_values_supported",
+                          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, []))
+      |> put_if_not_empty("request_object_encryption_enc_values_supported",
+                          astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, []))
+      |> put_if_not_empty("request_object_signing_alg_values_supported",
+                          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
       |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
       |> sign_metadata()
 

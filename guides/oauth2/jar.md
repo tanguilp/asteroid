@@ -21,7 +21,7 @@ communicate the list of its signing key by:
 applications that cannot publish keys at an endpoint
 
 Asteroid comes with a configured list of acceptable signing algorithms with the
-[`:oauth2_jar_request_object_signing_alg_values_supported`](file:///home/tangui/coding/asteroid/doc/Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
+[`:oauth2_jar_request_object_signing_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
 configuration option (which is also published in the metadata under the
 `"request_object_signing_alg_values_supported"` key).
 
