@@ -1613,6 +1613,28 @@ defmodule Asteroid.Config do
     field :oauth2_jar_request_object_encryption_enc_values_supported,
     config_time: :runtime
 
+    @doc """
+    Determines whether the audience should be checked when the request object is signed
+
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not signed.
+    """
+
+    @type oauth2_jar_request_object_verify_audience :: boolean()
+
+    field :oauth2_jar_request_object_verify_audience,
+    config_time: :runtime
+
+    @doc """
+    Determines whether the issuer should be checked when the request object is signed
+
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not signed.
+    """
+
+    @type oauth2_jar_request_object_verify_issuer :: boolean()
+
+    field :oauth2_jar_request_object_verify_issuer,
+    config_time: :runtime
+
     ### end of configuration options
   end
 

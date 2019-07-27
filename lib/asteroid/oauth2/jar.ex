@@ -7,6 +7,7 @@ defmodule Asteroid.OAuth2.JAR do
 
   alias Asteroid.Client
   alias Asteroid.Crypto
+  alias Asteroid.OAuth2
   alias AsteroidWeb.Router.Helpers, as: Routes
 
   defmodule RequestNotSupportedError do
@@ -265,7 +266,14 @@ defmodule Asteroid.OAuth2.JAR do
                     payload when is_binary(payload) ->
                       case Jason.decode!(payload) do
                         {:ok, jwt} ->
-                          {:ok, jwt}
+                          if request_object_issuer_valid?(jwt, client) and
+                            request_object_audience_valid?(jwt)
+                          do
+                            {:ok, jwt}
+                          else
+                            {:error, InvalidRequestObjectError.exception(
+                              reason: "invalid `aud` or `iss` JWT field")}
+                          end
 
                         {:error, _} ->
                           {:error, InvalidRequestObjectError.exception(
@@ -295,6 +303,34 @@ defmodule Asteroid.OAuth2.JAR do
     # raised by JOSE.JWS.peek/1
     _ ->
       {:error, InvalidRequestObjectError.exception(reason: "invalid JWS format")}
+  end
+
+  @spec request_object_issuer_valid?(map(), Client.t()) :: boolean()
+
+  defp request_object_issuer_valid?(request_object, client) do
+    if astrenv(:oauth2_jar_request_object_verify_issuer, true) do
+      client = Client.fetch_attributes(client, ["client_id"])
+
+      request_object["iss"] == client.attrs["client_id"]
+    else
+      true
+    end
+  end
+
+  @spec request_object_audience_valid?(map()) :: boolean()
+
+  defp request_object_audience_valid?(request_object) do
+    if astrenv(:oauth2_jar_request_object_verify_audience, true) do
+      case request_object["aud"] do
+        aud when is_list(aud) ->
+          OAuth2.issuer() in aud
+
+        aud when is_binary(aud) ->
+          OAuth2.issuer() == aud
+      end
+    else
+      true
+    end
   end
 
   @doc """
