@@ -34,14 +34,8 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
                         astrenv(:oauth2_endpoint_metadata_op_policy_uri, nil))
       |> put_if_not_nil("op_tos_uri",
                         astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil))
-      |> put_if_not_nil("request_object_signing_alg_values_supported",
-                        astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
-      |> put_if_not_empty("request_object_encryption_alg_values_supported",
-                          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, []))
-      |> put_if_not_empty("request_object_encryption_enc_values_supported",
-                          astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, []))
-      |> put_if_not_empty("request_object_signing_alg_values_supported",
-                          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
+      |> put_jar_enabled()
+      |> put_jar_metadata_values()
       |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
       |> sign_metadata()
 
@@ -269,6 +263,47 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
           |> Enum.map(&to_string/1)
 
         Map.put(metadata, "code_challenge_methods_supported", methods)
+    end
+  end
+
+  @spec put_jar_enabled(map()) :: map()
+
+  defp put_jar_enabled(metadata) do
+    case astrenv(:oauth2_jar_enabled, :disabled) do
+      :disabled ->
+        Map.put(metadata, "request_parameter_supported", false)
+      
+      :request_only ->
+        Map.put(metadata, "request_parameter_supported", true)
+
+      :request_uri_only ->
+        Map.put(metadata, "request_uri_parameter_supported", true)
+
+      :enabled ->
+        metadata
+        |> Map.put("request_parameter_supported", true)
+        |> Map.put("request_uri_parameter_supported", true)
+    end
+  end
+
+  @spec put_jar_metadata_values(map()) :: map()
+
+  defp put_jar_metadata_values(metadata) do
+    case astrenv(:oauth2_jar_enabled, :disabled) do
+      :disabled ->
+        metadata
+
+      _ ->
+        metadata
+        |> put_if_not_empty(
+          "request_object_encryption_alg_values_supported",
+          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, []))
+        |> put_if_not_empty(
+          "request_object_encryption_enc_values_supported",
+           astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, []))
+        |> put_if_not_empty(
+          "request_object_signing_alg_values_supported",
+          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
     end
   end
 

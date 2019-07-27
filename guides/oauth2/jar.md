@@ -20,6 +20,9 @@ communicate the list of its signing key by:
 - including it in the `Asteroid.Client` `"jwks"` attribute. This is suited for mobile or javascript
 applications that cannot publish keys at an endpoint
 
+The internal `Asteroid.Client.get_jwks/1` function is used for the prupose of retrieving the
+client's keys.
+
 Asteroid comes with a configured list of acceptable signing algorithms with the
 [`:oauth2_jar_request_object_signing_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
 configuration option (which is also published in the metadata under the

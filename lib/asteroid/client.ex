@@ -162,7 +162,8 @@ defmodule Asteroid.Client do
   Returns the JWKs of a client
 
   Note that the `"jwks_uri"` field takes precedence over the `"jwks"` field. If `"jwks"` is
-  somehow unreachable, it does **not** fallback to the `"jwks"` field.
+  somehow unreachable, it does **not** fallback to the `"jwks"` field but returns an error
+  instead.
   """
 
   @spec get_jwks(t()) :: {:ok, [Asteroid.Crypto.Key.t()]} | {:error, any()}

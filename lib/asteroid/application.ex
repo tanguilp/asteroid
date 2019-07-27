@@ -3,6 +3,8 @@ defmodule Asteroid.Application do
 
   use Application
 
+  import Asteroid.Utils
+
   alias Asteroid.AttributeRepository
   alias Asteroid.TokenStore
   alias Asteroid.Crypto
@@ -18,6 +20,10 @@ defmodule Asteroid.Application do
          :ok <- TokenStore.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
+      if astrenv(:crypto_jws_none_alg_enabled, false) do
+        JOSE.JWA.unsecured_signing(true)
+      end
+
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
       Supervisor.start_link(children, opts)
     end

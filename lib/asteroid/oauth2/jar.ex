@@ -118,7 +118,7 @@ defmodule Asteroid.OAuth2.JAR do
   @spec verify_and_parse(String.t()) :: {:ok, map()} | {:error, Exception.t()}
 
   def verify_and_parse(request_object_str) do
-    if jwe?(request_object_str) do
+    if is_binary(decode_jwe_header(request_object_str)["enc"]) do
       case decrypt_jwe(request_object_str) do
         {:ok, jws} ->
           verify_and_parse_jws(jws)
@@ -129,27 +129,29 @@ defmodule Asteroid.OAuth2.JAR do
     else
       verify_and_parse_jws(request_object_str)
     end
+  rescue
+    e ->
+      {:error, e}
   end
 
-  @spec jwe?(String.t()) :: bool()
+  @spec decode_jwe_header(String.t()) :: map()
 
-  defp jwe?(request_object_str) do
+  defp decode_jwe_header(request_object_str) do
     request_object_str
     |> String.split(".")
     |> List.first()
     |> Base.url_decode64!(padding: false)
     |> Jason.decode!()
-    |> Map.get("enc")
-    |> is_binary()
   rescue
     _ ->
-      false
+      raise InvalidRequestObjectError, reason: "Invalid JWE header"
   end
 
   @spec decrypt_jwe(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
 
   defp decrypt_jwe(jwe) do
     jwe_alg_supported = astrenv(:oauth2_jar_request_object_encryption_alg_values_supported) || []
+    jwe_enc_supported = astrenv(:oauth2_jar_request_object_encryption_enc_values_supported) || []
 
     eligible_jwks =
       Crypto.Key.get_all()
@@ -163,37 +165,43 @@ defmodule Asteroid.OAuth2.JAR do
       )
       # as per https://mailarchive.ietf.org/arch/msg/oauth/pNMHnuBeBgF5zlea0RkA4bcmhz0
 
-    maybe_payload =
-      Enum.find_value(
-        eligible_jwks,
-        :decryption_failure,
-        fn
-          jwk ->
-            try do
-              # FIXME: whitelist alg and enc
-              {message, %JOSE.JWE{}} = JOSE.JWE.block_decrypt(jwk, jwe)
+    jwe_header = decode_jwe_header(jwe)
 
-              message
-            rescue
-              _ ->
-                false
-            end
-        end
-      )
+    if jwe_header["alg"] in jwe_alg_supported and jwe_header["enc"] in jwe_enc_supported do
+      maybe_payload =
+        Enum.find_value(
+          eligible_jwks,
+          :decryption_failure,
+          fn
+            jwk ->
+              try do
+                {message, %JOSE.JWE{}} = JOSE.JWE.block_decrypt(jwk, jwe)
+                # FIXME: verify that result alg and enc in whitelist?
 
-    case maybe_payload do
-      payload when is_binary(payload) ->
-        {:ok, payload}
+                message
+              rescue
+                _ ->
+                  false
+              end
+          end
+        )
 
-      :decryption_failure ->
-        {:error, InvalidRequestObjectError.exception(reason: "JWE decryption failed")}
+      case maybe_payload do
+        payload when is_binary(payload) ->
+          {:ok, payload}
+
+        :decryption_failure ->
+          {:error, InvalidRequestObjectError.exception(reason: "JWE decryption failed")}
+      end
+    else
+      {:error, InvalidRequestObjectError.exception(reason: "Unsupported JWE `alg` or `enc`")}
     end
   end
 
   @spec verify_and_parse_jws(String.t()) :: {:ok, map()} | {:error, Exception.t()}
 
   defp verify_and_parse_jws(jws) do
-    case Jason.decode(JOSE.JWS.peek(jws)) do
+    case Jason.decode(JOSE.JWS.peek_payload(jws)) do
       {:ok, unverified_params} ->
         case unverified_params do
           %{"client_id" => client_id} ->
@@ -204,48 +212,75 @@ defmodule Asteroid.OAuth2.JAR do
                                                                client_id,
                                                                attributes: ["jwks", "jwks_uri"])
 
-            case Client.get_jwks(client) do
-              {:ok, keys} ->
-                eligible_jwks =
-                  keys
-                  |> Enum.map(&JOSE.JWK.from/1)
-                  |> Enum.filter(
-                    fn
-                      %JOSE.JWK{fields: fields} ->
-                        (fields["use"] == "sig" or fields["use"] == nil) and
-                        (fields["key_ops"] == "sign" or fields["key_ops"] == nil) and
-                        (fields["alg"] in jws_alg_supported or fields["alg"] == nil)
-                    end
-                  )
+            jws_alg = Jason.decode!(JOSE.JWS.peek_protected(jws))["alg"]
 
-                maybe_payload =
-                  Enum.find_value(
-                    eligible_jwks,
-                    :signature_verification_failure,
-                    fn
-                      jwk ->
-                        case JOSE.JWS.verify_strict(jwk, jws_alg_supported, jws) do
-                          {true, message, %JOSE.JWS{}} ->
-                            message
+            if jws_alg == "none" and "none" in jws_alg_supported do
+              case JOSE.JWS.verify_strict(%JOSE.JWK{}, ["none"], jws) do
+                {true, payload, %JOSE.JWS{alg: {:jose_jws_alg_none, :none}}}->
+                  case Jason.decode!(payload) do
+                    {:ok, jwt} ->
+                      {:ok, jwt}
 
-                          _ ->
-                            false
-                        end
-                    end
-                  )
+                    {:error, _} ->
+                      {:error, InvalidRequestObjectError.exception(
+                        reason: "JWT parsing error")}
+                  end
 
-                case maybe_payload do
-                  payload when is_binary(payload) ->
-                    {:ok, payload}
+                _ ->
+                  {:error, InvalidRequestObjectError.exception(
+                    reason: "JWS signature verification failed")}
+              end
+            else
+              case Client.get_jwks(client) do
+                {:ok, keys} ->
+                  eligible_jwks =
+                    keys
+                    |> Enum.map(&JOSE.JWK.from/1)
+                    |> Enum.filter(
+                      fn
+                        %JOSE.JWK{fields: fields} ->
+                          (fields["use"] == "sig" or fields["use"] == nil) and
+                          (fields["key_ops"] == "sign" or fields["key_ops"] == nil) and
+                          (fields["alg"] in jws_alg_supported or fields["alg"] == nil)
+                      end
+                    )
 
-                  :signature_verification_failure ->
-                    {:error, InvalidRequestObjectError.exception(
-                      reason: "JWS signature verification failed")}
-                end
+                  maybe_payload =
+                    Enum.find_value(
+                      eligible_jwks,
+                      :signature_verification_failure,
+                      fn
+                        jwk ->
+                          case JOSE.JWS.verify_strict(jwk, jws_alg_supported, jws) do
+                            {true, message, %JOSE.JWS{}} ->
+                              message
 
-              {:error, error} ->
-                {:error, InvalidRequestObjectError.exception(
-                  reason: "client keys could not be retrieved (#{inspect(error)})")}
+                            _ ->
+                              false
+                          end
+                      end
+                    )
+
+                  case maybe_payload do
+                    payload when is_binary(payload) ->
+                      case Jason.decode!(payload) do
+                        {:ok, jwt} ->
+                          {:ok, jwt}
+
+                        {:error, _} ->
+                          {:error, InvalidRequestObjectError.exception(
+                            reason: "JWT parsing error")}
+                      end
+
+                    :signature_verification_failure ->
+                      {:error, InvalidRequestObjectError.exception(
+                        reason: "JWS signature verification failed")}
+                  end
+
+                {:error, error} ->
+                  {:error, InvalidRequestObjectError.exception(
+                    reason: "client keys could not be retrieved (#{inspect(error)})")}
+              end
             end
 
           _ ->

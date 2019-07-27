@@ -1335,6 +1335,18 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
+    Determines whether the `"none"` JWS algorithm is supported
+
+    It is set using the `JOSE.JWA.unsecured_signing/1` function on Asteroid startup. Defaults
+    to `false`.
+    """
+
+    @type crypto_jws_none_alg_enabled :: boolean()
+
+    field :crypto_jws_none_alg_enabled,
+    config_time: :runtime
+
+    @doc """
     Scope configuration for the device authorization flow
     """
 
