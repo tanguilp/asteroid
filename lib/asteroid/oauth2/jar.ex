@@ -358,6 +358,14 @@ defmodule Asteroid.OAuth2.JAR do
 
   @spec retrieve_object(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
 
+  # as per the specification:
+  #    The entire Request URI MUST NOT exceed 512 ASCII characters.  There
+  #    are three reasons for this restriction.
+
+  def retrieve_object(uri) when byte_size(uri) > 512 do
+    {:error, InvalidRequestURIError.exception(reason: "`request_uri` too long")}
+  end
+
   def retrieve_object(uri) do
     asteroid_request_object_store_prefix =
       Routes.request_object_url(AsteroidWeb.Endpoint, :create) <> "/"
@@ -365,24 +373,9 @@ defmodule Asteroid.OAuth2.JAR do
     if String.starts_with?(uri, asteroid_request_object_store_prefix) do
       uri
       |> String.replace_prefix(asteroid_request_object_store_prefix, "")
-      |> do_retrieve_object_internal()
+      |> get_stored_request_object()
     else
       do_retrieve_object_external(uri)
-    end
-  end
-
-  @spec do_retrieve_object_internal(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
-
-  defp do_retrieve_object_internal(object_id) do
-    case get_stored_request_object(object_id) do
-      {:ok, request_object_serialized} ->
-        {:ok, request_object_serialized}
-
-      {:error, :expired_request_object} ->
-        InvalidRequestURIError.exception(reason: "request object has expired")
-
-      {:error, reason} ->
-        InvalidRequestURIError.exception(reason: inspect(reason))
     end
   end
 
@@ -395,14 +388,23 @@ defmodule Asteroid.OAuth2.JAR do
       jar_request_uri_get_opts = astrenv(:oauth2_jar_request_uri_get_opts, [])
 
       case HTTPoison.get(uri, [], jar_request_uri_get_opts) do
-        {:ok, response} ->
-          {:ok, response.body}
+        {:ok, %HTTPoison.Response{status_code: 200, headers: headers, body: body}} ->
+          if headers_contain_content_type?(headers, "application", "jwt") do
+            {:ok, body}
+          else
+            {:error, InvalidRequestURIError.exception(
+              reason: "requesting the request uri resulted in incorrect `content-type`")}
+          end
+
+        {:ok, %HTTPoison.Response{status_code: status_code}} ->
+          {:error, InvalidRequestURIError.exception(
+            reason: "requesting the request uri resulted in HTTP code #{status_code}")}
 
         {:error, e} ->
           {:error, InvalidRequestURIError.exception(reason: Exception.message(e))}
       end
     else
-      InvalidRequestURIError.exception(reason: "request URI must be HTTPS")
+      {:error, InvalidRequestURIError.exception(reason: "request URI must be HTTPS")}
     end
   end
 
@@ -412,7 +414,7 @@ defmodule Asteroid.OAuth2.JAR do
 
   @spec get_stored_request_object(Asteroid.TokenStore.GenericKV.key()) ::
   {:ok, String.t()}
-  | {:error, any()}
+  | {:error, Exception.t()}
 
   def get_stored_request_object(key) do
     module = astrenv(:token_store_request_object)[:module]
@@ -424,10 +426,13 @@ defmodule Asteroid.OAuth2.JAR do
 
     case module.get(key, opts) do
       {:ok, %{"exp" => exp}} when now + req_obj_lifetime > exp ->
-        {:error, :expired_request_object}
+        {:error, InvalidRequestURIError.exception([reason: "object has expired"])}
 
       {:ok, %{"request_object" => request_object}} ->
         {:ok, request_object}
+
+      {:ok, nil} ->
+        {:error, InvalidRequestURIError.exception([reason: "object could not be found"])}
 
       {:error, _} = error ->
         error

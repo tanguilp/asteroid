@@ -273,7 +273,7 @@ defmodule Asteroid.Crypto.Key do
     %{jwk | fields: Map.put(jwk.fields, "use", Atom.to_string(key_use))}
   end
 
-  @spec set_key_ops(%JOSE.JWK{}, String.t()) :: %JOSE.JWK{}
+  @spec set_key_ops(%JOSE.JWK{}, [String.t()]) :: %JOSE.JWK{}
 
   def set_key_ops(%JOSE.JWK{} = jwk, key_ops) when is_list(key_ops) do
     %{jwk | fields: Map.put(jwk.fields, "key_ops", key_ops)}

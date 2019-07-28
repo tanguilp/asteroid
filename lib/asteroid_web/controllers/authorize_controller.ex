@@ -487,6 +487,22 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
+  defp jar_pre_authorize_oidc(conn, params) do
+    missing_parameter =
+      if params["response_type"] == nil do
+        "response_type"
+      else
+        if params["client_id"] == nil do
+          "client_id"
+        else
+          "scope"
+        end
+      end
+
+    AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
+      reason: "missing parameter", parameter: missing_parameter))
+  end
+
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::
   :ok
   | {:error, %OAuth2.Request.InvalidRequestError{}}

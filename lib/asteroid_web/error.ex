@@ -82,17 +82,32 @@ defmodule AsteroidWeb.Error do
   # function used when the connection is directly returned with an error. In such a case, params
   # are in the Conn
 
-  def respond_authorize(%Plug.Conn{query_params: %{"redirect_uri" => redirect_uri}} = conn, e) do
-    redirect_uri = OAuth2.RedirectUri.add_params(
-      redirect_uri,
-      %{}
-      |> Map.put("error", err_name(e))
-      |> Map.put("error_description", Exception.message(e))
-      |> put_if_not_nil("state", conn.query_params["state"])
-    )
+  def respond_authorize(%Plug.Conn{query_params:
+    %{"redirect_uri" => redirect_uri, "client_id" => client_id}} = conn, e)
+  do
+    with :ok <- AuthorizeController.client_id_valid?(client_id),
+         :ok <- AuthorizeController.redirect_uri_valid?(redirect_uri),
+         {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
+         :ok <- AuthorizeController.redirect_uri_registered_for_client?(client,
+                                                                        redirect_uri)
+    do
+      redirect_uri = OAuth2.RedirectUri.add_params(
+        redirect_uri,
+        %{}
+        |> Map.put("error", err_name(e))
+        |> Map.put("error_description", Exception.message(e))
+        |> put_if_not_nil("state", conn.query_params["state"])
+      )
 
-    conn
-    |> redirect(external: redirect_uri)
+      conn
+      |> redirect(external: redirect_uri)
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+        |> put_status(400)
+        |> render("error_redirect_uri.html")
+    end
   end
 
   # function used when coming back from an authn / authz process. The authorization request must

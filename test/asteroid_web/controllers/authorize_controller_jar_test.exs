@@ -158,7 +158,9 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
 
   # error cases
 
-  test "Error case - req obj - not supported", %{conn: conn} = params do
+  test "Error case - req obj - not supported with valid client_id / redirect_uri",
+  %{conn: conn} = params
+  do
     Process.put(:oauth2_jar_enabled, :disabled)
 
     req_obj =
@@ -177,7 +179,73 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
     assert params["error_description"] =~ "use of JAR request objects is disabled"
   end
 
-  test "Error case - req uri - not supported", %{conn: conn} = params do
+  test "Error case - req obj - not supported with invalid client_id",
+  %{conn: conn} = params
+  do
+    Process.put(:oauth2_jar_enabled, :disabled)
+
+    query_params = Map.put(@base_params, "client_id", "nonexistent_client_id")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "nonexistent_client_id")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    conn = get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request", req_obj))}")
+
+    assert html_response(conn, 400) =~ "use of JAR request objects is disabled"
+  end
+
+  test "Error case - req obj - not supported with no client_id & redirect_uri",
+  %{conn: conn} = params
+  do
+    Process.put(:oauth2_jar_enabled, :disabled)
+
+    query_params =
+      @base_params
+      |> Map.delete("client_id")
+      |> Map.delete("redirect_uri")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    conn = get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request", req_obj))}")
+
+    assert html_response(conn, 400) =~ "missing parameter"
+  end
+
+  test "Error case - req obj - oidc: missing response_type query parameter",
+  %{conn: conn} = params
+  do
+    Process.put(:oauth2_jar_enabled, :request_only)
+
+    query_params =
+      @base_params
+      |> Map.delete("response_type")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    conn = get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request", req_obj))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request"
+    assert params["error_description"] =~ "missing parameter"
+  end
+
+  test "Error case - req uri - not supported with valid client_id / redirect_uri",
+  %{conn: conn} = params
+  do
     Process.put(:oauth2_jar_enabled, :disabled)
 
     req_obj =
@@ -201,6 +269,89 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
 
     assert params["error"] == "request_uri_not_supported"
     assert params["error_description"] =~ "use of JAR request URIs is disabled"
+  end
+
+  test "Error case - req uri - not supported with invalid client_id", %{conn: conn} = params do
+    Process.put(:oauth2_jar_enabled, :disabled)
+
+    query_params = Map.put(@base_params, "client_id", "nonexistent_client_id")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    key = secure_random_b64()
+
+    OAuth2.JAR.put_request_object(key, %{"request_object" => req_obj, "exp" => now() + 10})
+
+    req_uri = Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request_uri", req_uri))}")
+
+    assert html_response(conn, 400) =~ "use of JAR request URIs is disabled"
+  end
+
+  test "Error case - req uri - not supported with no redirect_uri & client_id",
+  %{conn: conn} = params
+  do
+    Process.put(:oauth2_jar_enabled, :disabled)
+
+    query_params =
+      @base_params
+      |> Map.delete("client_id")
+      |> Map.delete("redirect_uri")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    key = secure_random_b64()
+
+    OAuth2.JAR.put_request_object(key, %{"request_object" => req_obj, "exp" => now() + 10})
+
+    req_uri = Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request_uri", req_uri))}")
+
+    assert html_response(conn, 400) =~ "missing parameter"
+  end
+
+  test "Error case - req uri - oidc missing response_type query parameter",
+  %{conn: conn} = params
+  do
+    Process.put(:oauth2_jar_enabled, :request_uri_only)
+
+    query_params =
+      @base_params
+      |> Map.delete("response_type")
+
+    req_obj =
+      query_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    key = secure_random_b64()
+
+    OAuth2.JAR.put_request_object(key, %{"request_object" => req_obj, "exp" => now() + 10})
+
+    req_uri = Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(query_params, "request_uri", req_uri))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request"
+    assert params["error_description"] =~ "missing parameter"
   end
 
   test "Error case - req obj - invalid audience", %{conn: conn} = params do
@@ -629,6 +780,85 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
 
     assert params["error"] == "invalid_request_object"
     assert params["error_description"] =~ "JWE decryption failure"
+  end
+
+  test "Error case - req uri local - URI too long", %{conn: conn} = params do
+    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oauth2_jar_enabled, :request_uri_only)
+    Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
+
+    req_obj =
+      @base_params
+      |> Map.put("iss", "client_confidential_1")
+      |> Map.put("aud", OAuth2.issuer())
+      |> build_signed_request_object(params["rsa_sig_alg_all"], "RS256")
+
+    key = String.duplicate("x", 513)
+
+    OAuth2.JAR.put_request_object(key, %{"request_object" => req_obj, "exp" => now() + 10})
+
+    req_uri = Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(@base_params, "request_uri", req_uri))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request_uri"
+    assert params["error_description"] =~ "`request_uri` too long"
+  end
+
+  test "Error case - req uri local - req obj doesn't exist", %{conn: conn} = _params do
+    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oauth2_jar_enabled, :request_uri_only)
+    Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
+
+    key = secure_random_b64()
+
+    req_uri = Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(@base_params, "request_uri", req_uri))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request_uri"
+    assert params["error_description"] =~ "object could not be found"
+  end
+
+  test "Error case - req uri local - URI not https", %{conn: conn} = _params do
+    Process.put(:oauth2_jar_enabled, :request_uri_only)
+
+    req_uri = "http://www.example.com/object/afekxgasmfyskgzfxga"
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(@base_params, "request_uri", req_uri))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request_uri"
+    assert params["error_description"] =~ "request URI must be HTTPS"
+  end
+
+  test "Error case - req uri local - req uri not reachable", %{conn: conn} = _params do
+    Process.put(:oauth2_jar_enabled, :request_uri_only)
+
+    req_uri = "https://www.somedomain.nonexistenttld/object/dsxfhjiwaso"
+
+    conn =
+      get(conn, "/authorize?#{URI.encode_query(Map.put(@base_params, "request_uri", req_uri))}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    params = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert params["error"] == "invalid_request_uri"
   end
 
   # helper functions
