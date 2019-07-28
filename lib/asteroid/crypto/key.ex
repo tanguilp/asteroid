@@ -101,6 +101,12 @@ defmodule Asteroid.Crypto.Key do
   ```
   """
 
+  @jws_alg [
+    "ES256", "ES384", "ES512", "Ed25519", "Ed25519ph", "Ed448", "Ed448ph",
+    "HS256", "HS384", "HS512", "PS256", "PS384", "PS512", "Poly1305", "RS256",
+    "RS384", "RS512"
+  ]
+
   @type jws_alg :: String.t()
 
   @typedoc """
@@ -118,6 +124,13 @@ defmodule Asteroid.Crypto.Key do
   ```
   """
 
+  @jwe_alg [
+    "A128GCMKW", "A128KW", "A192GCMKW", "A192KW", "A256GCMKW", "A256KW",
+    "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
+    "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW",
+    "RSA-OAEP", "RSA-OAEP-256", "RSA1_5", "dir"
+  ]
+
   @type jwe_alg :: String.t()
 
   @typedoc """
@@ -132,6 +145,11 @@ defmodule Asteroid.Crypto.Key do
     "A256GCM"]}
   ```
   """
+
+  @jwe_enc [
+    "A128CBC-HS256", "A128GCM", "A192CBC-HS384", "A192GCM", "A256CBC-HS512",
+    "A256GCM", "ChaCha20/Poly1305"
+  ]
 
   @type jwe_enc :: String.t()
 
@@ -251,14 +269,38 @@ defmodule Asteroid.Crypto.Key do
 
   @spec set_key_use(%JOSE.JWK{}, key_use()) :: %JOSE.JWK{}
 
-  defp set_key_use(%JOSE.JWK{} = jwk, key_use) when key_use in [:sig, :enc] do
+  def set_key_use(%JOSE.JWK{} = jwk, key_use) when key_use in [:sig, :enc] do
     %{jwk | fields: Map.put(jwk.fields, "use", Atom.to_string(key_use))}
+  end
+
+  @spec set_key_ops(%JOSE.JWK{}, String.t()) :: %JOSE.JWK{}
+
+  def set_key_ops(%JOSE.JWK{} = jwk, key_ops) when is_list(key_ops) do
+    %{jwk | fields: Map.put(jwk.fields, "key_ops", key_ops)}
   end
 
   @spec set_key_id(%JOSE.JWK{}) :: %JOSE.JWK{}
 
-  defp set_key_id(jwk) do
+  def set_key_id(jwk) do
     %{jwk | fields: Map.put(jwk.fields, "kid", JOSE.JWK.thumbprint(jwk))}
+  end
+
+  @spec set_key_sig_alg(%JOSE.JWK{}, jws_alg()) :: %JOSE.JWK{}
+
+  def set_key_sig_alg(jwk, jws_alg) when jws_alg in @jws_alg do
+    %{jwk | fields: Map.put(jwk.fields, "alg", jws_alg)}
+  end
+
+  @spec set_key_enc_alg(%JOSE.JWK{}, jwe_alg()) :: %JOSE.JWK{}
+
+  def set_key_enc_alg(jwk, jwe_alg) when jwe_alg in @jwe_alg do
+    %{jwk | fields: Map.put(jwk.fields, "alg", jwe_alg)}
+  end
+
+  @spec set_key_enc_enc(%JOSE.JWK{}, jwe_enc()) :: %JOSE.JWK{}
+
+  def set_key_enc_enc(jwk, jwe_enc) when jwe_enc in @jwe_enc do
+    %{jwk | fields: Map.put(jwk.fields, "enc", jwe_enc)}
   end
 
   @spec set_advertised(%JOSE.JWK{}, boolean() | nil) :: %JOSE.JWK{}

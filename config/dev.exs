@@ -212,6 +212,15 @@ config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
   [
   ]
 
+config :asteroid, :api_request_object_plugs,
+  [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.send_error_response/3,
+      error_response_verbosity: :debug}
+  ]
+
 config :asteroid, :discovery_plugs,
   [
   ]
@@ -498,7 +507,7 @@ config :asteroid, :oauth2_jar_enabled, :enabled
 
 config :asteroid, :oauth2_jar_request_object_signing_alg_values_supported, ["RS256", "ES384"]
 
-config :asteroid, :oauth2_jar_request_object_lifetime, 3 * 60
+config :asteroid, :oauth2_jar_request_object_lifetime, 60
 
 config :asteroid, :oauth2_jar_request_uri_get_opts, [
   follow_redirect: false,

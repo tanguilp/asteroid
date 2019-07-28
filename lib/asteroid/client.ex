@@ -180,7 +180,7 @@ defmodule Asteroid.Client do
           error
       end
     else
-      {:ok, client.attrs["jwks"]["keys"] || []}
+      {:ok, client.attrs["jwks"] || []}
     end
   end
 end

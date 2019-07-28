@@ -81,3 +81,40 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
       error_response_verbosity: :debug}
   ]
 ```
+
+## Understanding `APIac.Authenticator` implementations' callbacks
+
+The existing `APIac.Authenticator` ship with several callbacks. For instance, the
+`APIacAuthBasic` implementation makes available:
+- `APIacAuthBasic.send_error_response/3`
+- `APIacAuthBasic.set_WWWauthenticate_header/3`
+- `APIacAuthBasic.save_authentication_failure_response/3`
+
+It has been design for maximum flexibility (and you can write your own callback implementation)
+since it can be used not only with Asteroid. Respectively, these 3 callbacks do the following in
+case of authentication error:
+- immediately sends an error response should authentication fail
+- sets the `"WWW-authenticate"` header with the correct error, and let the connection continue
+- saves in the connection (`t:Plug.Conn.t/0`) the error data without modifying HTTP information,
+and let the connection continue
+
+This allows chaining such plugs. On its OAuth2 endpoints, Asteroid uses the 3<sup>rd</sup>
+version because OAuth2 requires special processing of error response (using the
+`AsteroidWeb.Error.set_www_authenticate_header/1` function). It therefore uses the saved
+error data to build the error response.
+
+Other endpoints, such as the `/api/request_object` are 'dumb' and therefore need to be configured
+with the first type of callback (or the second, as long as the last authenticator plug responds
+to the connection), since there are no post-processing function dealing with returning an error
+message. For instance, this endpoint can be configured as:
+
+```elixir
+config :asteroid, :api_request_object_plugs,
+  [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.send_error_response/3,
+      error_response_verbosity: :normal}
+  ]
+```

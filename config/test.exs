@@ -56,6 +56,11 @@ config :asteroid, :token_store_device_code, [
   module: Asteroid.TokenStore.DeviceCode.Mnesia
 ]
 
+config :asteroid, :token_store_request_object, [
+  module: Asteroid.TokenStore.GenericKV.Mnesia,
+  opts: [table_name: :request_object]
+]
+
 config :asteroid, :attribute_repositories,
 [
   subject: [
@@ -361,7 +366,7 @@ config :asteroid, :scope_config,
     "scp3" => [],
     "scp4" => [],
     "scp5" => [],
-    "scp6" => []
+    "scp6" => [],
   }
 ]
 

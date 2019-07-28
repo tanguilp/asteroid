@@ -186,6 +186,12 @@ defmodule Asteroid.OAuth2 do
   end
 
   @typedoc """
+  Protocol in use
+  """
+
+  @type protocol :: :oauth2 | :oidc
+
+  @typedoc """
   An OAuth2 client_id
   """
 

@@ -621,7 +621,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
-  test "PKCE - succes request", %{conn: conn} do
+  test "PKCE - success request", %{conn: conn} do
     params = %{
       "client_id" => "client_confidential_1",
       "redirect_uri" => "https://www.example.com",

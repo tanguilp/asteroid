@@ -34,6 +34,7 @@ defmodule AsteroidWeb.API.RequestObjectController do
         conn
         |> put_resp_header("location",
                            Routes.request_object_url(AsteroidWeb.Endpoint, :show, key))
+        |> put_resp_content_type("application/jwt")
         |> send_resp(201, "")
 
       {:error, _} ->

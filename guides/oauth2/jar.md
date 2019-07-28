@@ -125,7 +125,15 @@ configuration option.
 
 It is highly recommended to set rate limiting or authentication using the
 [`:api_request_object_plugs`](Asteroid.Config.html#module-api_request_object_plugs)
-configuration option.
+configuration option. The
+[specification](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-19#section-10.2)
+explicitly says that:
+
+> Authorization Server is providing an endpoint that provides a
+> Request Object URI in exchange for a Request Object.  In this
+> case, the Authorization Server MUST perform Client
+> Authentication to accept the Request Object and bind the Client
+> Identifier to the Request Object URI it is providing.
 
 Should you want to allow both confidential and public clients to access this API, it is
 possible to throttle accesses for public client only using `APIacFilterThrottler`

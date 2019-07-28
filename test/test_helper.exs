@@ -19,7 +19,8 @@ Client.gen_new(id: "client_confidential_1")
 |> Client.add("scope", [
   "scp1", "scp2", "scp3", "scp4", "scp5", "scp6",
   "asteroid.introspect",
-  "asteroid.register"
+  "asteroid.register",
+  "openid"
 ])
 |> Client.add("redirect_uris", ["https://www.example.com", "https://example.org/auth/web/"])
 |> Client.add("resource_server_name", "https://client1.api")

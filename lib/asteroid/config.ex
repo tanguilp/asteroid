@@ -1616,6 +1616,9 @@ defmodule Asteroid.Config do
     @doc """
     Determines whether the audience should be checked when the request object is signed
 
+    Checks that the audience (one one of them) is the `"issuer"` of the server, using the
+    `Asteroid.OAuth2.issuer/0` function.
+
     Defaults to `true`. As per the specification, there's no checking when the JWT is not signed.
     """
 
