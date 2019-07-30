@@ -40,6 +40,9 @@ defmodule AsteroidWeb.AuthorizeController do
     }
   end
 
+  @type web_authorization_callback ::
+  (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+
   @doc false
 
   @spec pre_authorize(Plug.Conn.t(), map()) :: Plug.Conn.t()

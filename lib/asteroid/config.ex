@@ -7,6 +7,7 @@ defmodule Asteroid.Config do
 
   alias Asteroid.Client
   alias Asteroid.Crypto
+  alias Asteroid.OIDC
 
   @typedoc """
   A map describing scope configuration
@@ -820,7 +821,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_flow_authorization_code_web_authorization_callback ::
-    (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
 
     field :oauth2_flow_authorization_code_web_authorization_callback,
     config_time: :runtime
@@ -1619,7 +1620,8 @@ defmodule Asteroid.Config do
     Checks that the audience (one one of them) is the `"issuer"` of the server, using the
     `Asteroid.OAuth2.issuer/0` function.
 
-    Defaults to `true`. As per the specification, there's no checking when the JWT is not signed.
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not
+    signed.
     """
 
     @type oauth2_jar_request_object_verify_audience :: boolean()
@@ -1630,12 +1632,22 @@ defmodule Asteroid.Config do
     @doc """
     Determines whether the issuer should be checked when the request object is signed
 
-    Defaults to `true`. As per the specification, there's no checking when the JWT is not signed.
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not
+    signed.
     """
 
     @type oauth2_jar_request_object_verify_issuer :: boolean()
 
     field :oauth2_jar_request_object_verify_issuer,
+    config_time: :runtime
+
+    @doc """
+    Configuration of LOAs
+    """
+
+    @type oidc_loa_config :: OIDC.LOA.config()
+
+    field :oidc_loa_config,
     config_time: :runtime
 
     ### end of configuration options
