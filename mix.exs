@@ -117,7 +117,6 @@ defmodule Asteroid.MixProject do
         "guides/customizing.md",
         "guides/running-demo-app.md",
         "guides/oauth2/terminology-conventions.md",
-        "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",
         "guides/oauth2/oauth2-core.md",
         "guides/oauth2/token-introspection.md",
@@ -134,7 +133,6 @@ defmodule Asteroid.MixProject do
       [
         "OAuth2": [
           "guides/oauth2/terminology-conventions.md",
-          "guides/oauth2/basic-configuration.md",
           "guides/oauth2/managing-scopes.md",
           "guides/oauth2/oauth2-core.md",
           "guides/oauth2/token-introspection.md",

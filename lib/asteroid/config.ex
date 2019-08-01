@@ -384,7 +384,10 @@ defmodule Asteroid.Config do
       uses: [
         :oauth2_flow_ropc_scope_config,
         :oauth2_flow_client_credentials_scope_config,
-        :oauth2_flow_device_authorization_scope_config
+        :oauth2_flow_device_authorization_scope_config,
+        :oidc_flow_authorization_code_scope_config,
+        :oidc_flow_implicit_scope_config,
+        :oidc_flow_hybrid_scope_config
       ]
 
     @doc """
@@ -426,7 +429,11 @@ defmodule Asteroid.Config do
       :oauth2_flow_authorization_code_issue_refresh_token_init,
       :oauth2_flow_authorization_code_issue_refresh_token_refresh,
       :oauth2_flow_device_authorization_issue_refresh_token_init,
-      :oauth2_flow_device_authorization_issue_refresh_token_refresh
+      :oauth2_flow_device_authorization_issue_refresh_token_refresh,
+      :oidc_flow_authorization_code_issue_refresh_token_init,
+      :oidc_flow_authorization_code_issue_refresh_token_refresh,
+      :oidc_flow_hybrid_issue_refresh_token_init,
+      :oidc_flow_hybrid_issue_refresh_token_refresh,
     ]
 
     @doc """
@@ -455,7 +462,9 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_refresh_token_lifetime,
       :oauth2_flow_client_credentials_refresh_token_lifetime,
       :oauth2_flow_authorization_code_refresh_token_lifetime,
-      :oauth2_flow_device_authorization_refresh_token_lifetime
+      :oauth2_flow_device_authorization_refresh_token_lifetime,
+      :oidc_flow_authorization_code_refresh_token_lifetime,
+      :oidc_flow_hybrid_refresh_token_lifetime
     ]
 
     @doc """
@@ -516,7 +525,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_lifetime,
       :oauth2_flow_authorization_code_access_token_lifetime,
       :oauth2_flow_implicit_access_token_lifetime,
-      :oauth2_flow_device_authorization_access_token_lifetime
+      :oauth2_flow_device_authorization_access_token_lifetime,
+      :oidc_flow_authorization_code_access_token_lifetime,
+      :oidc_flow_implicit_access_token_lifetime,
+      :oidc_flow_hybrid_access_token_lifetime
     ]
 
     @doc """
@@ -592,7 +604,9 @@ defmodule Asteroid.Config do
     field :oauth2_authorization_code_lifetime_callback,
     config_time: :runtime,
     uses: [
-      :oauth2_flow_authorization_code_authorization_code_lifetime
+      :oauth2_flow_authorization_code_authorization_code_lifetime,
+      :oidc_flow_authorization_code_authorization_code_lifetime,
+      :oidc_flow_hybrid_authorization_code_lifetime
     ]
 
     @doc """
@@ -809,8 +823,8 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
-    for the OAuth2 authorization code flow
+    Default callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OAuth2 authorization code flow
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -824,30 +838,30 @@ defmodule Asteroid.Config do
     AsteroidWeb.AuthorizeController.web_authorization_callback()
 
     field :oauth2_flow_authorization_code_web_authorization_callback,
-    config_time: :runtime
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
 
     @doc """
-    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
-    `"code"` on the `/authorize` endpoint
+    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response on the `/authorize`
+    endpoint
     """
 
-    @type oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback ::
+    @type oauth2_endpoint_authorize_before_send_redirect_uri_callback ::
     (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
 
-    field :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+    field :oauth2_endpoint_authorize_before_send_redirect_uri_callback,
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"code"` on
-    the `/authorize` endpoint
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `/authorize` endpoint
 
     The connection is redirected immediatly after this callback returns.
     """
 
-    @type oauth2_endpoint_authorize_response_type_code_before_send_conn_callback ::
+    @type oauth2_endpoint_authorize_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
-    field :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+    field :oauth2_endpoint_authorize_before_send_conn_callback,
     config_time: :runtime
 
     @doc """
@@ -957,8 +971,8 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
-    for the OAuth2 implicit flow
+    Default callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OAuth2 implicit flow
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -972,7 +986,10 @@ defmodule Asteroid.Config do
     (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
 
     field :oauth2_flow_implicit_web_authorization_callback,
-    config_time: :runtime
+    config_time: :runtime,
+    used_by: [
+      :web_authorization_callback
+    ]
 
     @doc """
     Defines the lifetime of an access token in the implicit flow
@@ -1015,30 +1032,6 @@ defmodule Asteroid.Config do
     field :oauth2_flow_implicit_access_token_signing_alg,
     config_time: :runtime,
     used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
-    `"token"` on the `/authorize` endpoint
-    """
-
-    @type oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback ::
-    (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
-
-    field :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
-    config_time: :runtime
-
-    @doc """
-    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"token"` on
-    the `/authorize` endpoint
-
-    The connection is redirected immediatly after this callback returns.
-    """
-
-    @type oauth2_endpoint_authorize_response_type_token_before_send_conn_callback ::
-    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
-
-    field :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
-    config_time: :runtime
 
     @doc """
     The PKCE policy
@@ -1648,7 +1641,440 @@ defmodule Asteroid.Config do
     @type oidc_loa_config :: OIDC.LOA.config()
 
     field :oidc_loa_config,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Scope configuration for the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_scope_config :: scope_config()
+
+    field :oidc_flow_authorization_code_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_scope_config :: scope_config()
+
+    field :oidc_flow_implicit_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_scope_config :: scope_config()
+
+    field :oidc_flow_hybrid_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
+    for the OAuth2 authorization code flow
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :web_authorization_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_authorization_code_web_authorization_callback,
+      :oauth2_flow_implicit_web_authorization_callback,
+      :oidc_loa_config,
+      :oidc_flow_authorization_code_web_authorization_callback,
+      :oidc_flow_implicit_web_authorization_callback,
+      :oidc_flow_hybrid_web_authorization_callback
+    ]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect authorization code flow, if the
+    `:oidc_loa_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_authorization_code_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_authorization_code_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect implicit flow, if the
+    `:oidc_loa_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_implicit_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_implicit_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect hybrid flow, if the
+    `:oidc_loa_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_hybrid_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_hybrid_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when submitting an authorization code
+    in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_refresh_token_init :: boolean()
+
+    field :oidc_flow_authorization_code_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the OIDC
+    authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_refresh_token_refresh :: boolean()
+
+    field :oidc_flow_authorization_code_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when submitting an authorization code
+    in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_refresh_token_init :: boolean()
+
+    field :oidc_flow_hybrid_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the OIDC
+    hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_refresh_token_refresh :: boolean()
+
+    field :oidc_flow_hybrid_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_refresh_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of a refresh token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_refresh_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_implicit_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback called to determine the lifetime of an ID token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_id_token_lifetime_callback :: (Asteroid.Context.t() -> non_neg_integer())
+
+    field :oauth2_access_token_lifetime_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_id_token_lifetime,
+      :oidc_flow_implicit_id_token_lifetime,
+      :oidc_flow_hybrid_id_token_lifetime
+    ]
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_implicit_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback called to determine the signing key name of an ID token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_id_token_signing_key_callback ::
+    (Asteroid.Context.t() -> Crypto.Key.name())
+
+    field :oidc_id_token_signing_key_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_id_token_signing_key,
+      :oidc_flow_implicit_id_token_signign_key,
+      :oidc_flow_hybrid_id_token_signing_key
+    ]
+
+    @doc """
+    Defines the signing key name of an ID token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_id_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_authorization_code_id_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_key_callback]
+
+    @doc """
+    Defines the signing key name of an ID token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_id_token_signign_key :: Crypto.Key.name()
+
+    field :oidc_flow_implicit_id_token_signign_key,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an ID token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_id_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_hybrid_id_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_key_callback]
+
+    @doc """
+    Callback called to determine the signing algorithm of an ID token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_id_token_signing_alg_callback ::
+    (Asteroid.Context.t() -> Crypto.Key.jws_alg())
+
+    field :oidc_id_token_signing_alg_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_id_token_signing_alg,
+      :oidc_flow_implicit_id_token_signign_alg,
+      :oidc_flow_hybrid_id_token_signing_alg
+    ]
+
+    @doc """
+    Defines the signing algorithm of an ID token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_id_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_authorization_code_id_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an ID token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_id_token_signign_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_implicit_id_token_signign_alg,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an ID token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_id_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_hybrid_id_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_signing_alg_callback]
+
+    @doc """
+    Callback invoked before serializing an ID token
+    """
+
+    @type token_id_token_before_serialize_callback ::
+    (Asteroid.Token.IDToken.t(), Asteroid.Context.t() -> Asteroid.Token.IDToken.t())
+
+    field :token_id_token_before_serialize_callback,
     config_time: :runtime
+
+    @doc """
+    Callback called to determine whether a new ID token should be issued when renewing
+    tokens on `/token` with a refresh token grant type
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_issue_id_token_on_refresh_callback :: (Asteroid.Context.t() -> boolean())
+
+    field :oidc_issue_id_token_on_refresh_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_issue_id_token_refresh,
+      :oidc_flow_hybrid_issue_id_token_refresh
+    ]
+
+    @doc """
+      Defines whether an ID token should be issued when refreshing tokens in the OIDC
+      authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_id_token_refresh :: boolean()
+
+    field :oidc_flow_authorization_code_issue_id_token_refresh,
+      config_time: :runtime,
+      used_by: [:oidc_issue_id_token_on_refresh_callback]
+
+    @doc """
+      Defines whether an ID token should be issued when refreshing tokens in the OIDC
+      hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_id_token_refresh :: boolean()
+
+    field :oidc_flow_hybrid_issue_id_token_refresh,
+      config_time: :runtime,
+      used_by: [:oidc_issue_id_token_on_refresh_callback]
+
+    @doc """
+    Defines the lifetime of an authorization code in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_authorization_code_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an authorization code in the OIDC hybrid code flow
+    """
+
+    @type oidc_flow_hybrid_authorization_code_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
 
     ### end of configuration options
   end

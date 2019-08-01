@@ -758,7 +758,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
-      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> RefreshToken.store(%{flow: :ropc})
 
     req_body = %{
@@ -790,7 +790,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
-      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> RefreshToken.store(%{flow: :ropc})
 
     req_body = %{
@@ -914,7 +914,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
-      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "ropc")
+      |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -1131,7 +1131,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("client_id", "client_public_1")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1184,7 +1184,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("client_id", "client_confidential_2")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1208,7 +1208,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("client_id", "client_confidential_2")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1233,7 +1233,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("client_id", "client_public_2")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1257,7 +1257,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("client_id", "client_confidential_1")
       |> AuthorizationCode.put_value("exp", now() - 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1298,7 +1298,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1323,7 +1323,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -1349,7 +1349,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1404,7 +1404,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1466,7 +1466,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1507,7 +1507,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1559,7 +1559,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1609,7 +1609,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -1670,7 +1670,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_verifier)
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "plain")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
@@ -1706,7 +1706,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
@@ -1743,7 +1743,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("iat", now())
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
@@ -1777,6 +1777,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
       |> AuthorizationCode.put_value("exp", now() + 5)
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "code")
+      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge", code_challenge)
       |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method", "S256")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())

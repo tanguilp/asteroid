@@ -286,10 +286,10 @@ config :asteroid, :oauth2_authorization_code_lifetime_callback,
 
 config :asteroid, :oauth2_flow_authorization_code_authorization_code_lifetime, 60
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_redirect_uri_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_flow_authorization_code_issue_refresh_token_init, true
@@ -318,12 +318,6 @@ config :asteroid, :oauth2_flow_authorization_code_pkce_client_callback,
 
 config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
-  &Asteroid.Utils.id_first_param/2
-
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
-  &Asteroid.Utils.id_first_param/2
-  #
 # client registration
 
 config :asteroid, :oauth2_endpoint_register_authorization_callback,
@@ -447,3 +441,21 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter,
   {Asteroid.OAuth2.DeviceAuthorization.RateLimiter.Hammer, []}
 
 config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
+
+config :asteroid, :web_authorization_callback,
+  &AsteroidWeb.AuthorizeController.select_web_authorization_callback/2
+
+config :asteroid, :oidc_id_token_lifetime_callback,
+  &Asteroid.Token.IDToken.lifetime/1
+
+config :asteroid, :oidc_id_token_signing_key_callback,
+  &Asteroid.Token.IDToken.signing_key/1
+
+config :asteroid, :oidc_id_token_signing_alg_callback,
+  &Asteroid.Token.IDToken.signing_alg/1
+
+config :asteroid, :token_id_token_before_serialize_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_issue_id_token_on_refresh_callback,
+  &Asteroid.Token.IDToken.issue_id_token?/1

@@ -145,6 +145,70 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"`: the
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the device
   authorization flow
+  - `"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime"`: a
+  `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
+  whether the client shall use PKCE or not (defaults to not being forced to use PKCE) in the
+  OIDC authorization code flow
+  - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
+  true if a refresh token is to be issued in the OIDC authorization code flow when presenting the
+  authorization code
+  - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_refresh"`: a `boolean()` set
+  to true if a refresh token is to be issued when refreshing tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_init"`: a `boolean()` set to
+  true if a refresh token is to be issued in the OIDC hybrid flow when presenting the
+  authorization code
+  - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_refresh"`: a `boolean()` set
+  to true if a refresh token is to be issued when refreshing tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_hybrid_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_implicit_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_implicit_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_id_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` key name for ID tokens in the OIDC
+  authorization code flow
+  - `"__asteroid_oidc_flow_implicit_id_token_signing_key"`: the `t:Asteroid.Crypto.Key.name/0`
+  key name for ID tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_id_token_signing_key"`: the `t:Asteroid.Crypto.Key.name/0`
+  key name for ID tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_id_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for ID tokens in the OIDC
+  authorization code flow
+  - `"__asteroid_oidc_flow_implicit_id_token_signing_alg"`: the `t:Asteroid.Crypto.Key.jws_alg/0`
+  signing algorithm for ID tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_id_token_signing_alg"`: the `t:Asteroid.Crypto.Key.jws_alg/0`
+  signing algorithm for ID tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_issue_id_token_refresh"`: a `boolean()` set
+  to true if an ID token is to be issued when refreshing tokens in the OIDC authorization code
+  flow
+  - `"__asteroid_oidc_flow_hybrid_issue_id_token_refresh"`: a `boolean()` set
+  to true if an ID token is to be issued when refreshing tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_hybrid_authorization_code_lifetime"`: a
+  `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
 
   ## Configuration
 

@@ -80,7 +80,15 @@ processes:
 - input process: when calling the `/authorize` endpoint, Asteroid checks that the parameters are
 correct (eg that the `"client_id"` is correct and the `"redirect_uri"` matches one of the
 registered redirect URIs), handles PKCE parameters (for the authorization code flow) and:
-  - calls the [`:oauth2_flow_authorization_code_web_authorization_callback`](Asteroid.Config.html#module-oauth2_flow_authorization_code_web_authorization_callback)
+  - calls the
+  [`:oauth2_flow_authorization_code_web_authorization_callback`](Asteroid.Config.html#module-oauth2_flow_authorization_code_web_authorization_callback)
+  or
+  [`:oauth2_flow_implicit_web_authorization_callback`](Asteroid.Config.html#module-oauth2_flow_implicit_web_authorization_callback)
+  depending on the OAuth2 flow (under the hood it calls the
+  [`:web_authorization_callback`](Asteroid.Config.html#module-web_authorization_callback)
+  callback - which means the callback called can be customized by replacing the default function
+  configured for this callback)
+  to hand over the request to the authentication and authorization process if the request is
   to hand over the request to the authentication and authorization process if the request is
   valid. The callback is called with the parsed
   `AsteroidWeb.AuthorizeController.Request` request data

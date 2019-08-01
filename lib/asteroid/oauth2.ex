@@ -192,10 +192,28 @@ defmodule Asteroid.OAuth2 do
   @type protocol :: :oauth2 | :oidc
 
   @typedoc """
-  An OAuth2 client_id
+  OAuth2 client_id
   """
 
   @type client_id :: String.t()
+
+  @typedoc """
+  OAuth2 subject
+  """
+
+  @type subject :: String.t()
+
+  @typedoc """
+  OAuth2 issuer
+  """
+
+  @type issuer :: String.t()
+
+  @typedoc """
+  OAuth2 audience
+  """
+
+  @type audience :: String.t()
 
   @typedoc """
   OAuth2 grant types
@@ -223,6 +241,9 @@ defmodule Asteroid.OAuth2 do
   | :authorization_code
   | :implicit
   | :device_authorization
+  | :oidc_authorization_code
+  | :oidc_implicit
+  | :oidc_hybrid
 
   @typedoc """
   String representation of a `t:flow()/0`
@@ -232,7 +253,14 @@ defmodule Asteroid.OAuth2 do
 
   @type flow_str :: String.t()
 
-  @type response_type :: :code | :token
+  @type response_type ::
+  :code
+  | :token
+  | :id_token
+  | :"id_token token"
+  | :"code id_token"
+  | :"code token"
+  | :"code id_token token"
 
   @typedoc """
   String representation of a `t:response_type/0`
@@ -324,6 +352,24 @@ defmodule Asteroid.OAuth2 do
   def grant_type_to_flow(_), do: nil
 
   @doc """
+  Returns the flow from the response type and the protocol
+  """
+
+  @spec response_type_to_flow(response_type_str(), protocol()) ::
+  {:ok, flow()}
+  | {:error, %UnsupportedResponseTypeError{}}
+
+  def response_type_to_flow("code", :oauth2), do: {:ok, :authorization_code}
+  def response_type_to_flow("token", :oauth2), do: {:ok, :implicit}
+  def response_type_to_flow("code", :oidc), do: {:ok, :oidc_authorization_code}
+  def response_type_to_flow("id_token", :oidc), do: {:ok, :oidc_implicit}
+  def response_type_to_flow("id_token token", :oidc), do: {:ok, :oidc_implicit}
+  def response_type_to_flow("code id_token", :oidc), do: {:ok, :oidc_hybrid}
+  def response_type_to_flow("code token", :oidc), do: {:ok, :oidc_hybrid}
+  def response_type_to_flow("code id_token token", :oidc), do: {:ok, :oidc_hybrid}
+  def response_type_to_flow(val, _), do: {:ok, UnsupportedResponseTypeError.exception(response_type: val)}
+
+  @doc """
   Converts a `t:response_type_str/0` to a `t:response_type/0`
 
   Returns `{:ok, response_type()}` if the response type is supported,
@@ -336,6 +382,11 @@ defmodule Asteroid.OAuth2 do
 
   def to_response_type("code"), do: {:ok, :code}
   def to_response_type("token"), do: {:ok, :token}
+  def to_response_type("id_token"), do: {:ok, :id_token}
+  def to_response_type("id_token token"), do: {:ok, :"id_token token"}
+  def to_response_type("code id_token"), do: {:ok, :"code id_token"}
+  def to_response_type("code token"), do: {:ok, :"code token"}
+  def to_response_type("code id_token token"), do: {:ok, :"code id_token token"}
   def to_response_type(val), do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
 
   @doc """
@@ -402,11 +453,14 @@ defmodule Asteroid.OAuth2 do
   Converts a `t:flow_str/0` to a `t:flow/0`
   """
 
-  @spec to_flow(String.t()) :: flow()
+  @spec to_flow(flow_str()) :: flow()
 
   def to_flow("ropc"), do: :ropc
   def to_flow("client_credentials"), do: :client_credentials
   def to_flow("authorization_code"), do: :authorization_code
+  def to_flow("oidc_authorization_code"), do: :oidc_authorization_code
+  def to_flow("oidc_implicit"), do: :oidc_implicit
+  def to_flow("oidc_hybrid"), do: :oidc_hybrid
 
   @doc """
   Returns the issuer

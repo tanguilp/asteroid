@@ -237,6 +237,10 @@ defmodule Asteroid.Token.RefreshToken do
     - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_refresh"`
     - `"__asteroid_oauth2_flow_device_authorization_issue_refresh_token_init"`
     - `"__asteroid_oauth2_flow_device_authorization_issue_refresh_token_refresh"`
+    - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"`
+    - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_refresh"`
+    - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_init"`
+    - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_refresh"`
   - Otherwise, if the following configuration option is set to `true` for the corresponding flow
   and grant type, returns `true`:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_issue_refresh_token_init)}
@@ -247,6 +251,10 @@ defmodule Asteroid.Token.RefreshToken do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_issue_refresh_token_refresh)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_init)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_refresh)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_issue_refresh_token_init)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_issue_refresh_token_refresh)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_issue_refresh_token_init)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_issue_refresh_token_refresh)}
   - Otherwise returns `false`
   """
 
@@ -372,6 +380,70 @@ defmodule Asteroid.Token.RefreshToken do
     end
   end
 
+  def issue_refresh_token?(%{
+    flow: :oidc_authorization_code,
+    grant_type: :authorization_code,
+    client: client})
+  do
+    attr = "__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oidc_flow_authorization_code_issue_refresh_token_init, false)
+    end
+  end
+
+  def issue_refresh_token?(%{
+    flow: :oidc_authorization_code,
+    grant_type: :refresh_token,
+    client: client})
+  do
+    attr = "__asteroid_oidc_flow_authorization_code_issue_refresh_token_refresh"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
+    end
+  end
+
+  def issue_refresh_token?(%{
+    flow: :oidc_hybrid,
+    grant_type: :authorization_code,
+    client: client})
+  do
+    attr = "__asteroid_oidc_flow_hybrid_issue_refresh_token_init"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oidc_flow_hybrid_issue_refresh_token_init, false)
+    end
+  end
+
+  def issue_refresh_token?(%{
+    flow: :oidc_hybrid,
+    grant_type: :refresh_token,
+    client: client})
+  do
+    attr = "__asteroid_oidc_flow_hybrid_issue_refresh_token_refresh"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    if client.attrs[attr] == true do
+      true
+    else
+      astrenv(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
+    end
+  end
+
   def issue_refresh_token?(_) do
     false
   end
@@ -384,14 +456,18 @@ defmodule Asteroid.Token.RefreshToken do
   returns that value:
     - `"__asteroid_oauth2_flow_ropc_refresh_token_lifetime"`
     - `"__asteroid_oauth2_flow_client_credentials_refresh_token_lifetime"`
-    - `"__asteroid_oauth2_flow_authoirzation_code_refresh_token_lifetime"`
+    - `"__asteroid_oauth2_flow_authorization_code_refresh_token_lifetime"`
     - `"__asteroid_oauth2_flow_device_authorization_refresh_token_lifetime"`
+    - `"__asteroid_oidc_flow_authorization_code_refresh_token_lifetime"`
+    - `"__asteroid_oidc_flow_hybrid_refresh_token_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_refresh_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_refresh_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_refresh_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_refresh_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_refresh_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_refresh_token_lifetime)}
   - Otherwise returns `0`
 
   In any case, the returned value is capped by the scope configuration.
@@ -471,6 +547,34 @@ defmodule Asteroid.Token.RefreshToken do
 
       _ ->
         astrenv(:oauth2_flow_device_authorization_refresh_token_lifetime, 0)
+    end
+  end
+
+  defp lifetime_for_client(%{flow: :oidc_authorization_code, client: client}) do
+    attr = "__asteroid_oidc_flow_authorization_code_refresh_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oidc_flow_authorization_code_refresh_token_lifetime, 0)
+    end
+  end
+
+  defp lifetime_for_client(%{flow: :oidc_hybrid, client: client}) do
+    attr = "__asteroid_oidc_flow_hybrid_refresh_token_lifetime"
+
+    client = Client.fetch_attributes(client, [attr])
+
+    case client.attrs[attr] do
+      lifetime when is_integer(lifetime) ->
+        lifetime
+
+      _ ->
+        astrenv(:oidc_flow_hybrid_refresh_token_lifetime, 0)
     end
   end
 

@@ -81,7 +81,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   # success cases
 
   test "Success case - req obj - sig only", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -97,7 +97,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Success case - req obj - sig + enc", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
     Process.put(:oauth2_jar_request_object_encryption_alg_values_supported, ["RSA1_5"])
@@ -116,7 +116,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Success case - req obj - sig only with alg \"none\"", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["none", "RS256"])
     JOSE.JWA.unsecured_signing(true)
@@ -135,7 +135,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Success case - req uri local - sig only", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_uri_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -518,7 +518,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req obj - sig key invalid use", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -539,7 +539,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req obj - sig key invalid key_ops", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -560,7 +560,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req obj - sig key invalid key alg", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -586,7 +586,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   test "Error case - req obj - sig valid but different alg than the one declared in JWS header",
   %{conn: conn} = params
   do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -688,7 +688,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req obj - enc invalid alg for key", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
     Process.put(:oauth2_jar_request_object_encryption_alg_values_supported, ["RSA1_5"])
@@ -717,7 +717,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   test "Error case - req obj - enc valid but different alg than the one declared in JWE header",
   %{conn: conn} = params
   do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
     Process.put(:oauth2_jar_request_object_encryption_alg_values_supported, ["RSA1_5"])
@@ -753,7 +753,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   test "Error case - req obj - enc valid but different enc than the one declared in JWE header",
   %{conn: conn} = params
   do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
     Process.put(:oauth2_jar_request_object_encryption_alg_values_supported, ["RSA1_5"])
@@ -783,7 +783,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req uri local - URI too long", %{conn: conn} = params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_uri_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 
@@ -811,7 +811,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
   end
 
   test "Error case - req uri local - req obj doesn't exist", %{conn: conn} = _params do
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback, &print_json_result/2)
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback, &print_json_result/2)
     Process.put(:oauth2_jar_enabled, :request_uri_only)
     Process.put(:oauth2_jar_request_object_signing_alg_values_supported, ["RS256"])
 

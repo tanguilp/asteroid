@@ -3,8 +3,6 @@ defmodule Asteroid.OIDC.LOA do
   Functions to work with OpenID Connect LOAs
   """
 
-  @type t :: String.t()
-
   @type config :: [{atom(), [config_option()]}]
 
   @typedoc """

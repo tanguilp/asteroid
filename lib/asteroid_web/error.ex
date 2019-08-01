@@ -9,6 +9,7 @@ defmodule AsteroidWeb.Error do
 
   alias Asteroid.Client
   alias Asteroid.OAuth2
+  alias Asteroid.OIDC
   alias AsteroidWeb.AuthorizeController
   alias AsteroidWeb.API.OAuth2.TokenEndpoint
   alias AsteroidWeb.API.OAuth2.RegisterEndpoint
@@ -215,6 +216,10 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.AccessDeniedError{}), do: "access_denied"
   defp err_name(%OAuth2.ServerError{}), do: "server_error"
   defp err_name(%OAuth2.TemporarilyUnavailableError{}), do: "temporarily_unavailable"
+  defp err_name(%OIDC.InteractionRequiredError{}), do: "interaction_required"
+  defp err_name(%OIDC.LoginRequiredError{}), do: "login_required"
+  defp err_name(%OIDC.AccountSelectionRequiredError{}), do: "account_selection_required"
+  defp err_name(%OIDC.ConsentRequiredError{}), do: "consent_required"
   defp err_name(%OAuth2.Client.AuthenticationError{}), do: "invalid_client"
   defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}), do: "invalid_scope"
   defp err_name(%OAuth2.Client.AuthorizationError{}), do: "unauthorized_client"

@@ -288,17 +288,14 @@ config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_co
 
 # authorize
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_redirect_uri_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
-  &Asteroid.Utils.id_first_param/2
-
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
-  &Asteroid.Utils.id_first_param/2
+config :asteroid, :web_authorization_callback,
+  &AsteroidWeb.AuthorizeController.select_web_authorization_callback/2
 
 # token
 
@@ -487,3 +484,20 @@ config :asteroid, :oauth2_flow_client_credentials_scope_config, []
 config :asteroid, :oauth2_flow_ropc_scope_config, []
 
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
+
+####################### OIDC general configuration ################
+
+config :asteroid, :oidc_id_token_lifetime_callback,
+  &Asteroid.Token.IDToken.lifetime/1
+
+config :asteroid, :oidc_id_token_signing_key_callback,
+  &Asteroid.Token.IDToken.signing_key/1
+
+config :asteroid, :oidc_id_token_signing_alg_callback,
+  &Asteroid.Token.IDToken.signing_alg/1
+
+config :asteroid, :token_id_token_before_serialize_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_issue_id_token_on_refresh_callback,
+  &Asteroid.Token.IDToken.issue_id_token?/1

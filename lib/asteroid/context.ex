@@ -23,6 +23,7 @@ defmodule Asteroid.Context do
     optional(:endpoint) => Asteroid.OAuth2.endpoint(),
     optional(:flow) => Asteroid.OAuth2.flow(),
     optional(:grant_type) => Asteroid.OAuth2.grant_type(),
+    optional(:response_type) => Asteroid.OAuth2.response_type(),
     optional(:requested_scopes) => Scope.Set.t(),
     optional(:granted_scopes) => Scope.Set.t(),
     optional(:client) => Asteroid.Client.t(),

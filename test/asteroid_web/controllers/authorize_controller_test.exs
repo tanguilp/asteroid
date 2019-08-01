@@ -162,6 +162,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization denied - access denied with no state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -186,6 +187,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization denied - access denied with state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -209,6 +211,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization denied - server error with no state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -230,6 +233,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization denied - temporarily unavailable with no state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -255,6 +259,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (code) - access granted with state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -285,6 +290,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (code) - access granted without state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -317,6 +323,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (implicit) - access granted with state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :implicit,
         response_type: :token,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -350,6 +357,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (implicit) - access granted without state", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :implicit,
         response_type: :token,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -384,6 +392,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (implicit) - access granted with differing scopes", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :implicit,
         response_type: :token,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -421,6 +430,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Authorization granted (implicit) - access granted with capped access token lifetime", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :implicit,
         response_type: :token,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -470,6 +480,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :implicit,
         response_type: :token,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
@@ -656,6 +667,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "PKCE (code) - access granted", %{conn: conn} do
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
+        flow: :authorization_code,
         response_type: :code,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",

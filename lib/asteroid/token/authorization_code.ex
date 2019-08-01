@@ -22,6 +22,7 @@ defmodule Asteroid.Token.AuthorizationCode do
   - `"__asteroid_oauth2_pkce_code_challenge"`: the PKCE code challenge, if any
   - `"__asteroid_oauth2_pkce_code_challenge_method"`: the PKCE code challenge method, if any,
   stored as a `t:Asteroid.OAuth2.PKCE.code_challenge_method_str/0`
+  - `"__asteroid_oidc_nonce"`: the OIDC nonce, if any
   """
 
   @enforce_keys [:id, :serialization_format, :data]
@@ -215,14 +216,31 @@ defmodule Asteroid.Token.AuthorizationCode do
   - If the client has the following field set to an integer value for the corresponding flow
   returns that value:
     - `"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"`
+    - `"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime"`
+    - `"__asteroid_oidc_flow_hybrid_authorization_code_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_authorization_code_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_authorization_code_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_authorization_code_lifetime)}
   - Otherwise returns `0`
   """
 
-  def lifetime(%{flow: :authorization_code, endpoint: :authorize, client: client}) do
-    attr = "__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"
+  def lifetime(%{flow: flow, endpoint: :authorize, client: client}) do
+    {attr, conf_opt} =
+      case flow do
+        :authorization_code ->
+          {"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime",
+            :oauth2_flow_authorization_code_authorization_code_lifetime}
+
+        :oidc_authorization_code ->
+          {"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime",
+            :oidc_flow_authorization_code_authorization_code_lifetime}
+
+        :oidc_hybrid ->
+          {"__asteroid_oidc_flow_hybrid_authorization_code_lifetime",
+            :oidc_flow_hybrid_authorization_code_lifetime}
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
@@ -231,7 +249,7 @@ defmodule Asteroid.Token.AuthorizationCode do
         lifetime
 
       _ ->
-        astrenv(:oauth2_flow_authorization_code_authorization_code_lifetime, 0)
+        astrenv(conf_opt, 0)
     end
   end
 

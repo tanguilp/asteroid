@@ -8,7 +8,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   alias OAuth2Utils.Scope
   alias Asteroid.Context
   alias Asteroid.Token
-  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode}
+  alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode, IDToken}
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
 
@@ -273,7 +273,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       if Scope.Set.subset?(requested_scopes,
                            Scope.Set.new(refresh_token.data["scope"] || [])) do
         maybe_subject =
-          case Subject.load_from_unique_attribute("sub", refresh_token.data["sub"]) do
+          case Subject.load_from_unique_attribute("sub",
+                                                  refresh_token.data["sub"],
+                                                  attributes: ["sub"])
+          do
             {:ok, subject} ->
               subject
 
@@ -341,19 +344,47 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           |> AccessToken.put_value("exp",
                                    now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
           |> AccessToken.put_value("client_id", client.id)
-          |> AccessToken.put_value("sub", (if maybe_subject, do: maybe_subject.id, else: nil))
+          |> AccessToken.put_value("sub", (if maybe_subject, do: maybe_subject.attrs["sub"]))
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
           |> AccessToken.put_value("iss", OAuth2.issuer())
 
-        AccessToken.store(access_token, ctx)
+        {:ok, access_token} = AccessToken.store(access_token, ctx)
+
+        access_token_serialized = AccessToken.serialize(access_token)
+
+        maybe_id_token_serialized =
+          if maybe_initial_flow in [:oidc_authorization_code, :oidc_hybrid] and
+            astrenv(:oidc_issue_id_token_on_refresh_callback).(ctx)
+          do
+            %IDToken{
+              iss: OAuth2.issuer(),
+              sub: maybe_subject.attrs["sub"], # should be nil, crashes if so
+              aud: refresh_token.data["client_id"],
+              exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
+              iat: now(),
+              auth_time: nil, # FIXME
+              nonce: nil,
+              acr: nil, #FIXME
+              amr: nil, #FIXME
+              azp: nil,
+              signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
+              signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
+              associated_access_token_serialized: access_token_serialized
+            }
+            |> astrenv(:token_id_token_before_serialize_callback).(ctx)
+            |> IDToken.serialize()
+          else
+            nil
+          end
 
         resp =
           %{
-            "access_token" => AccessToken.serialize(access_token),
+            "access_token" => access_token_serialized,
             "expires_in" => access_token.data["exp"] - now(),
             "token_type" => "bearer"
           }
           |> maybe_put_refresh_token(maybe_new_refresh_token)
+          |> put_if_not_nil("id_token", maybe_id_token_serialized)
           |> put_scope_if_changed(requested_scopes, granted_scopes)
           |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback).(ctx)
 
@@ -414,13 +445,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
          :ok <- pkce_code_verifier_valid?(authz_code, params["code_verifier"]),
          {:ok, subject} <- Subject.load_from_unique_attribute("sub", authz_code.data["sub"])
     do
+      client = Client.fetch_attributes(client, ["client_id"])
+
       requested_scopes = Scope.Set.new(authz_code.data["requested_scopes"] || [])
       granted_scopes = Scope.Set.new(authz_code.data["granted_scopes"] || [])
+
+      flow = OAuth2.to_flow(authz_code.data["__asteroid_oauth2_initial_flow"])
 
       ctx =
         %{}
         |> Map.put(:endpoint, :token)
-        |> Map.put(:flow, :authorization_code)
+        |> Map.put(:flow, flow)
         |> Map.put(:grant_type, :authorization_code)
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:granted_scopes, granted_scopes)
@@ -503,13 +538,39 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       # FIXME: handle failure case?
       {:ok, access_token} = AccessToken.store(access_token, ctx)
 
+      access_token_serialized = AccessToken.serialize(access_token)
+
+      maybe_id_token_serialized =
+        if flow in [:oidc_authorization_code, :oidc_hybrid] do
+          %IDToken{
+            iss: OAuth2.issuer(),
+            sub: authz_code.data["sub"],
+            aud: client.attrs["client_id"],
+            exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
+            iat: now(),
+            auth_time: nil, # FIXME
+            nonce: authz_code.data["__asteroid_oidc_nonce"],
+            acr: nil, #FIXME
+            amr: nil, #FIXME
+            azp: nil,
+            signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
+            signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
+            associated_access_token_serialized: access_token_serialized
+          }
+          |> astrenv(:token_id_token_before_serialize_callback).(ctx)
+          |> IDToken.serialize()
+        else
+          nil
+        end
+
       resp =
         %{
-          "access_token" => AccessToken.serialize(access_token),
+          "access_token" => access_token_serialized,
           "expires_in" => access_token.data["exp"] - now(),
           "token_type" => "bearer"
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
+        |> put_if_not_nil("id_token", maybe_id_token_serialized)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
         |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback).(ctx)
 

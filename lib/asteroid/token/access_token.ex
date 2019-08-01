@@ -280,6 +280,9 @@ defmodule Asteroid.Token.AccessToken do
     - `"__asteroid_oauth2_flow_authorization_code_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_device_authorization_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_implicit_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_hybrid_access_token_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_access_token_lifetime)}
@@ -287,6 +290,9 @@ defmodule Asteroid.Token.AccessToken do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_access_token_lifetime)}
   - Otherwise returns `0`
 
   In any case, the returned value is capped by the scope configuration.
