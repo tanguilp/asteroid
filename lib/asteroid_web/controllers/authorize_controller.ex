@@ -118,7 +118,6 @@ defmodule AsteroidWeb.AuthorizeController do
 
     protocol = if "openid" in requested_scopes, do: :oidc, else: :oauth2
 
-    # FIXME: with :ok <- Asteroid.OAuth2.grant_type_enabled?(:authorization_code),
     with {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
          {:ok, response_type} <- Asteroid.OAuth2.to_response_type(response_type_str),
          :ok <- Asteroid.OAuth2.response_type_enabled?(response_type),
@@ -321,7 +320,7 @@ defmodule AsteroidWeb.AuthorizeController do
           "code" => AuthorizationCode.serialize(authorization_code)
         }
         |> put_if_not_nil("state", authz_request.params["state"])
-      )  
+      )
       |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
 
     Logger.debug("#{__MODULE__}: authorization granted (#{inspect(authz_request)}) with "
@@ -480,7 +479,7 @@ defmodule AsteroidWeb.AuthorizeController do
     access_token_lifetime = astrenv(:oauth2_access_token_lifetime_callback).(ctx)
 
     maybe_access_token_serialized =
-      if authz_request.response_type in [:token, :"id_token token"] do
+      if authz_request.response_type in [:"code token", :"code id_token token"] do
         {:ok, access_token} =
           new_access_token(ctx)
           |> AccessToken.put_value("iat", now())
@@ -499,7 +498,7 @@ defmodule AsteroidWeb.AuthorizeController do
       end
 
     maybe_id_token_serialized =
-      if authz_request.response_type in [:id_token, :"id_token token"] do
+      if authz_request.response_type in [:"code id_token", :"code id_token token"] do
         %IDToken{
           iss: OAuth2.issuer(),
           sub: subject.attrs["sub"],
@@ -524,7 +523,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
     fragment_params =
       %{}
-      |> Map.put("code", maybe_access_token_serialized)
+      |> Map.put("code", authorization_code_serialized)
       |> put_if_not_nil("access_token", maybe_access_token_serialized)
       |> put_if_not_nil("id_token", maybe_id_token_serialized)
       |> put_if_not_nil("token_type", (if maybe_access_token_serialized, do: "bearer"))

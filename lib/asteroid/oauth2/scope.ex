@@ -367,4 +367,49 @@ defmodule Asteroid.OAuth2.Scope do
       end
     )
   end
+
+  def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_authorization_code}) do
+    Enum.reduce(
+      astrenv(:oidc_flow_authorization_code_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
+  def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_implicit}) do
+    Enum.reduce(
+      astrenv(:oidc_flow_implicit_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
+
+  def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_hybrid}) do
+    Enum.reduce(
+      astrenv(:oidc_flow_hybrid_scope_config) || [],
+      scopes,
+      fn
+        {scope, scope_config}, acc ->
+          if scope_config[:auto] do
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
+      end
+    )
+  end
 end

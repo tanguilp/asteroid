@@ -85,6 +85,8 @@ defmodule Asteroid.Client do
   set to the lifetime duration of an access token in the implicit flow
   - `"__asteroid_oauth2_flow_implicit_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the implicit flow
+  - `"__asteroid_oauth2_flow_implicit_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the implicit flow
   - `"__asteroid_oauth2_flow_implicit_access_token_signing_alg"`: the
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
@@ -209,6 +211,18 @@ defmodule Asteroid.Client do
   to true if an ID token is to be issued when refreshing tokens in the OIDC hybrid flow
   - `"__asteroid_oidc_flow_hybrid_authorization_code_lifetime"`: a
   `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
+  - `"__asteroid_oidc_flow_implicit_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_implicit_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_implicit_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC hybrid flow
 
   ## Configuration
 

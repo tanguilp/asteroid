@@ -368,8 +368,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               amr: nil, #FIXME
               azp: nil,
               signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
-              signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
-              associated_access_token_serialized: access_token_serialized
+              signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx)
             }
             |> astrenv(:token_id_token_before_serialize_callback).(ctx)
             |> IDToken.serialize()
@@ -555,7 +554,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             azp: nil,
             signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
             signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
-            associated_access_token_serialized: access_token_serialized
+            associated_access_token_serialized:
+              if flow == :oidc_authorization_code do
+                access_token_serialized
+              end
           }
           |> astrenv(:token_id_token_before_serialize_callback).(ctx)
           |> IDToken.serialize()

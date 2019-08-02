@@ -15,7 +15,14 @@ Client.gen_new(id: "client_confidential_1")
   "refresh_token",
   "urn:ietf:params:oauth:grant-type:device_code"
 ])
-|> Client.add("response_types", ["code"])
+|> Client.add("response_types", [
+  "code",
+  "id_token",
+  "id_token token",
+  "code id_token",
+  "code token",
+  "code id_token token"
+])
 |> Client.add("scope", [
   "scp1", "scp2", "scp3", "scp4", "scp5", "scp6",
   "asteroid.introspect",

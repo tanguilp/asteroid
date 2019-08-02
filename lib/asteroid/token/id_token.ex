@@ -285,7 +285,7 @@ defmodule Asteroid.Token.IDToken do
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_id_token_signing_key)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signign_key)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_key)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_id_token_signing_key)}
   - otherwise, returns `nil`
   """
@@ -293,17 +293,34 @@ defmodule Asteroid.Token.IDToken do
   @spec signing_key(Context.t()) :: Asteroid.Crypto.Key.name()
 
   def signing_key(%{flow: flow, client: client}) do
-    attr = "__asteroid_oidc_flow_#{Atom.to_string(flow)}_id_token_signing_key"
+    attr =
+      case flow do
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_id_token_signing_key"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_id_token_signing_key"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_id_token_signing_key"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] != nil do
       client.attrs[attr]
     else
-      conf_opt = String.to_existing_atom(
-        "oidc_flow_" <>
-        Atom.to_string(flow) <>
-        "_id_token_signing_key")
+      conf_opt =
+        case flow do
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_id_token_signing_key
+
+          :oidc_implicit ->
+            :oidc_flow_implicit_id_token_signing_key
+
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_id_token_signing_key
+        end
 
       astrenv(conf_opt, nil)
     end
@@ -324,7 +341,7 @@ defmodule Asteroid.Token.IDToken do
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_id_token_signing_alg)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signign_alg)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_alg)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_id_token_signing_alg)}
   - otherwise, returns `nil`
   """
@@ -332,23 +349,36 @@ defmodule Asteroid.Token.IDToken do
   @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.jws_alg()
 
   def signing_alg(%{flow: flow, client: client}) do
-    attr = "__asteroid_oidc_flow_#{Atom.to_string(flow)}_id_token_signing_key"
+    attr =
+      case flow do
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_id_token_signing_alg"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_id_token_signing_alg"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_id_token_signing_alg"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] != nil do
       client.attrs[attr]
     else
-      conf_opt = String.to_existing_atom(
-        "oidc_flow_" <>
-        Atom.to_string(flow) <>
-        "_id_token_signing_key")
+      conf_opt =
+        case flow do
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_id_token_signing_alg
+
+          :oidc_implicit ->
+            :oidc_flow_implicit_id_token_signing_alg
+
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_id_token_signing_alg
+        end
 
       astrenv(conf_opt, nil)
     end
-  end
-
-  def signing_alg(_) do
-    nil
   end
 end

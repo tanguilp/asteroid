@@ -186,7 +186,15 @@ config :asteroid, :oauth2_grant_types_enabled, [
   :"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
-config :asteroid, :oauth2_response_types_enabled, [:code, :token]
+config :asteroid, :oauth2_response_types_enabled, [
+  :code,
+  :token,
+  :id_token,
+  :"id_token token",
+  :"code id_token",
+  :"code token",
+  :"code id_token token"
+]
 
 config :asteroid, :api_error_response_verbosity, :debug
 
@@ -361,6 +369,7 @@ config :asteroid, :scope_config,
     "scp4" => [],
     "scp5" => [],
     "scp6" => [],
+    "openid" => []
   }
 ]
 
@@ -459,3 +468,5 @@ config :asteroid, :token_id_token_before_serialize_callback,
 
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
+
+config :asteroid, :oidc_flow_authorization_code_authorization_code_lifetime, 60

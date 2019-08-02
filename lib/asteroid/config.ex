@@ -548,7 +548,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_serialization_format,
       :oauth2_flow_authorization_code_access_token_serialization_format,
       :oauth2_flow_implicit_access_token_serialization_format,
-      :oauth2_flow_device_authorization_access_token_serialization_format
+      :oauth2_flow_device_authorization_access_token_serialization_format,
+      :oidc_flow_authorization_code_access_token_serialization_format,
+      :oidc_flow_implicit_access_token_serialization_format,
+      :oidc_flow_hybrid_access_token_serialization_format
     ]
 
     @doc """
@@ -568,7 +571,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_signing_key,
       :oauth2_flow_authorization_code_access_token_signing_key,
       :oauth2_flow_implicit_access_token_signing_key,
-      :oauth2_flow_device_authorization_access_token_signing_key
+      :oauth2_flow_device_authorization_access_token_signing_key,
+      :oidc_flow_authorization_code_access_token_signing_key,
+      :oidc_flow_implicit_access_token_signing_key,
+      :oidc_flow_hybrid_access_token_signing_key
     ]
 
     @doc """
@@ -588,7 +594,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_signing_alg,
       :oauth2_flow_authorization_code_access_token_signing_alg,
       :oauth2_flow_implicit_access_token_signing_alg,
-      :oauth2_flow_device_authorization_access_token_signing_alg
+      :oauth2_flow_device_authorization_access_token_signing_alg,
+      :oidc_flow_authorization_code_access_token_signing_alg,
+      :oidc_flow_implicit_access_token_signing_alg,
+      :oidc_flow_hybrid_access_token_signing_alg
     ]
 
     @doc """
@@ -1923,7 +1932,7 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     uses: [
       :oidc_flow_authorization_code_id_token_signing_key,
-      :oidc_flow_implicit_id_token_signign_key,
+      :oidc_flow_implicit_id_token_signing_key,
       :oidc_flow_hybrid_id_token_signing_key
     ]
 
@@ -1941,9 +1950,9 @@ defmodule Asteroid.Config do
     Defines the signing key name of an ID token in the OIDC implicit flow
     """
 
-    @type oidc_flow_implicit_id_token_signign_key :: Crypto.Key.name()
+    @type oidc_flow_implicit_id_token_signing_key :: Crypto.Key.name()
 
-    field :oidc_flow_implicit_id_token_signign_key,
+    field :oidc_flow_implicit_id_token_signing_key,
     config_time: :runtime,
     used_by: [:oidc_id_token_signing_key_callback]
 
@@ -1971,7 +1980,7 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     uses: [
       :oidc_flow_authorization_code_id_token_signing_alg,
-      :oidc_flow_implicit_id_token_signign_alg,
+      :oidc_flow_implicit_id_token_signing_alg,
       :oidc_flow_hybrid_id_token_signing_alg
     ]
 
@@ -1989,9 +1998,9 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an ID token in the OIDC implicit flow
     """
 
-    @type oidc_flow_implicit_id_token_signign_alg :: Crypto.Key.jws_alg()
+    @type oidc_flow_implicit_id_token_signing_alg :: Crypto.Key.jws_alg()
 
-    field :oidc_flow_implicit_id_token_signign_alg,
+    field :oidc_flow_implicit_id_token_signing_alg,
     config_time: :runtime,
     used_by: [:oidc_id_token_signing_alg_callback]
 
@@ -2075,6 +2084,99 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     used_by: [:oauth2_authorization_code_lifetime_callback],
     unit: "seconds"
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_authorization_code_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_implicit_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_hybrid_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_authorization_code_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_implicit_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_hybrid_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_authorization_code_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_implicit_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_hybrid_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
 
     ### end of configuration options
   end
