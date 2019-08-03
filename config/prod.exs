@@ -208,6 +208,26 @@ config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
   [
   ]
 
+config :asteroid, :api_oidc_plugs,
+  [
+  ]
+
+config :asteroid, :api_oidc_endpoint_userinfo_plugs,
+  [
+    {Corsica, [origins: "*"]},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+      bearer_extract_methods: [:header, :body],
+      forward_bearer: true,
+      error_response_verbosity: :normal
+    }
+  ]
+
+config :asteroid, :api_request_object_plugs,
+  [
+  ]
+
 config :asteroid, :discovery_plugs,
   [
   ]
@@ -501,3 +521,17 @@ config :asteroid, :token_id_token_before_serialize_callback,
 
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
+  &Asteroid.Utils.id_first_param/2
+
+# userinfo
+
+config :asteroid, :oidc_endpoint_userinfo_sign_response_callback,
+  &Asteroid.OIDC.Userinfo.sign_response?/1
+
+config :asteroid, :oidc_endpoint_userinfo_encrypt_response_callback,
+  &Asteroid.OIDC.Userinfo.encrypt_response?/1

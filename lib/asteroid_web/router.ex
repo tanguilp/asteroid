@@ -47,6 +47,18 @@ defmodule AsteroidWeb.Router do
     end
   end
 
+  pipeline :oidc do
+    for {plug_module, plug_options} <- astrenv(:api_oidc_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :oidc_endpoint_userinfo do
+    for {plug_module, plug_options} <- astrenv(:api_oidc_endpoint_userinfo_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   pipeline :oauth2 do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
       plug plug_module, plug_options
@@ -96,6 +108,18 @@ defmodule AsteroidWeb.Router do
 
       get "/:id", RequestObjectController, :show
       post "/", RequestObjectController, :create
+    end
+  end
+
+  scope "/api/oidc", AsteroidWeb.API.OIDC do
+    pipe_through :oidc
+
+    scope "/userinfo" do
+      pipe_through :api_urlencoded
+      pipe_through :oidc_endpoint_userinfo
+
+      get "/", UserinfoController, :show
+      post "/", UserinfoController, :show
     end
   end
 

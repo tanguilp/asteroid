@@ -1,6 +1,8 @@
 defmodule Asteroid.Client do
   use AttributeRepository.Resource, otp_app: :asteroid
 
+  import Asteroid.Config, only: [link_to_option: 1]
+
   @moduledoc """
   `AttributeRepository.Resource` for clients
 
@@ -223,6 +225,14 @@ defmodule Asteroid.Client do
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC implicit flow
   - `"__asteroid_oidc_flow_hybrid_access_token_signing_alg"`: the
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_endpoint_userinfo_sign_response"`: when the
+  #{link_to_option(:oidc_endpoint_userinfo_sign_response_policy)} is set to
+  `:client_configuration`, a boolean determining if a signed response shall be returned from the
+  `/api/oidc/userinfo` endpoint
+  - `"__asteroid_oidc_endpoint_userinfo_encrypt_response"`: when the
+  #{link_to_option(:oidc_endpoint_userinfo_encrypt_response_callback)} is set to
+  `:client_configuration`, a boolean determining if an encrypted response shall be returned from
+  the `/api/oidc/userinfo` endpoint
 
   ## Configuration
 

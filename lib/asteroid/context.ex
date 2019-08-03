@@ -20,7 +20,7 @@ defmodule Asteroid.Context do
   alias OAuth2Utils.Scope
 
   @type t :: %{
-    optional(:endpoint) => Asteroid.OAuth2.endpoint(),
+    optional(:endpoint) => Asteroid.OAuth2.endpoint() | Asteroid.OIDC.endpoint(),
     optional(:flow) => Asteroid.OAuth2.flow(),
     optional(:grant_type) => Asteroid.OAuth2.grant_type(),
     optional(:response_type) => Asteroid.OAuth2.response_type(),

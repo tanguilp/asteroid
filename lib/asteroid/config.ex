@@ -2178,6 +2178,157 @@ defmodule Asteroid.Config do
     config_time: :runtime,
     used_by: [:oauth2_access_token_signing_alg_callback]
 
+    @doc """
+    Plugs installed on `"/api/ooidc"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oidc_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oidc_plugs,
+      config_time: :compile
+
+    @doc """
+    Plugs installed on `"/api/oidc/userinfo"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oidc_endpoint_userinfo_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oidc_endpoint_userinfo_plugs,
+      config_time: :compile
+
+    @doc """
+    Callback invoked on the json response on the `/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oidc_endpoint_userinfo_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oidc_endpoint_userinfo_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback used to determine whether a `/api/oidc/userinfo` should be signed
+    """
+
+    @type oidc_endpoint_userinfo_sign_response_callback :: (Asteroid.Context.t() -> boolean())
+
+    field :oidc_endpoint_userinfo_sign_response_callback,
+    config_time: :runtime,
+    uses: [:oidc_endpoint_userinfo_sign_response_policy]
+
+    @doc """
+    Policy for signing the `/api/oidc/userinfo` response
+
+    3 values are possible:
+    - `:disabled`: the response is not signed (default)
+    - `:client_configuration`: uses the `"__asteroid_oidc_endpoint_userinfo_sign_response"`
+    client attribute to determine whether the response should be signed
+    - `:always`: always signed response
+    """
+
+    @type oidc_endpoint_userinfo_sign_response_policy ::
+    :disabled
+    | :client_configuration
+    | :always
+
+    field :oidc_endpoint_userinfo_sign_response_policy,
+    config_time: :runtime,
+    used_by: [:oidc_endpoint_userinfo_sign_response_callback]
+
+    @doc """
+    Defines the signing key name of the response of `/api/oidc/userinfo`
+    """
+
+    @type oidc_endpoint_userinfo_signing_key :: Crypto.Key.name()
+
+    field :oidc_endpoint_userinfo_signing_key,
+    config_time: :runtime
+
+    @doc """
+    Defines the signing algorithm of the response of `/api/oidc/userinfo`
+    """
+
+    @type oidc_endpoint_userinfo_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_endpoint_userinfo_signing_alg,
+    config_time: :runtime
+
+    @doc """
+    Callback used to determine whether a `/api/oidc/userinfo` should be encrypted
+    """
+
+    @type oidc_endpoint_userinfo_encrypt_response_callback ::
+    (Asteroid.Context.t() -> boolean())
+
+    field :oidc_endpoint_userinfo_encrypt_response_callback,
+    config_time: :runtime,
+    uses: [:oidc_endpoint_userinfo_encrypt_response_policy]
+
+    @doc """
+    Policy for encrypting the `/api/oidc/userinfo` response
+
+    3 values are possible:
+    - `:disabled`: the response is not encrypted (default)
+    - `:client_configuration`: uses the `"__asteroid_oidc_endpoint_userinfo_encrypt_response"`
+    client attribute to determine whether the response should be signed
+    - `:always`: always encrypt the response. Note that it can return an error if no suitable
+    encryption key could be found in the client configuration
+    """
+
+    @type oidc_endpoint_userinfo_encrypt_response_policy ::
+    :disabled
+    | :client_configuration
+    | :always
+
+    field :oidc_endpoint_userinfo_encrypt_response_policy,
+    config_time: :runtime,
+    used_by: [:oidc_endpoint_userinfo_encrypt_response_callback]
+
+    @doc """
+    List of acceptable encryption `alg` algorithms for the encrypted response on the
+    `/api/oidc/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oidc_endpoint_userinfo_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `enc` algorithms for the encrypted response on the
+    `/api/oidc/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oidc_endpoint_userinfo_encryption_enc_values_supported,
+    config_time: :runtime
+
+    @doc """
+    Claims supported (declarative)
+
+    This is only used for publishing it on the discovery endpoint.
+    """
+
+    @type oidc_claims_supported :: [OIDC.claim_name()]
+
+    field :oidc_claims_supported,
+    config_time: :runtime
+
     ### end of configuration options
   end
 

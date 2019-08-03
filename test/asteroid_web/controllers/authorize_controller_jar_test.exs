@@ -17,7 +17,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
       "scope" => "openid"
     }
 
-  setup do
+  setup_all do
     Process.put(:scope_config, [scopes: %{"openid" => []}])
 
     rsa_sig_alg_all =

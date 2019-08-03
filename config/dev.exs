@@ -212,6 +212,22 @@ config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
   [
   ]
 
+config :asteroid, :api_oidc_plugs,
+  [
+  ]
+
+config :asteroid, :api_oidc_endpoint_userinfo_plugs,
+  [
+    {Corsica, [origins: "*"]},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+      bearer_extract_methods: [:header, :body],
+      forward_bearer: true,
+      error_response_verbosity: :normal
+    }
+  ]
+
 config :asteroid, :api_request_object_plugs,
   [
     {APIacAuthBasic,
@@ -484,7 +500,7 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
 
 ####################### Scope configuration ##########################
 
-config :asteroid, :scope_config, []
+config :asteroid, :scope_config, [scopes: %{"openid" => []}]
 
 config :asteroid, :oauth2_scope_config, []
 
@@ -528,3 +544,37 @@ config :asteroid, :token_id_token_before_serialize_callback,
 
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_loa_config, [
+  loa1: [
+    callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+    auth_events: [["password"], ["webauthn"], ["otp"]],
+    default: true
+  ],
+  loa2: [
+    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+    auth_events: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+  ]
+]
+
+# userinfo
+
+config :asteroid, :oidc_endpoint_userinfo_sign_response_callback,
+  &Asteroid.OIDC.Userinfo.sign_response?/1
+
+config :asteroid, :oidc_endpoint_userinfo_encrypt_response_callback,
+  &Asteroid.OIDC.Userinfo.encrypt_response?/1
+
+config :asteroid, :oidc_endpoint_userinfo_encrypt_response_policy, :client_configuration
+
+config :asteroid, :oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA1_5"]
+
+config :asteroid, :oidc_endpoint_userinfo_encryption_enc_values_supported, ["A128GCM", "A192GCM"]
+
+config :asteroid, :oidc_claims_supported, ["email", "phone_number", "gender"]

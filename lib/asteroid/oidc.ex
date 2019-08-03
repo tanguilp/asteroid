@@ -5,6 +5,8 @@ defmodule Asteroid.OIDC do
 
   import Asteroid.Utils
 
+  alias Asteroid.OAuth2
+
   defmodule InteractionRequiredError do
     @moduledoc """
     Error returned when an interaction is required
@@ -122,10 +124,25 @@ defmodule Asteroid.OIDC do
   end
 
   @typedoc """
+  Atoms describing the endpoints
+
+  The values refer to:
+  - `:userinfo`: `/api/oidc/userinfo`
+  """
+
+  @type endpoint :: :userinfo
+
+  @typedoc """
   Nonce
   """
 
   @type nonce :: String.t()
+
+  @typedoc """
+  Claim name, such as `"phone_number"`
+  """
+
+  @type claim_name :: String.t()
 
   @typedoc """
   Authentication Class Reference
@@ -138,4 +155,24 @@ defmodule Asteroid.OIDC do
   """
 
   @type amr :: String.t()
+
+  @doc """
+  Returns `true` if OpenID Connect is enabled, `false` otherwise
+
+  OpenID Connect is considered enabled if the `"openid"` scope is configured for one of the
+  OpenID Connect flows (authorization code, implicit, or hybrid). For instance, one can
+  activate OpenID Connect setting this scope on the root configuration scope:
+
+  ```elixir
+  config :asteroid, :scope_config, [scopes: %{"openid" => []}]
+  ```
+  """
+
+  @spec enabled?() :: boolean()
+
+  def enabled?() do
+    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_authorization_code) or
+    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
+    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
+  end
 end

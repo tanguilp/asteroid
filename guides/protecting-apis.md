@@ -8,6 +8,7 @@ $ mix phx.routes
                              device_path  GET   /device                                  AsteroidWeb.DeviceController :pre_authorize
                      request_object_path  GET   /api/request_object/:id                  AsteroidWeb.API.RequestObjectController :show
                      request_object_path  POST  /api/request_object                      AsteroidWeb.API.RequestObjectController :create
+                           userinfo_path  GET   /api/oidc/userinfo                       AsteroidWeb.API.OIDC.UserinfoController :show
                      token_endpoint_path  POST  /api/oauth2/token                        AsteroidWeb.API.OAuth2.TokenEndpoint :handle
                 introspect_endpoint_path  POST  /api/oauth2/introspect                   AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
                     revoke_endpoint_path  POST  /api/oauth2/revoke                       AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
@@ -28,12 +29,15 @@ authorize……………………………………………………………�
 device……………………………………………………………………………………………………… :browser_plugs
 api
 ├─ oauth2……………………………………………………………………………………………… :api_oauth2_plugs
-│  │
 │  ├ token…………………………………………………………………………………………… :api_oauth2_endpoint_token_plugs
 │  ├ introspect……………………………………………………………………………… :api_oauth2_endpoint_introspect_plugs
 │  ├ revoke………………………………………………………………………………………… :api_oauth2_endpoint_revoke_plugs
 │  ├ register…………………………………………………………………………………… :api_oauth2_endpoint_register_plugs
 │  ╰ device_authorization…………………………………………………… :api_oauth2_endpoint_device_authorization_plugs
+│
+├─ oidc…………………………………………………………………………………………………… :api_oidc_plugs
+│  ╰ userinfo…………………………………………………………………………………… :api_oidc_endpoint_userinfo_plugs
+│
 ╰─ request_object………………………………………………………………………… :api_request_object_plugs
 discovery……………………………………………………………………………………………… :discovery_plugs
 ╰─ keys

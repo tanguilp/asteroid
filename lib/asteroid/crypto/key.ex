@@ -9,9 +9,9 @@ defmodule Asteroid.Crypto.Key do
 
   defmodule InvalidUseError do
     @moduledoc """
-    Error returned when a `t:key_config_entry/0` is invalid because its `:use` is ivnalid
+    Error returned when a `t:key_config_entry/0` is invalid because its `:use` is invalid
 
-    `:use` must be one atom speicified in `t:key_use`.
+    `:use` must be one atom specified in `t:key_use`.
     """
 
     defexception []
@@ -19,6 +19,21 @@ defmodule Asteroid.Crypto.Key do
     @impl true
 
     def message(_), do: "Invalid `:use` option (must be one of: [:sign, :enc])"
+  end
+
+  defmodule NoSuitableKeyError do
+    @moduledoc """
+    Error returned when no suitable key was found
+
+    This can be returned, for instance, when trying to find an encryption key for a client that
+    has published only signing keys.
+    """
+
+    defexception []
+
+    @impl true
+
+    def message(_), do: "no suitable key was found"
   end
 
   @typedoc """

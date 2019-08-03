@@ -186,6 +186,22 @@ config :asteroid, :oauth2_grant_types_enabled, [
   :"urn:ietf:params:oauth:grant-type:device_code"
 ]
 
+config :asteroid, :api_oidc_plugs,
+  [
+  ]
+
+config :asteroid, :api_oidc_endpoint_userinfo_plugs,
+  [
+    {Corsica, [origins: "*"]},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+      bearer_extract_methods: [:header, :body],
+      forward_bearer: true,
+      error_response_verbosity: :normal
+    }
+  ]
+
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
   :token,
@@ -470,3 +486,15 @@ config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
 
 config :asteroid, :oidc_flow_authorization_code_authorization_code_lifetime, 60
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_sign_response_callback,
+  &Asteroid.OIDC.Userinfo.sign_response?/1
+
+config :asteroid, :oidc_endpoint_userinfo_encrypt_response_callback,
+  &Asteroid.OIDC.Userinfo.encrypt_response?/1
