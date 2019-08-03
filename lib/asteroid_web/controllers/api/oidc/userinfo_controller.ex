@@ -174,7 +174,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
                 case claims_or_jws do
                   %{} ->
                     Jason.encode!(claims_or_jws)
-                  
+
                   _ ->
                     claims_or_jws
                 end

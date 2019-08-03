@@ -3,10 +3,27 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
   import Asteroid.Utils
 
+  alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
   alias Asteroid.Subject
   alias OAuth2Utils.Scope
+
+  setup_all do
+      rsa_enc_alg_all =
+        JOSE.JWK.generate_key({:rsa, 1024})
+        |> Crypto.Key.set_key_use(:enc)
+
+      Client.gen_new(id: "client_authorize_oidc_test")
+      |> Client.add("client_id", "client_authorize_oidc_test")
+      |> Client.add("client_type", "confidential")
+      |> Client.add("__asteroid_oidc_flow_implicit_id_token_encrypt", true)
+      |> Client.add("jwks",
+                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
+      |> Client.store()
+
+    %{rsa_enc_alg_all: rsa_enc_alg_all}
+  end
 
   # invalid request to /authorize
 
@@ -168,6 +185,57 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     id_token_data = Jason.decode!(id_token_str)
 
     assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["iss"] == OAuth2.issuer()
+    assert id_token_data["nonce"] == authz_request.nonce
+    assert id_token_data["sub"] == "user_1"
+  end
+
+  test "Success - implicit - encrypted id_token returned",
+  %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
+  do
+    Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
+    Process.put(:oidc_flow_implicit_id_token_signing_key, "key_auto")
+    Process.put(:oidc_flow_implicit_id_token_signing_alg, "RS384")
+    Process.put(:oidc_id_token_encryption_policy, :client_configuration)
+    Process.put(:oidc_id_token_encryption_alg_values_supported, ["RSA1_5"])
+    Process.put(:oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A192GCM"])
+
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        flow: :oidc_implicit,
+        response_type: :id_token,
+        client_id: "client_authorize_oidc_test",
+        redirect_uri: "https://www.example.com",
+        nonce: "some_nonce_dfeasjgfndyxcrgfds",
+        requested_scopes: MapSet.new(),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "id_token" => id_token_jwe,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {id_token_jws, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, id_token_jwe)
+
+    {:ok, jwk} = Crypto.Key.get("key_auto")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+
+    id_token_data = Jason.decode!(id_token_str)
+
+    assert id_token_data["aud"] == "client_authorize_oidc_test"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"

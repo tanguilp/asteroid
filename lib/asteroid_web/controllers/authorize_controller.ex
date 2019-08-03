@@ -395,6 +395,7 @@ defmodule AsteroidWeb.AuthorizeController do
           signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
           associated_access_token_serialized: maybe_access_token_serialized
         }
+        |> IDToken.set_encryption_params(ctx)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else
@@ -515,6 +516,7 @@ defmodule AsteroidWeb.AuthorizeController do
           associated_access_token_serialized: maybe_access_token_serialized,
           associated_authorization_code_serialized: authorization_code_serialized
         }
+        |> IDToken.set_encryption_params(ctx)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else

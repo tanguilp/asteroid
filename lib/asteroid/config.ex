@@ -2015,6 +2015,57 @@ defmodule Asteroid.Config do
     used_by: [:oidc_id_token_signing_alg_callback]
 
     @doc """
+    Policy for ID token encryption
+
+    3 values are possible:
+    - `:disabled`: the ID token is never encrypted
+    - `:client_configuration`: uses one of the following client to determine whether the ID
+    token should be encrypted:
+      - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`
+      - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`
+      - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`
+    - `:always`: the ID token is always encrypted
+    """
+
+    @type oidc_id_token_encryption_policy ::
+    :disabled
+    | :client_configuration
+    | :always
+
+    field :oidc_id_token_encryption_policy,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_encrypt_callback]
+
+    @doc """
+    Callback used to determine if an ID token should be encrypted
+    """
+
+    @type oidc_id_token_encrypt_callback ::
+    (Asteroid.Context.t() -> boolean())
+
+    field :oidc_id_token_encrypt_callback,
+    config_time: :runtime,
+    uses: [:oidc_id_token_encryption_policy]
+
+    @doc """
+    List of acceptable encryption `alg` algorithms to encrypt ID tokens
+    """
+
+    @type oidc_id_token_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oidc_id_token_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `enc` algorithms to encrypt ID tokens
+    """
+
+    @type oidc_id_token_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oidc_id_token_encryption_enc_values_supported,
+    config_time: :runtime
+
+    @doc """
     Callback invoked before serializing an ID token
     """
 

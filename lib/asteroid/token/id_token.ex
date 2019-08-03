@@ -26,12 +26,13 @@ defmodule Asteroid.Token.IDToken do
     :azp,
     :signing_key,
     :signing_alg,
+    :encryption_key,
+    :encryption_alg,
+    :encryption_enc,
     :associated_access_token_serialized,
     :associated_authorization_code_serialized,
     :data
   ]
-
-  @type id :: String.t()
 
   @typedoc """
   Structure for the ID token, before it is serialized
@@ -50,12 +51,17 @@ defmodule Asteroid.Token.IDToken do
     acr: OIDC.acr() | nil,
     amr: OIDC.amr() | nil,
     azp: String.t() | nil,
-    signing_key: Asteroid.Crypto.Key.name() | nil,
-    signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
+    signing_key: Crypto.Key.name() | nil,
+    signing_alg: Crypto.Key.jws_alg() | nil,
+    encryption_key: %JOSE.JWK{} | nil,
+    encryption_alg: Crypto.Key.jwe_alg() | nil,
+    encryption_enc: Crypto.Key.jwe_enc() | nil,
     associated_access_token_serialized: String.t() | nil,
     associated_authorization_code_serialized: String.t() | nil,
     data: map()
   }
+
+  @type id :: String.t()
 
   @doc """
   Puts a value into the `data` field of an ID token
@@ -112,16 +118,28 @@ defmodule Asteroid.Token.IDToken do
 
     {:ok, jwk} = Crypto.Key.get(id_token.signing_key)
 
-    if id_token.signing_alg do
-      jws = JOSE.JWS.from_map(%{"alg" => id_token.signing_alg})
+    serialized_jws =
+      if id_token.signing_alg do
+        jws = JOSE.JWS.from_map(%{"alg" => id_token.signing_alg})
 
-      JOSE.JWT.sign(jwk, jws, jwt)
-      |> JOSE.JWS.compact
+        JOSE.JWT.sign(jwk, jws, jwt)
+        |> JOSE.JWS.compact
+        |> elem(1)
+      else
+        JOSE.JWT.sign(jwk, jwt)
+        |> JOSE.JWS.compact
+        |> elem(1)
+      end
+
+    if id_token.encryption_key do
+      JOSE.JWE.block_encrypt(
+        id_token.encryption_key,
+        serialized_jws,
+        %{"alg" => id_token.encryption_alg, "enc" => id_token.encryption_enc})
+      |> JOSE.JWE.compact()
       |> elem(1)
     else
-      JOSE.JWT.sign(jwk, jwt)
-      |> JOSE.JWS.compact
-      |> elem(1)
+      serialized_jws
     end
   end
 
@@ -379,6 +397,96 @@ defmodule Asteroid.Token.IDToken do
         end
 
       astrenv(conf_opt, nil)
+    end
+  end
+
+  @doc """
+  Returns `true` if an ID token should be signed, `false` otherwise
+
+  - If the #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_alg)}
+  configuration option is set to `:client_configuration` and the
+  client has the following field set to an boolean value for the corresponding flow
+  returns that value:
+    - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`
+    - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`
+    - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`
+    - otherwise, returns `true` if the configuration option is set to `:always`, and `false` if
+    set to the value `:disabled`
+  """
+
+  @spec encrypt_token?(Context.t()) :: boolean()
+
+  def encrypt_token?(%{flow: flow, client: client}) do
+    case astrenv(:oidc_id_token_encryption_policy, :disabled) do
+      :always ->
+        true
+
+      :disabled -> false
+
+      :client_configuration ->
+        attr =
+          case flow do
+            :oidc_authorization_code ->
+              "__asteroid_oidc_flow_authorization_code_id_token_encrypt"
+
+            :oidc_implicit ->
+              "__asteroid_oidc_flow_implicit_id_token_encrypt"
+
+            :oidc_hybrid ->
+              "__asteroid_oidc_flow_hybrid_id_token_encrypt"
+          end
+
+        client = Client.fetch_attributes(client, [attr])
+
+        client.attrs[attr] == true
+    end
+  end
+
+  @doc """
+  Sets the encryption key, alg and enc to an ID token
+  """
+
+  @spec set_encryption_params(%__MODULE__{}, Context.t()) :: %__MODULE__{}
+
+  def set_encryption_params(id_token, %{client: client} = ctx) do
+    if astrenv(:oidc_id_token_encrypt_callback).(ctx) == true do
+      case Client.get_jwks(client) do
+        {:ok, keys} ->
+          jwe_alg_supported =
+            astrenv(:oidc_id_token_encryption_alg_values_supported) || []
+          jwe_enc_supported =
+            astrenv(:oidc_id_token_encryption_enc_values_supported) || []
+
+          eligible_jwks =
+            keys
+            |> Enum.map(&JOSE.JWK.from/1)
+            |> Enum.filter(
+              fn
+                %JOSE.JWK{fields: fields} ->
+                  (fields["use"] == "enc" or fields["use"] == nil) and
+                  (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
+                  (fields["alg"] in jwe_alg_supported or fields["alg"] == nil)
+              end
+            )
+
+          case eligible_jwks do
+            [key | _] ->
+              #FIXME: determine how to select alg and enc for encryption
+              %__MODULE__{id_token |
+                encryption_key: key,
+                encryption_alg: key.fields["alg"] || List.first(jwe_alg_supported),
+                encryption_enc: List.first(jwe_enc_supported)
+              }
+
+            [] ->
+              raise Crypto.Key.NoSuitableKeyError
+          end
+
+        {:error, _} ->
+          raise Crypto.Key.NoSuitableKeyError
+      end
+    else
+      id_token
     end
   end
 end

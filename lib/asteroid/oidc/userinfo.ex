@@ -12,7 +12,7 @@ defmodule Asteroid.OIDC.Userinfo do
 
   Depending on the `:oidc_endpoint_userinfo_sign_response_policy` configuration option:
   - `:disabled`: returns `false`
-  - `:client_configuration`: returns `true if the
+  - `:client_configuration`: returns `true` if the
   `"__asteroid_oidc_endpoint_userinfo_sign_response"` client attribute is set to `true`, `false`
   otherwise
   - `:always`: returns `true`
@@ -41,7 +41,7 @@ defmodule Asteroid.OIDC.Userinfo do
 
   Depending on the `:oidc_endpoint_userinfo_encrypt_response_policy` configuration option:
   - `:disabled`: returns `false`
-  - `:client_configuration`: returns `true if the
+  - `:client_configuration`: returns `true` if the
   `"__asteroid_oidc_endpoint_userinfo_encrypt_response"` client attribute is set to `true`,
   `false` otherwise
   - `:always`: returns `true`

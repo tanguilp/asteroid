@@ -516,6 +516,9 @@ config :asteroid, :oidc_id_token_signing_key_callback,
 config :asteroid, :oidc_id_token_signing_alg_callback,
   &Asteroid.Token.IDToken.signing_alg/1
 
+config :asteroid, :oidc_id_token_encrypt_callback,
+  &Asteroid.Token.IDToken.encrypt_token?/1
+
 config :asteroid, :token_id_token_before_serialize_callback,
   &Asteroid.Utils.id_first_param/2
 

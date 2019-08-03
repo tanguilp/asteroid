@@ -233,6 +233,18 @@ defmodule Asteroid.Client do
   #{link_to_option(:oidc_endpoint_userinfo_encrypt_response_callback)} is set to
   `:client_configuration`, a boolean determining if an encrypted response shall be returned from
   the `/api/oidc/userinfo` endpoint
+  - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`: when the
+  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
+  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
+  the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`: when the
+  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
+  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
+  the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`: when the
+  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
+  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
+  the OIDC hybrid flow
 
   ## Configuration
 

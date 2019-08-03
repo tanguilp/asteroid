@@ -539,6 +539,17 @@ config :asteroid, :oidc_id_token_signing_key_callback,
 config :asteroid, :oidc_id_token_signing_alg_callback,
   &Asteroid.Token.IDToken.signing_alg/1
 
+config :asteroid, :oidc_flow_authorization_code_id_token_signing_alg, "RS256"
+
+config :asteroid, :oidc_flow_implicit_id_token_signing_alg, "RS512"
+
+config :asteroid, :oidc_id_token_encrypt_callback,
+  &Asteroid.Token.IDToken.encrypt_token?/1
+
+config :asteroid, :oidc_id_token_encryption_alg_values_supported, ["RSA1_5"]
+
+config :asteroid, :oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A192GCM"]
+
 config :asteroid, :token_id_token_before_serialize_callback,
   &Asteroid.Utils.id_first_param/2
 

@@ -180,22 +180,6 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     refute Map.has_key?(response, "non_standard_claim_1")
   end
 
-  defp simplified_content_type_from_conn(conn) do
-    Plug.Conn.get_resp_header(conn, "content-type")
-    |> Enum.map(
-      fn
-        val ->
-          case String.split(val, ";") do
-            [_] ->
-              val
-
-            [type | _] ->
-              type
-          end
-      end
-    )
-  end
-
   test "Success case - requesting with no scopes, get req", %{conn: conn} do
     {:ok, access_token} =
       AccessToken.gen_new()
