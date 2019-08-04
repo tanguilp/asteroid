@@ -123,6 +123,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -155,6 +156,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :id_token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
@@ -204,6 +206,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :id_token,
+        response_mode: :fragment,
         client_id: "client_authorize_oidc_test",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
@@ -251,6 +254,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :"id_token token",
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
@@ -311,6 +315,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_hybrid,
         response_type: :"code id_token token",
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
@@ -379,6 +384,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_hybrid,
         response_type: :"code id_token",
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
@@ -432,6 +438,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_hybrid,
         response_type: :"code token",
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",

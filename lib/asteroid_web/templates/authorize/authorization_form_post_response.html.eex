@@ -1,0 +1,9 @@
+<section class="phx-hero" onload="javascript:document.forms[0].submit()">
+  <%= form_for @conn, @target, fn f -> %>
+    <%= for {param_name, param_value} <- @params do %>
+      <%= hidden_input f, param_name, value: param_value %>
+    <% end %>
+    <br/>
+    <%= submit "Go back to website" %>
+  <% end %>
+</section>

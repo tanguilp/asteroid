@@ -270,6 +270,19 @@ defmodule Asteroid.OAuth2 do
 
   @type response_type_str :: String.t()
 
+  @type response_mode ::
+  :query
+  | :fragment
+  | :form_post
+
+  @typedoc """
+  String representation of a `t:response_mode/0`
+
+  Must be the string conversion of its corresponding `t:response_mode/0`
+  """
+
+  @type response_mode_str :: String.t()
+
   @typedoc """
   Atoms describing the endpoints
 
@@ -367,7 +380,7 @@ defmodule Asteroid.OAuth2 do
   def response_type_to_flow("code id_token", :oidc), do: {:ok, :oidc_hybrid}
   def response_type_to_flow("code token", :oidc), do: {:ok, :oidc_hybrid}
   def response_type_to_flow("code id_token token", :oidc), do: {:ok, :oidc_hybrid}
-  def response_type_to_flow(val, _), do: {:ok, UnsupportedResponseTypeError.exception(response_type: val)}
+  def response_type_to_flow(val, _), do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
 
   @doc """
   Converts a `t:response_type_str/0` to a `t:response_type/0`
@@ -474,4 +487,16 @@ defmodule Asteroid.OAuth2 do
   def issuer() do
     AsteroidWeb.Router.Helpers.url(AsteroidWeb.Endpoint)
   end
+
+  @doc """
+  Returns the default response mode for a flow
+  """
+
+  @spec default_response_mode(flow()) :: response_mode()
+
+  def default_response_mode(:authorization_code), do: :query
+  def default_response_mode(:implicit), do: :fragment
+  def default_response_mode(:oidc_authorization_code), do: :query
+  def default_response_mode(:oidc_implicit), do: :fragment
+  def default_response_mode(:oidc_hybrid), do: :fragment
 end

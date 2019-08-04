@@ -17,11 +17,20 @@ defmodule AsteroidWeb.AuthorizeController do
     Struct with the necessary information to process an web authorization request
     """
 
-    @enforce_keys [:flow, :response_type, :client_id, :redirect_uri, :requested_scopes, :params]
+    @enforce_keys [
+      :flow,
+      :response_type,
+      :response_mode,
+      :client_id,
+      :redirect_uri,
+      :requested_scopes,
+      :params
+    ]
 
     defstruct [
       :flow,
       :response_type,
+      :response_mode,
       :client_id,
       :redirect_uri,
       :requested_scopes,
@@ -41,6 +50,7 @@ defmodule AsteroidWeb.AuthorizeController do
     @type t :: %__MODULE__{
       flow: OAuth2.flow(),
       response_type: OAuth2.response_type(),
+      response_mode: OAuth2.response_mode(),
       client_id: OAuth2.client_id(),
       redirect_uri: OAuth2.RedirectUri.t(),
       requested_scopes: Scope.Set.t(),
@@ -130,7 +140,8 @@ defmodule AsteroidWeb.AuthorizeController do
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <-
            maybe_pkce_params(client, params, flow),
-         :ok <-  nonce_parameter_present(params, flow)
+         :ok <-  nonce_parameter_present(params, flow),
+         {:ok, response_mode} <- response_mode(params, flow)
     do
       client = Client.fetch_attributes(client, ["client_id"])
 
@@ -140,6 +151,7 @@ defmodule AsteroidWeb.AuthorizeController do
               %Request{
                 flow: flow,
                 response_type: response_type,
+                response_mode: response_mode,
                 client_id: client.attrs["client_id"],
                 redirect_uri: redirect_uri,
                 requested_scopes: requested_scopes,
@@ -158,6 +170,7 @@ defmodule AsteroidWeb.AuthorizeController do
               %Request{
                 flow: flow,
                 response_type: response_type,
+                response_mode: response_mode,
                 client_id: client.attrs["client_id"],
                 redirect_uri: redirect_uri,
                 requested_scopes: requested_scopes,
@@ -262,10 +275,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_granted(conn, %{authz_request: %Request{flow: flow}} = opts) when flow in [
-    :authorization_code,
-    :oidc_authorization_code
-  ] do
+  def authorization_granted(conn, %{authz_request: %Request{flow: flow}} = opts) do
     authz_request = opts[:authz_request]
 
     {:ok, client} =
@@ -288,83 +298,45 @@ defmodule AsteroidWeb.AuthorizeController do
 
     granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
-    {:ok, authorization_code} =
-      AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("iat", now())
-      |> AuthorizationCode.put_value("exp",
-        now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx))
-      |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
-      |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
-      |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
-      |> AuthorizationCode.put_value("requested_scopes",
-                                     Scope.Set.to_list(authz_request.requested_scopes))
-      |> AuthorizationCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow",
-                                     Atom.to_string(authz_request.flow))
-      |> AuthorizationCode.put_value("iss", OAuth2.issuer())
-      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
-                                     authz_request.pkce_code_challenge)
-      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method",
-                                     if authz_request.pkce_code_challenge_method != nil do
-                                       to_string(authz_request.pkce_code_challenge_method)
-                                     else
-                                       nil
-                                     end)
-      |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
-      |> AuthorizationCode.store(ctx)
+    maybe_authorization_codeserialized =
+      if authz_request.response_type in [
+        :code, :"code id_token", :"code token", :"code id_token token"
+      ] do
+        {:ok, authorization_code} =
+          AuthorizationCode.gen_new()
+          |> AuthorizationCode.put_value("iat", now())
+          |> AuthorizationCode.put_value("exp",
+            now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx))
+          |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
+          |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
+          |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
+          |> AuthorizationCode.put_value("requested_scopes",
+                                         Scope.Set.to_list(authz_request.requested_scopes))
+          |> AuthorizationCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
+          |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow",
+                                         Atom.to_string(authz_request.flow))
+          |> AuthorizationCode.put_value("iss", OAuth2.issuer())
+          |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
+                                         authz_request.pkce_code_challenge)
+          |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method",
+                                         if authz_request.pkce_code_challenge_method != nil do
+                                           to_string(authz_request.pkce_code_challenge_method)
+                                         end)
+          |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
+          |> AuthorizationCode.store(ctx)
 
-    redirect_uri =
-      authz_request.redirect_uri
-      |> OAuth2.RedirectUri.add_params(
-        %{
-          "code" => AuthorizationCode.serialize(authorization_code)
-        }
-        |> put_if_not_nil("state", authz_request.params["state"])
-      )
-      |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
+        AuthorizationCode.serialize(authorization_code)
+      end
 
-    Logger.debug("#{__MODULE__}: authorization granted (#{inspect(authz_request)}) with "
-    <> "code: `#{inspect authorization_code}` and state: `#{inspect authz_request.params["state"]}`")
-
-    conn
-    |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
-    |> redirect(external: redirect_uri)
-  end
-
-  def authorization_granted(conn, %{authz_request: %Request{flow: flow}} = opts) when flow in [
-    :implicit,
-    :oidc_implicit
-  ] do
-    authz_request = opts[:authz_request]
-
-    {:ok, client} =
-      Client.load_from_unique_attribute("client_id",
-                                        authz_request.client_id,
-                                        attributes: ["client_id"])
-
-    subject = Subject.fetch_attributes(opts[:subject], ["sub"])
-
-    ctx =
-      %{}
-      |> Map.put(:endpoint, :authorize)
-      |> Map.put(:flow, flow)
-      |> Map.put(:response_type, authz_request.response_type)
-      |> Map.put(:requested_scopes, authz_request.requested_scopes)
-      |> Map.put(:granted_scopes, opts[:granted_scopes])
-      |> Map.put(:client, client)
-      |> Map.put(:subject, subject)
-      |> Map.put(:flow_result, opts)
-
-    granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx) #FIXME OIDC
-
-    access_token_lifetime = astrenv(:oauth2_access_token_lifetime_callback).(ctx)
-
-    maybe_access_token_serialized =
-      if authz_request.response_type in [:token, :"id_token token"] do
+    maybe_access_token =
+      if authz_request.response_type in [
+        :token, :"id_token token", :"code token", :"code id_token token"
+      ] do
         {:ok, access_token} =
           new_access_token(ctx)
           |> AccessToken.put_value("iat", now())
-          |> AccessToken.put_value("exp", now() + access_token_lifetime)
+          |> AccessToken.put_value("exp",
+                                   now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
           |> AccessToken.put_value("client_id", client.attrs["client_id"])
           |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
           |> AccessToken.put_value("sub", subject.attrs["sub"])
@@ -373,133 +345,21 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AccessToken.put_value("iss", OAuth2.issuer())
           |> AccessToken.store(ctx)
 
-          AccessToken.serialize(access_token)
-      else
-        nil
+          access_token
       end
 
-    maybe_id_token_serialized =
-      if authz_request.response_type in [:id_token, :"id_token token"] do
-        %IDToken{
-          iss: OAuth2.issuer(),
-          sub: subject.attrs["sub"],
-          aud: client.attrs["client_id"],
-          exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
-          iat: now(),
-          auth_time: nil, # FIXME
-          nonce: authz_request.nonce,
-          acr: nil, #FIXME
-          amr: nil, #FIXME
-          azp: nil,
-          signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
-          signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
-          associated_access_token_serialized: maybe_access_token_serialized
-        }
-        |> IDToken.set_encryption_params(ctx)
-        |> astrenv(:token_id_token_before_serialize_callback).(ctx)
-        |> IDToken.serialize()
-      else
-        nil
+    maybe_access_token_lifetime =
+      if maybe_access_token do
+        maybe_access_token.data["exp"] - maybe_access_token.data["iat"]
       end
-
-    fragment_params =
-      %{}
-      |> put_if_not_nil("access_token", maybe_access_token_serialized)
-      |> put_if_not_nil("id_token", maybe_id_token_serialized)
-      |> put_if_not_nil("token_type", (if maybe_access_token_serialized, do: "bearer"))
-      |> put_if_not_nil("expires_in",
-                        (if maybe_access_token_serialized, do: access_token_lifetime))
-      |> maybe_put_scope_implicit_flow(authz_request.requested_scopes, opts[:granted_scopes])
-      |> put_if_not_nil("state", authz_request.params["state"])
-
-    redirect_uri =
-      authz_request.redirect_uri
-      |> Kernel.<>("#")
-      |> Kernel.<>(URI.encode_query(fragment_params))
-      |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
-
-    Logger.debug("#{__MODULE__}: authorization granted (#{inspect(authz_request)}) with "
-    <> "token: `#{maybe_access_token_serialized}` "
-    <> "id_token: `#{maybe_id_token_serialized}` "
-    <> "and state: `#{inspect authz_request.params["state"]}`")
-
-    conn
-    |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
-    |> redirect(external: redirect_uri)
-  end
-
-  def authorization_granted(conn, %{authz_request: %Request{flow: :oidc_hybrid}} = opts) do
-    authz_request = opts[:authz_request]
-
-    {:ok, client} =
-      Client.load_from_unique_attribute("client_id",
-                                        authz_request.client_id,
-                                        attributes: ["client_id"])
-
-    subject = Subject.fetch_attributes(opts[:subject], ["sub"])
-
-    ctx =
-      %{}
-      |> Map.put(:endpoint, :authorize)
-      |> Map.put(:flow, :oidc_hybrid)
-      |> Map.put(:response_type, authz_request.response_type)
-      |> Map.put(:requested_scopes, authz_request.requested_scopes)
-      |> Map.put(:granted_scopes, opts[:granted_scopes])
-      |> Map.put(:client, client)
-      |> Map.put(:subject, subject)
-      |> Map.put(:flow_result, opts)
-
-    granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx) #FIXME OIDC
-
-    {:ok, authorization_code} =
-      AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("iat", now())
-      |> AuthorizationCode.put_value("exp",
-        now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx))
-      |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
-      |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
-      |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
-      |> AuthorizationCode.put_value("requested_scopes",
-                                     Scope.Set.to_list(authz_request.requested_scopes))
-      |> AuthorizationCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
-      |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_hybrid")
-      |> AuthorizationCode.put_value("iss", OAuth2.issuer())
-      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
-                                     authz_request.pkce_code_challenge)
-      |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method",
-                                     if authz_request.pkce_code_challenge_method != nil do
-                                       to_string(authz_request.pkce_code_challenge_method)
-                                     else
-                                       nil
-                                     end)
-      |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
-      |> AuthorizationCode.store(ctx)
-
-    authorization_code_serialized = AuthorizationCode.serialize(authorization_code)
-
-    access_token_lifetime = astrenv(:oauth2_access_token_lifetime_callback).(ctx)
 
     maybe_access_token_serialized =
-      if authz_request.response_type in [:"code token", :"code id_token token"] do
-        {:ok, access_token} =
-          new_access_token(ctx)
-          |> AccessToken.put_value("iat", now())
-          |> AccessToken.put_value("exp", now() + access_token_lifetime)
-          |> AccessToken.put_value("client_id", client.attrs["client_id"])
-          |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
-          |> AccessToken.put_value("sub", subject.attrs["sub"])
-          |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
-          |> AccessToken.put_value("__asteroid_oauth2_initial_flow", "implicit")
-          |> AccessToken.put_value("iss", OAuth2.issuer())
-          |> AccessToken.store(ctx)
-
-          AccessToken.serialize(access_token)
-      else
-        nil
-      end
+      if maybe_access_token, do: AccessToken.serialize(maybe_access_token)
 
     maybe_id_token_serialized =
-      if authz_request.response_type in [:"code id_token", :"code id_token token"] do
+      if authz_request.response_type in [
+        :id_token, :"id_token token", :"code id_token", :"code id_token token"
+      ] do
         %IDToken{
           iss: OAuth2.issuer(),
           sub: subject.attrs["sub"],
@@ -514,7 +374,7 @@ defmodule AsteroidWeb.AuthorizeController do
           signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
           signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
           associated_access_token_serialized: maybe_access_token_serialized,
-          associated_authorization_code_serialized: authorization_code_serialized
+          associated_authorization_code_serialized: maybe_authorization_codeserialized
         }
         |> IDToken.set_encryption_params(ctx)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
@@ -523,33 +383,51 @@ defmodule AsteroidWeb.AuthorizeController do
         nil
       end
 
-    fragment_params =
-      %{}
-      |> Map.put("code", authorization_code_serialized)
-      |> put_if_not_nil("access_token", maybe_access_token_serialized)
-      |> put_if_not_nil("id_token", maybe_id_token_serialized)
-      |> put_if_not_nil("token_type", (if maybe_access_token_serialized, do: "bearer"))
-      |> put_if_not_nil("expires_in",
-                        (if maybe_access_token_serialized, do: access_token_lifetime))
-      |> maybe_put_scope_implicit_flow(authz_request.requested_scopes, opts[:granted_scopes])
-      |> put_if_not_nil("state", authz_request.params["state"])
+      params =
+        %{}
+        |> put_if_not_nil("code", maybe_authorization_codeserialized)
+        |> put_if_not_nil("access_token", maybe_access_token_serialized)
+        |> put_if_not_nil("id_token", maybe_id_token_serialized)
+        |> put_if_not_nil("state", authz_request.params["state"])
+        |> put_if_not_nil("token_type", (if maybe_access_token_serialized, do: "bearer"))
+        |> put_if_not_nil("expires_in", maybe_access_token_lifetime)
+        |> maybe_put_scope(authz_request.requested_scopes,
+                           opts[:granted_scopes],
+                           authz_request.response_type)
 
-    redirect_uri =
-      authz_request.redirect_uri
-      |> Kernel.<>("#")
-      |> Kernel.<>(URI.encode_query(fragment_params))
-      |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
+    case authz_request.response_mode do
+      :query ->
+        redirect_uri =
+          authz_request.redirect_uri
+          |> OAuth2.RedirectUri.add_params(params)
+          |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
 
-    Logger.debug("#{__MODULE__}: authorization granted (#{inspect(authz_request)}) with "
-    <> "code: `#{authorization_code_serialized}` "
-    <> "token: `#{maybe_access_token_serialized}` "
-    <> "id_token: `#{maybe_id_token_serialized}` "
-    <> "and state: `#{inspect authz_request.params["state"]}`")
+        conn
+        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> redirect(external: redirect_uri)
 
-    conn
-    |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
-    |> redirect(external: redirect_uri)
+      :fragment ->
+        redirect_uri =
+          authz_request.redirect_uri
+          |> Kernel.<>("#")
+          |> Kernel.<>(URI.encode_query(params))
+          |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
+
+        conn
+        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> redirect(external: redirect_uri)
+
+      :form_post ->
+        conn
+        |> put_status(200)
+        |> put_resp_header("cache-control", "no-cache, no-store")
+        |> put_resp_header("pragma", "no-cache")
+        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> render("authorization_form_post_response.html",
+                  params: params, target: authz_request.redirect_uri)
+    end
   end
+
   @doc """
   Callback to be called when the authorization is denied, either by the user or by the
   server
@@ -913,14 +791,62 @@ defmodule AsteroidWeb.AuthorizeController do
     :ok
   end
 
-  @spec maybe_put_scope_implicit_flow(map(), Scope.Set.t(), Scope.Set.t()) :: map()
+  @spec response_mode(map(), OAuth2.flow()) ::
+  {:ok, OAuth2.response_mode()}
+  | {:error, %OAuth2.Request.InvalidRequestError{}}
 
-  defp maybe_put_scope_implicit_flow(m, requested_scopes, granted_scopes) do
+  defp response_mode(%{"response_mode" => response_mode_param}, flow) do
+    if response_mode_param in ["query", "fragment", "form_post"] do
+      response_mode =
+        case response_mode_param do
+          "query" ->
+            :query
+
+          "fragment" ->
+            :fragment
+
+          "form_post" ->
+            :form_post
+        end
+
+      case astrenv(:oauth2_response_mode_policy, :oidc_only) do
+        :disabled ->
+          {:ok, OAuth2.default_response_mode(flow)}
+
+        :oidc_only ->
+          if flow in [:oidc_authorization_code, :oidc_implicit, :oidc_hybrid] do
+            {:ok, response_mode}
+          else
+            {:ok, OAuth2.default_response_mode(flow)}
+          end
+
+        :enabled ->
+          {:ok, response_mode}
+      end
+    else
+      {:error, OAuth2.Request.InvalidRequestError.exception(
+        parameter: "response_mode", reason: "unsupported value `#{response_mode_param}`")}
+    end
+  end
+
+  defp response_mode(_params, flow) do
+    {:ok, OAuth2.default_response_mode(flow)}
+  end
+
+  @spec maybe_put_scope(map(), Scope.Set.t(), Scope.Set.t(), OAuth2.response_type()) :: map()
+
+  defp maybe_put_scope(m, requested_scopes, granted_scopes, response_type)
+  when response_type in [ :token, :"id_token token", :"code token", :"code id_token token"]
+  do
     if Scope.Set.equal?(requested_scopes, granted_scopes) do
       m
     else
       Map.put(m, "scope", Enum.join(granted_scopes, " "))
     end
+  end
+
+  defp maybe_put_scope(m, _, _, _) do
+    m
   end
 
   @spec maybe_pkce_params(Client.t(), map(), OAuth2.flow()) ::

@@ -164,6 +164,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -189,6 +190,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -213,6 +215,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -235,6 +238,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -261,6 +265,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -292,6 +297,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -325,6 +331,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :implicit,
         response_type: :token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -359,6 +366,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :implicit,
         response_type: :token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -394,6 +402,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :implicit,
         response_type: :token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
@@ -432,6 +441,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :implicit,
         response_type: :token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
@@ -482,6 +492,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :implicit,
         response_type: :token,
+        response_mode: :fragment,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
@@ -669,6 +680,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       %AsteroidWeb.AuthorizeController.Request{
         flow: :authorization_code,
         response_type: :code,
+        response_mode: :query,
         client_id: "client_confidential_1",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),

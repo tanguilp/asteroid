@@ -2380,6 +2380,21 @@ defmodule Asteroid.Config do
     field :oidc_claims_supported,
     config_time: :runtime
 
+    @doc """
+    Policy for response mode selection
+
+    3 values are possible:
+    - `:disabled`: the `"response_mode"` param is not processed, and the default response
+    mode for the flow is choosen
+    - `:oidc_only`: the `"response_mode"` param is used for OIDC flows only
+    - `:enabled`: the `"response_mode"` param is used for all flows
+    """
+
+    @type oauth2_response_mode_policy :: :disabled | :oidc_only | :eanbled
+
+    field :oauth2_response_mode_policy,
+    config_time: :runtime
+
     ### end of configuration options
   end
 
