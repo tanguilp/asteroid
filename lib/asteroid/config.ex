@@ -1051,9 +1051,9 @@ defmodule Asteroid.Config do
     - `:optional`: use of PKCE is optional, except for clients marked as forced to use it
     """
 
-    @type oauth2_flow_authorization_code_pkce_policy :: :disabled | :optional | :mandatory
+    @type oauth2_pkce_policy :: :disabled | :optional | :mandatory
 
-    field :oauth2_flow_authorization_code_pkce_policy,
+    field :oauth2_pkce_policy,
     config_time: :runtime
 
     @doc """
@@ -1064,22 +1064,21 @@ defmodule Asteroid.Config do
     - `:S256`
     """
 
-    @type oauth2_flow_authorization_code_pkce_allowed_methods :: [atom()]
+    @type oauth2_pkce_allowed_methods :: [atom()]
 
-    field :oauth2_flow_authorization_code_pkce_allowed_methods,
+    field :oauth2_pkce_allowed_methods,
     config_time: :runtime
 
     @doc """
     Returns `true` if the client has to use PKCE, `false` otherwise
 
-    Used only when the `:oauth2_flow_authorization_code_pkce_policy` configuration option is
-    set to `:optional`
+    Used only when the `:oauth2_pkce_policy` configuration option is set to `:optional`
     """
 
-    @type oauth2_flow_authorization_code_pkce_client_callback ::
+    @type oauth2_pkce_must_use_callback ::
     (Client.t() -> boolean())
 
-    field :oauth2_flow_authorization_code_pkce_client_callback,
+    field :oauth2_must_use_pkce_callback,
     config_time: :runtime
 
     @doc """

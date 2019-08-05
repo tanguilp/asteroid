@@ -452,13 +452,6 @@ config :asteroid, :oauth2_flow_authorization_code_refresh_token_lifetime, 3600 *
 
 config :asteroid, :oauth2_flow_authorization_code_access_token_lifetime, 60 * 10
 
-config :asteroid, :oauth2_flow_authorization_code_pkce_policy, :optional
-
-config :asteroid, :oauth2_flow_authorization_code_pkce_allowed_methods, [:S256]
-
-config :asteroid, :oauth2_flow_authorization_code_pkce_client_callback,
-  &Asteroid.OAuth2.Client.must_use_pkce?/1
-
 # implicit
 
 config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60
@@ -497,6 +490,14 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter,
   {Asteroid.OAuth2.DeviceAuthorization.RateLimiter.Hammer, []}
 
 config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
+
+# pkce
+
+config :asteroid, :oauth2_pkce_policy, :optional
+
+config :asteroid, :oauth2_pkce_allowed_methods, [:S256]
+
+config :asteroid, :oauth2_must_use_pkce_callback, &Asteroid.OAuth2.Client.must_use_pkce?/1
 
 ####################### Scope configuration ##########################
 

@@ -422,6 +422,9 @@ defmodule AsteroidWeb.AuthorizeController do
         |> put_status(200)
         |> put_resp_header("cache-control", "no-cache, no-store")
         |> put_resp_header("pragma", "no-cache")
+        |> Plug.Conn.put_private(:plug_skip_csrf_protection, true)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.AuthorizeView)
         |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
         |> render("authorization_form_post_response.html",
                   params: params, target: authz_request.redirect_uri)
@@ -861,15 +864,14 @@ defmodule AsteroidWeb.AuthorizeController do
   defp maybe_pkce_params(client, params, flow) when flow in [
     :authorization_code,
     :oidc_authorization_code,
-    :oidc_implicit
+    :oidc_hybrid
   ] do
-    #FIXME: not only this option
-    case astrenv(:oauth2_flow_authorization_code_pkce_policy) do
+    case astrenv(:oauth2_pkce_policy, :optional) do
       :disabled ->
         {:ok, {nil, nil}}
 
       :optional ->
-        if OAuth2.Client.must_use_pkce?(client) do
+        if astrenv(:oauth2_pkce_must_use_callback).(client) do
           if params["code_challenge"] != nil do
             pkce_params_when_mandatory(params)
           else
@@ -911,7 +913,7 @@ defmodule AsteroidWeb.AuthorizeController do
             reason: "unsupported code challenge method", parameter: "code_challenge_method")}
 
         code_challenge_method when is_atom(code_challenge_method) ->
-          if code_challenge_method in astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods) do
+          if code_challenge_method in astrenv(:oauth2_pkce_allowed_methods) do
             {:ok, {code_challenge, code_challenge_method}}
           else
             {:error, OAuth2.Request.InvalidRequestError.exception(

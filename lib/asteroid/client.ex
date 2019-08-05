@@ -93,7 +93,7 @@ defmodule Asteroid.Client do
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
-  - `"__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
+  - `"__asteroid_oauth2_mandatory_pkce_use"`: a `boolean()` indicating
   whether the client shall use PKCE or not (defaults to not being forced to use PKCE)
   - `"__asteroid_oauth2_endpoint_register_allowed_token_endpoint_auth_method"`: a list of
   `t:Asteroid.OAuth2.Endpoint.auth_method_str/0` that restricts the token endpoint auth methods
@@ -162,9 +162,6 @@ defmodule Asteroid.Client do
   - `"__asteroid_oidc_flow_authorization_code_access_token_signing_alg"`: the
   `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC authorization
   code flow
-  - `"__asteroid_oidc_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
-  whether the client shall use PKCE or not (defaults to not being forced to use PKCE) in the
-  OIDC authorization code flow
   - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
   true if a refresh token is to be issued in the OIDC authorization code flow when presenting the
   authorization code

@@ -57,7 +57,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
       |> Enum.map(&to_string/1)
       |> Enum.sort()
     assert Enum.sort(response["code_challenge_methods_supported"]) ==
-      astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods)
+      astrenv(:oauth2_pkce_allowed_methods)
       |> Enum.map(&to_string/1)
       |> Enum.sort()
   end
@@ -121,7 +121,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   end
 
   test "PKCE methods not set if disabled", %{conn: conn} do
-    Process.put(:oauth2_flow_authorization_code_pkce_policy, :disabled)
+    Process.put(:oauth2_pkce_policy, :disabled)
 
     response =
       conn

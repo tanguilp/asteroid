@@ -301,13 +301,13 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   @spec put_code_challenge_methods_supported(map()) :: map()
 
   defp put_code_challenge_methods_supported(metadata) do
-    case astrenv(:oauth2_flow_authorization_code_pkce_policy, []) do
+    case astrenv(:oauth2_pkce_policy, []) do
       :disabled->
         metadata
 
       _ ->
         methods =
-          astrenv(:oauth2_flow_authorization_code_pkce_allowed_methods, [])
+          astrenv(:oauth2_pkce_allowed_methods, [])
           |> Enum.map(&to_string/1)
 
         Map.put(metadata, "code_challenge_methods_supported", methods)

@@ -78,6 +78,8 @@ defmodule AsteroidWeb.DeviceController do
         conn
         |> put_flash(:info, "Pairing successful")
         |> put_status(200)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.DeviceView)
         |> render("device_authorization_granted.html")
 
       {:error, e} ->
@@ -86,6 +88,8 @@ defmodule AsteroidWeb.DeviceController do
         |> assign(:authz_request, opts[:authz_request])
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
         |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.DeviceView)
         |> render("device_authorization_error.html")
     end
   end
@@ -118,6 +122,8 @@ defmodule AsteroidWeb.DeviceController do
     |> assign(:exception, opts[:error])
     |> assign(:authz_request, opts[:authz_request])
     |> put_status(200)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.DeviceView)
     |> render("device_authorization_denied.html")
   end
 
@@ -144,6 +150,8 @@ defmodule AsteroidWeb.DeviceController do
         |> assign(:exception, opts[:error])
         |> assign(:authz_request, opts[:authz_request])
         |> put_status(200)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.DeviceView)
         |> render("device_authorization_denied.html")
 
       {:error, e} ->
@@ -152,6 +160,8 @@ defmodule AsteroidWeb.DeviceController do
         |> assign(:authz_request, opts[:authz_request])
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
         |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.DeviceView)
         |> render("device_authorization_error.html")
     end
   end
@@ -165,6 +175,8 @@ defmodule AsteroidWeb.DeviceController do
     |> assign(:authz_request, opts[:authz_request])
     |> put_flash(:error, "An error has occured (#{Exception.message(opts[:error])})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.DeviceView)
     |> render("device_authorization_error.html")
   end
 end

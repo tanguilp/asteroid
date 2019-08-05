@@ -289,13 +289,13 @@ defmodule Asteroid.OAuth2.Client do
   Returns `true` is the client must use PKCE, `false` otherwise
 
   A client must use PKCE when its
-  `"__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"` attribute is set to `true`.
+  `"__asteroid_oauth2_mandatory_pkce_use"` attribute is set to `true`.
   """
 
   @spec must_use_pkce?(Client.t()) :: boolean()
 
   def must_use_pkce?(client) do
-    attribute = "__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"
+    attribute = "__asteroid_oauth2_mandatory_pkce_use"
 
     client = Client.fetch_attributes(client, [attribute])
 

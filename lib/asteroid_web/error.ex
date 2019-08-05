@@ -54,6 +54,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -61,6 +63,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -69,6 +73,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -77,6 +83,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -107,6 +115,8 @@ defmodule AsteroidWeb.Error do
         conn
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
         |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.AuthorizeView)
         |> render("error_redirect_uri.html")
     end
   end
@@ -141,6 +151,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -148,6 +160,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -190,6 +204,8 @@ defmodule AsteroidWeb.Error do
               conn
               |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
               |> put_status(400)
+              |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+              |> put_view(AsteroidWeb.AuthorizeView)
               |> render("error_redirect_uri.html")
           end
 
@@ -197,6 +213,8 @@ defmodule AsteroidWeb.Error do
           conn
           |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
           |> put_status(400)
+          |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+          |> put_view(AsteroidWeb.AuthorizeView)
           |> render("error_redirect_uri.html")
       end
     rescue
@@ -204,6 +222,8 @@ defmodule AsteroidWeb.Error do
         conn
         |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
         |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.AuthorizeView)
         |> render("error_redirect_uri.html")
     end
   end

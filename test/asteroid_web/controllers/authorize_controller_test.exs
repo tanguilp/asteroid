@@ -541,7 +541,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       "response_type" => "code"
     }
 
-    Process.put(:oauth2_flow_authorization_code_pkce_policy, :mandatory)
+    Process.put(:oauth2_pkce_policy, :mandatory)
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
@@ -634,7 +634,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       "code_challenge_method" => "plain"
     }
 
-    Process.put(:oauth2_flow_authorization_code_pkce_allowed_methods, [:S256])
+    Process.put(:oauth2_pkce_allowed_methods, [:S256])
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
