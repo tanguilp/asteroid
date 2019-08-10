@@ -90,7 +90,7 @@ defmodule Asteroid.Token.AccessToken do
   @doc """
   Gets a access token from the access token store
 
-  Unlike the `c:Asteroid.TokenStore.AccessToken.get/2`, this function returns
+  Unlike the `c:Asteroid.Store.AccessToken.get/2`, this function returns
   `{:error, :nonexistent_access_token}` if the access token is not found in the token
   store.
 

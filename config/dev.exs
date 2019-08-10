@@ -98,23 +98,23 @@ config :hammer,
 ####################### Token stores #################################
 
 config :asteroid, :token_store_access_token, [
-  module: Asteroid.TokenStore.AccessToken.Mnesia
+  module: Asteroid.Store.AccessToken.Mnesia
 ]
 
 config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.TokenStore.RefreshToken.Mnesia
+  module: Asteroid.Store.RefreshToken.Mnesia
 ]
 
 config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+  module: Asteroid.Store.AuthorizationCode.Mnesia
 ]
 
 config :asteroid, :token_store_device_code, [
-  module: Asteroid.TokenStore.DeviceCode.Mnesia
+  module: Asteroid.Store.DeviceCode.Mnesia
 ]
 
 config :asteroid, :token_store_request_object, [
-  module: Asteroid.TokenStore.GenericKV.Mnesia,
+  module: Asteroid.Store.GenericKV.Mnesia,
   opts: [table_name: :request_object]
 ]
 

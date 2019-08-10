@@ -78,7 +78,7 @@ defmodule Asteroid.Token.AuthorizationCode do
   @doc """
   Gets a authorization code from the authorization code store
 
-  Unlike the `c:Asteroid.TokenStore.AuthorizationCode.get/2`, this function returns
+  Unlike the `c:Asteroid.Store.AuthorizationCode.get/2`, this function returns
   `{:error, %Asteroid.Token.InvalidTokenError{}}` if the authorization code is not found in
   the token store.
 

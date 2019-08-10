@@ -417,7 +417,7 @@ defmodule Asteroid.OAuth2.JAR do
   Retrieves an object from Asteroid's request object store
   """
 
-  @spec get_stored_request_object(Asteroid.TokenStore.GenericKV.key()) ::
+  @spec get_stored_request_object(Asteroid.Store.GenericKV.key()) ::
   {:ok, String.t()}
   | {:error, Exception.t()}
 
@@ -448,8 +448,8 @@ defmodule Asteroid.OAuth2.JAR do
   Saves an object to Asteroid's request object store
   """
 
-  @spec put_request_object(Asteroid.TokenStore.GenericKV.key(),
-                           Asteroid.TokenStore.GenericKV.value()) ::
+  @spec put_request_object(Asteroid.Store.GenericKV.key(),
+                           Asteroid.Store.GenericKV.value()) ::
   :ok
   | {:error, any()}
 

@@ -15,6 +15,8 @@ defmodule Asteroid.Token.RefreshToken do
   - `"sub"`: the `t:Asteroid.Subject.id/0` of the refresh token
   - `"client_id"`: the `t:Asteroid.Client.id/0` of the refresh token
   - `"device_id"`: the `t:Asteroid.Device.id/0` of the refresh token
+  - `"authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0` of the refresh
+  token
   - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the refresh token
   - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` during which
   the refresh token was granted
@@ -78,7 +80,7 @@ defmodule Asteroid.Token.RefreshToken do
   @doc """
   Gets a refresh token from the refresh token store
 
-  Unlike the `c:Asteroid.TokenStore.RefreshToken.get/2`, this function returns
+  Unlike the `c:Asteroid.Store.RefreshToken.get/2`, this function returns
   `{:error, :nonexistent_refresh_token}` if the refresh token is not found in the token
   store.
 

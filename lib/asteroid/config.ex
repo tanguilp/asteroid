@@ -48,7 +48,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_access_token, [
-      module: Asteroid.TokenStore.AccessToken.Riak,
+      module: Asteroid.Store.AccessToken.Riak,
       opts: [bucket_type: "ephemeral_token", purge_interval: 10]
     ]
     ```
@@ -76,7 +76,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_refresh_token, [
-      module: Asteroid.TokenStore.RefreshToken.Mnesia
+      module: Asteroid.Store.RefreshToken.Mnesia
     ]
     ```
     """
@@ -103,7 +103,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_authorization_code, [
-      module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+      module: Asteroid.Store.AuthorizationCode.Mnesia
     ]
     ```
     """
@@ -130,7 +130,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_device_code, [
-      module: Asteroid.TokenStore.DeviceCode.Mnesia
+      module: Asteroid.Store.DeviceCode.Mnesia
     ]
     ```
     """
@@ -157,7 +157,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_request_object, [
-      module: Asteroid.TokenStore.GenericKV.Mnesia
+      module: Asteroid.Store.GenericKV.Mnesia
     ]
     ```
     """
