@@ -14,13 +14,26 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
         JOSE.JWK.generate_key({:rsa, 1024})
         |> Crypto.Key.set_key_use(:enc)
 
-      Client.gen_new(id: "client_token_oidc_test")
-      |> Client.add("client_id", "client_token_oidc_test")
+      Client.gen_new(id: "client_oidc_test_sig")
+      |> Client.add("client_id", "client_oidc_test_sig")
+      |> Client.add("client_secret", "password1")
+      |> Client.add("client_type", "confidential")
+      |> Client.add("grant_types", ["authorization_code", "refresh_token"])
+      |> Client.add("redirect_uris", ["https://www.example.com"])
+      |> Client.add("id_token_signed_response_alg", "RS384")
+      |> Client.add("jwks",
+                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
+      |> Client.store()
+
+      Client.gen_new(id: "client_oidc_test_enc")
+      |> Client.add("client_id", "client_oidc_test_enc")
       |> Client.add("client_secret", "password1")
       |> Client.add("client_type", "confidential")
       |> Client.add("grant_types", ["authorization_code"])
       |> Client.add("redirect_uris", ["https://www.example.com"])
-      |> Client.add("__asteroid_oidc_flow_authorization_code_id_token_encrypt", true)
+      |> Client.add("id_token_signed_response_alg", "RS384")
+      |> Client.add("id_token_encrypted_response_alg", "RSA1_5")
+      |> Client.add("id_token_encrypted_response_enc", "A128GCM")
       |> Client.add("jwks",
                     [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
       |> Client.store()
@@ -30,12 +43,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
   test "grant type code flow code success with no refresh token", %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, false)
-    Process.put(:oidc_flow_authorization_code_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_authorization_code_id_token_signing_alg, "RS384")
 
     {:ok, code} =
       AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("client_id", "client_oidc_test_sig")
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["openid"]))
       |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["openid"]))
@@ -55,7 +66,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -64,7 +75,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["refresh_token"] == nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -72,7 +83,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
@@ -84,15 +95,12 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
   do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, false)
-    Process.put(:oidc_flow_authorization_code_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_authorization_code_id_token_signing_alg, "RS384")
-    Process.put(:oidc_id_token_encryption_policy, :client_configuration)
     Process.put(:oidc_id_token_encryption_alg_values_supported, ["RSA1_5"])
     Process.put(:oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A192GCM"])
 
     {:ok, code} =
       AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("client_id", "client_token_oidc_test")
+      |> AuthorizationCode.put_value("client_id", "client_oidc_test_enc")
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["openid"]))
       |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["openid"]))
@@ -112,7 +120,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_token_oidc_test", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_enc", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -123,15 +131,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     {id_token_jws, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, response["id_token"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
-    jwk = JOSE.JWK.to_public(jwk)
+    {:ok, jwk_sig} = Crypto.Key.get("key_auto_sig")
+    jwk_sig = JOSE.JWK.to_public(jwk_sig)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+      JOSE.JWS.verify_strict(jwk_sig, ["RS384"], id_token_jws)
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_token_oidc_test"
+    assert id_token_data["aud"] == "client_oidc_test_enc"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
@@ -141,12 +149,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
   test "grant type code flow code success with refresh token", %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, true)
-    Process.put(:oidc_flow_authorization_code_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_authorization_code_id_token_signing_alg, "RS384")
 
     {:ok, code} =
       AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("client_id", "client_oidc_test_sig")
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["openid"]))
       |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["openid"]))
@@ -166,7 +172,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -175,7 +181,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["refresh_token"] != nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -183,7 +189,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
@@ -193,12 +199,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
   test "grant type code flow hybrid success with no refresh token", %{conn: conn} do
     Process.put(:oidc_flow_hybrid_issue_refresh_token_init, false)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     {:ok, code} =
       AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("client_id", "client_oidc_test_sig")
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["openid"]))
       |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["openid"]))
@@ -218,7 +222,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -227,7 +231,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["refresh_token"] == nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -235,7 +239,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
@@ -244,12 +248,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
   test "grant type code flow hybrid success with refresh token", %{conn: conn} do
     Process.put(:oidc_flow_hybrid_issue_refresh_token_init, true)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     {:ok, code} =
       AuthorizationCode.gen_new()
-      |> AuthorizationCode.put_value("client_id", "client_confidential_1")
+      |> AuthorizationCode.put_value("client_id", "client_oidc_test_sig")
       |> AuthorizationCode.put_value("sub", "user_1")
       |> AuthorizationCode.put_value("requested_scopes", Scope.Set.new(["openid"]))
       |> AuthorizationCode.put_value("granted_scopes", Scope.Set.new(["openid"]))
@@ -269,7 +271,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -278,7 +280,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["refresh_token"] != nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -286,7 +288,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
@@ -296,12 +298,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   test "grant type refresh token flow az code success with no new ID token", %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_id_token_refresh, false)
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
-    Process.put(:oidc_flow_authorization_code_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_authorization_code_id_token_signing_alg, "RS384")
 
     {:ok, refresh_token} =
       RefreshToken.gen_new()
-      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("client_id", "client_oidc_test_sig")
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
@@ -316,7 +316,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -330,12 +330,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   test "grant type refresh token flow az code success with new ID token", %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_id_token_refresh, true)
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
-    Process.put(:oidc_flow_authorization_code_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_authorization_code_id_token_signing_alg, "RS384")
 
     {:ok, refresh_token} =
       RefreshToken.gen_new()
-      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("client_id", "client_oidc_test_sig")
       |> RefreshToken.put_value("sub", "user_1")
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
@@ -351,7 +349,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -361,7 +359,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["id_token"] != nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -369,7 +367,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == nil
     assert id_token_data["sub"] == "user_1"
@@ -379,12 +377,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   test "grant type refresh token flow hybrid success with no new ID token", %{conn: conn} do
     Process.put(:oidc_flow_hybrid_issue_id_token_refresh, false)
     Process.put(:oidc_flow_hybrid_issue_refresh_token_refresh, false)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     {:ok, refresh_token} =
       RefreshToken.gen_new()
-      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("client_id", "client_oidc_test_sig")
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
       |> RefreshToken.put_value("iss", "https://example.net")
@@ -399,7 +395,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -413,12 +409,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   test "grant type refresh token flow hybrid success with new ID token", %{conn: conn} do
     Process.put(:oidc_flow_hybrid_issue_id_token_refresh, true)
     Process.put(:oidc_flow_hybrid_issue_refresh_token_refresh, false)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     {:ok, refresh_token} =
       RefreshToken.gen_new()
-      |> RefreshToken.put_value("client_id", "client_confidential_1")
+      |> RefreshToken.put_value("client_id", "client_oidc_test_sig")
       |> RefreshToken.put_value("sub", "user_1")
       |> RefreshToken.put_value("exp", now() + 3600)
       |> RefreshToken.put_value("iat", now())
@@ -434,7 +428,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     response =
       conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
+      |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
       |> post(Routes.token_endpoint_path(conn, :handle), req_body)
       |> json_response(200)
 
@@ -444,7 +438,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert response["id_token"] != nil
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -452,7 +446,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_test_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == nil
     assert id_token_data["sub"] == "user_1"

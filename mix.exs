@@ -128,7 +128,8 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/server-metadata.md",
         "guides/oauth2/jar.md",
         "guides/openid-connect/sessions-loas.md",
-        "guides/openid-connect/openid-connect-core.md"
+        "guides/openid-connect/openid-connect-core.md",
+        "guides/openid-connect/oidc-dynamic-client-registration.md"
       ],
       groups_for_extras:
       [
@@ -147,7 +148,8 @@ defmodule Asteroid.MixProject do
         ],
       "OpenID Connect": [
         "guides/openid-connect/sessions-loas.md",
-        "guides/openid-connect/openid-connect-core.md"
+        "guides/openid-connect/openid-connect-core.md",
+        "guides/openid-connect/oidc-dynamic-client-registration.md"
       ]
       ]
     ]

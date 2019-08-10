@@ -133,6 +133,21 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       |> process_jwks(input_metadata)
       |> process_software_id(input_metadata)
       |> process_software_version(input_metadata)
+      |> process_oidc_application_type(input_metadata)
+      |> process_oidc_sector_identifier_uri(input_metadata)
+      |> process_oidc_subject_type(input_metadata)
+      |> process_oidc_id_token_signed_response_alg(input_metadata)
+      |> process_oidc_id_token_encrypted_response_alg(input_metadata)
+      |> process_oidc_id_token_encrypted_response_enc(input_metadata)
+      |> process_oidc_userinfo_signed_response_alg(input_metadata)
+      |> process_oidc_userinfo_encrypted_response_alg(input_metadata)
+      |> process_oidc_userinfo_encrypted_response_enc(input_metadata)
+      |> process_oidc_request_object_signed_response_alg(input_metadata)
+      |> process_oidc_request_object_encrypted_response_alg(input_metadata)
+      |> process_oidc_request_object_encrypted_response_enc(input_metadata)
+      |> process_oidc_default_max_age(input_metadata)
+      |> process_oidc_require_auth_time(input_metadata)
+      |> process_oidc_default_acr_values(input_metadata)
       |> process_additional_metadata_fields(maybe_authenticated_client, input_metadata)
       |> set_client_id(ctx)
 
@@ -141,8 +156,6 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
          processed_metadata["token_endpoint_auth_method"] == "client_secret_post"
       do
         Expwd.Hashed.gen()
-      else
-        nil
       end
 
     client_resource_id =
@@ -717,6 +730,416 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
     processed_metadata
   end
 
+  @spec process_oidc_application_type(map(), map()) :: map()
+
+  defp process_oidc_application_type(processed_metadata, %{"application_type" => app_type})
+    when app_type in ["native", "web"]
+  do
+    Map.put(processed_metadata, "application_type", app_type)
+  end
+
+  defp process_oidc_application_type(_processed_metadata, %{"application_type" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "application_type",
+      reason: "must be `web` or `native`"
+  end
+
+  defp process_oidc_application_type(processed_metadata, _) do
+    Map.put(processed_metadata, "application_type", "web")
+  end
+
+  @doc """
+  Verifies that the content of the document stored at a sector identifier URI is valid against
+  a list of redirect URIs
+  """
+
+  @spec verify_sector_identifier_uri(String.t(), [OAuth2.RedirectUri.t(), ...]) ::
+  :ok
+  | {:error, %InvalidClientMetadataFieldError{}}
+
+  def verify_sector_identifier_uri(sector_identifier_uri, redirect_uris) do
+    case URI.parse(sector_identifier_uri) do
+      %URI{scheme: "https"} ->
+        case HTTPoison.get(sector_identifier_uri, [], []) do
+          {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+            case Jason.decode(body) do
+              {:ok, loaded_redirect_uris} when is_list(loaded_redirect_uris) ->
+                if Enum.all?(redirect_uris, &(&1 in loaded_redirect_uris)) do
+                  :ok
+                else
+                  {:error, InvalidClientMetadataFieldError.exception([
+                    field: "sector_identifier_uri",
+                    reason: "sector identifier URI redirect URIs not all included in" <>
+                      "request redirect URIs"])}
+                end
+
+              {:error, _e} ->
+                {:error, InvalidClientMetadataFieldError.exception([
+                  field: "sector_identifier_uri",
+                  reason: "invalid JSON content at sector identifier URI, must be a JSON list"])}
+            end
+
+          {:ok, %HTTPoison.Response{status_code: st_code}} ->
+            {:error, InvalidClientMetadataFieldError.exception([
+              field: "sector_identifier_uri",
+              reason: "requesting the sector identifier URI resulted in HTTP code #{st_code}"])}
+
+          {:error, e} ->
+            {:error, InvalidClientMetadataFieldError.exception([
+              field: "sector_identifier_uri",
+              reason: "HTTP error: " <> Exception.message(e)])}
+        end
+
+      _ ->
+        {:error, InvalidClientMetadataFieldError.exception([
+          field: "sector_identifier_uri",
+          reason: "scheme must be `https`"])}
+    end
+  end
+
+  @spec process_oidc_sector_identifier_uri(map(), map()) :: map()
+
+  defp process_oidc_sector_identifier_uri(processed_metadata,
+                                     %{"sector_identifier_uri" => sector_identifier_uri})
+  do
+    case verify_sector_identifier_uri(sector_identifier_uri,
+                                      processed_metadata["redirect_uris"])
+    do
+      :ok ->
+        Map.put(processed_metadata, "sector_identifier_uri", sector_identifier_uri)
+
+      {:error, e} ->
+        raise e
+    end
+  end
+
+  defp process_oidc_sector_identifier_uri(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_subject_type(map(), map()) :: map()
+
+  defp process_oidc_subject_type(processed_metadata, %{"subject_type" => subject_type})
+    when subject_type in ["pairwise", "public"]
+  do
+    Map.put(processed_metadata, "subject_type", subject_type)
+  end
+
+  defp process_oidc_subject_type(_processed_metadata, %{"subject_type" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "subject_type",
+      reason: "invalid subject type, must be `pairwise` or `public`"
+  end
+
+  defp process_oidc_subject_type(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_id_token_signed_response_alg(map(), map()) :: map()
+
+  defp process_oidc_id_token_signed_response_alg(
+    processed_metadata,
+    %{"id_token_signed_response_alg" => id_token_signed_response_alg}
+  ) do
+    if id_token_signed_response_alg in astrenv(:oidc_id_token_supported_signing_algs, []) do
+      Map.put(processed_metadata, "id_token_signed_response_alg", id_token_signed_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "id_token_signed_response_alg",
+        reason: "value provided not in supported signing algs"
+    end
+  end
+
+  defp process_oidc_id_token_signed_response_alg(processed_metadata, _) do
+    Map.put(processed_metadata, "id_token_signed_response_alg", "RS256")
+  end
+
+  @spec process_oidc_id_token_encrypted_response_alg(map(), map()) :: map()
+
+  defp process_oidc_id_token_encrypted_response_alg(
+    processed_metadata,
+    %{"id_token_encrypted_response_alg" => id_token_encrypted_response_alg}
+  ) do
+    if id_token_encrypted_response_alg in astrenv(:oidc_id_token_supported_encryption_algs, []) do
+      Map.put(processed_metadata,
+              "id_token_encrypted_response_alg",
+              id_token_encrypted_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "id_token_encrypted_response_alg",
+        reason: "value provided not in supported encryption algs"
+    end
+  end
+
+  defp process_oidc_id_token_encrypted_response_alg(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_id_token_encrypted_response_enc(map(), map()) :: map()
+
+  defp process_oidc_id_token_encrypted_response_enc(
+    processed_metadata,
+    %{"id_token_encrypted_response_enc" => id_token_encrypted_response_enc,
+      "id_token_encrypted_response_alg" => _}
+  ) do
+    if id_token_encrypted_response_enc in astrenv(:oidc_id_token_supported_encryption_encs, []) do
+      Map.put(processed_metadata,
+              "id_token_encrypted_response_enc",
+              id_token_encrypted_response_enc)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "id_token_encrypted_response_enc",
+        reason: "value provided not in supported encryption encs"
+    end
+  end
+
+  defp process_oidc_id_token_encrypted_response_enc(
+    _,
+    %{"id_token_encrypted_response_enc" => _}
+    ) do
+    raise InvalidClientMetadataFieldError,
+      field: "id_token_encrypted_response_enc",
+      reason: "`id_token_encrypted_response_alg` must be registered along with this field"
+  end
+
+  defp process_oidc_id_token_encrypted_response_enc(
+    processed_metadata,
+      %{"id_token_encrypted_response_alg" => _}
+  ) do
+    Map.put(processed_metadata, "id_token_encrypted_response_enc", "A128CBC-HS256")
+  end
+
+  defp process_oidc_id_token_encrypted_response_enc(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_userinfo_signed_response_alg(map(), map()) :: map()
+
+  defp process_oidc_userinfo_signed_response_alg(
+    processed_metadata,
+    %{"userinfo_signed_response_alg" => userinfo_signed_response_alg}
+  ) do
+    if userinfo_signed_response_alg in astrenv(:oidc_userinfo_supported_signing_algs, []) do
+      Map.put(processed_metadata, "userinfo_signed_response_alg", userinfo_signed_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "userinfo_signed_response_alg",
+        reason: "value provided not in supported signing algs"
+    end
+  end
+
+  defp process_oidc_userinfo_signed_response_alg(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_userinfo_encrypted_response_alg(map(), map()) :: map()
+
+  defp process_oidc_userinfo_encrypted_response_alg(
+    processed_metadata,
+    %{"userinfo_encrypted_response_alg" => userinfo_encrypted_response_alg}
+  ) do
+    if userinfo_encrypted_response_alg in astrenv(:oidc_userinfo_supported_encryption_algs, []) do
+      Map.put(processed_metadata,
+              "userinfo_encrypted_response_alg",
+              userinfo_encrypted_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "userinfo_encrypted_response_alg",
+        reason: "value provided not in supported encryption algs"
+    end
+  end
+
+  defp process_oidc_userinfo_encrypted_response_alg(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_userinfo_encrypted_response_enc(map(), map()) :: map()
+
+  defp process_oidc_userinfo_encrypted_response_enc(
+    processed_metadata,
+    %{"userinfo_encrypted_response_enc" => userinfo_encrypted_response_enc,
+      "userinfo_encrypted_response_alg" => _}
+  ) do
+    if userinfo_encrypted_response_enc in astrenv(:oidc_userinfo_supported_encryption_encs, []) do
+      Map.put(processed_metadata,
+              "userinfo_encrypted_response_enc",
+              userinfo_encrypted_response_enc)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "userinfo_encrypted_response_enc",
+        reason: "value provided not in supported encryption encs"
+    end
+  end
+
+  defp process_oidc_userinfo_encrypted_response_enc(
+    _processed_metadata,
+    %{"userinfo_encrypted_response_enc" => _}
+  ) do
+    raise InvalidClientMetadataFieldError,
+      field: "userinfo_encrypted_response_enc",
+      reason: "`userinfo_encrypted_response_alg` must be registered along with this field"
+  end
+
+  defp process_oidc_userinfo_encrypted_response_enc(
+    processed_metadata,
+    %{"userinfo_encrypted_response_alg" => _}
+  ) do
+    Map.put(processed_metadata, "userinfo_encrypted_response_enc", "A128CBC-HS256")
+  end
+
+  defp process_oidc_userinfo_encrypted_response_enc(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_request_object_signed_response_alg(map(), map()) :: map()
+
+  defp process_oidc_request_object_signed_response_alg(
+    processed_metadata,
+    %{"request_object_signed_response_alg" => request_object_signed_response_alg}
+  ) do
+    if request_object_signed_response_alg in
+      astrenv(:oidc_request_object_supported_signing_algs, [])
+    do
+      Map.put(processed_metadata,
+              "request_object_signed_response_alg",
+              request_object_signed_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "request_object_signed_response_alg",
+        reason: "value provided not in supported signing algs"
+    end
+  end
+
+  defp process_oidc_request_object_signed_response_alg(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_request_object_encrypted_response_alg(map(), map()) :: map()
+
+  defp process_oidc_request_object_encrypted_response_alg(
+    processed_metadata,
+    %{"request_object_encrypted_response_alg" => request_object_encrypted_response_alg}
+  ) do
+    if request_object_encrypted_response_alg in astrenv(:oidc_request_object_supported_encryption_algs, []) do
+      Map.put(processed_metadata,
+              "request_object_encrypted_response_alg",
+              request_object_encrypted_response_alg)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "request_object_encrypted_response_alg",
+        reason: "value provided not in supported encryption algs"
+    end
+  end
+
+  defp process_oidc_request_object_encrypted_response_alg(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_request_object_encrypted_response_enc(map(), map()) :: map()
+
+  defp process_oidc_request_object_encrypted_response_enc(
+    processed_metadata,
+    %{"request_object_encrypted_response_enc" => request_object_encrypted_response_enc,
+      "request_object_encrypted_response_alg" => _}
+  ) do
+    if request_object_encrypted_response_enc in
+      astrenv(:oidc_request_object_supported_encryption_encs, [])
+    do
+      Map.put(processed_metadata,
+              "request_object_encrypted_response_enc",
+              request_object_encrypted_response_enc)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "request_object_encrypted_response_enc",
+        reason: "value provided not in supported encryption encs"
+    end
+  end
+
+  defp process_oidc_request_object_encrypted_response_enc(
+    _processed_metadata,
+    %{"request_object_encrypted_response_enc" => _request_object_encrypted_response_enc}
+  ) do
+    raise InvalidClientMetadataFieldError,
+      field: "request_object_encrypted_response_enc",
+      reason: "`request_object_encrypted_response_alg` must be registered along with this field"
+  end
+
+  defp process_oidc_request_object_encrypted_response_enc(
+    processed_metadata,
+    %{"request_object_encrypted_response_alg" => _}
+  ) do
+    Map.put(processed_metadata, "request_object_encrypted_response_enc", "A128CBC-HS256")
+  end
+
+  defp process_oidc_request_object_encrypted_response_enc(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_default_max_age(map(), map()) :: map()
+
+  defp process_oidc_default_max_age(processed_metadata, %{"default_max_age" => default_max_age})
+    when is_integer(default_max_age)
+  do
+    Map.put(processed_metadata, "default_max_age", default_max_age)
+  end
+
+  defp process_oidc_default_max_age(_processed_metadata, %{"default_max_age" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "default_max_age",
+      reason: "must be an integer"
+  end
+
+  defp process_oidc_default_max_age(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_require_auth_time(map(), map()) :: map()
+
+  defp process_oidc_require_auth_time(
+    processed_metadata, %{"require_auth_time" => require_auth_time})
+    when is_boolean(require_auth_time)
+  do
+    Map.put(processed_metadata, "require_auth_time", require_auth_time)
+  end
+
+  defp process_oidc_require_auth_time(_processed_metadata, %{"require_auth_time" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "require_auth_time",
+      reason: "must be a boolean"
+  end
+
+  defp process_oidc_require_auth_time(processed_metadata, _) do
+    processed_metadata
+  end
+
+  @spec process_oidc_default_acr_values(map(), map()) :: map()
+
+  defp process_oidc_default_acr_values(
+    processed_metadata, %{"default_acr_values" => default_acr_values})
+    when is_list(default_acr_values)
+  do
+    acr_values_supported =
+      Enum.map(astrenv(:oidc_loa_config, []), fn {k, _} -> Atom.to_string(k) end)
+
+    if Enum.all?(default_acr_values, &(&1 in acr_values_supported)) do
+      Map.put(processed_metadata, "default_acr_values", default_acr_values)
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "default_acr_values",
+        reason: "one request acr value not in supported acr values"
+    end
+  end
+
+  defp process_oidc_default_acr_values(_processed_metadata, %{"default_acr_values" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "default_acr_values",
+      reason: "must be a list of ACRs"
+  end
+
+  defp process_oidc_default_acr_values(processed_metadata, _) do
+    processed_metadata
+  end
+
   @spec process_additional_metadata_fields(map(), Client.t() | nil, map()) :: map()
 
   defp process_additional_metadata_fields(processed_metadata, nil, input_metadata) do
@@ -789,10 +1212,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
       :ok ->
         processed_metadata
 
-      {:error, {:grant_type, error_str}} ->
-        raise InvalidClientMetadataFieldError, field: "grant_types", reason: error_str
-
-      {:error, {:response_type, error_str}} ->
+      {:error, error_str} ->
         raise InvalidClientMetadataFieldError, field: "response_types", reason: error_str
     end
   end

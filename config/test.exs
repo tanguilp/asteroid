@@ -408,9 +408,8 @@ config :asteroid, :oauth2_endpoint_discovery_keys_before_send_conn_callback,
 # crypto
 
 config :asteroid, :crypto_keys, %{
-  "key_from_file" => {:pem_file, [path: "priv/keys/ec-secp256r1.pem", use: :sig]},
-  "key_from_map" => {:map, [key: {%{kty: :jose_jwk_kty_oct}, %{"k" => "P9dGnU_We5thJOOigUGtl00WmubLVAAr1kYsAUP80Sc", "kty" => "oct"}}, use: :sig]},
-  "key_auto" => {:auto_gen, [params: {:rsa, 1024}, use: :enc]}
+  "key_auto_sig" => {:auto_gen, [params: {:rsa, 1024}, use: :sig]},
+  "key_auto_enc" => {:auto_gen, [params: {:rsa, 1024}, use: :enc]}
 }
 
 config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}

@@ -189,20 +189,6 @@ defmodule Asteroid.Client do
   set to the lifetime duration of an ID token in the OIDC implicit flow
   - `"__asteroid_oidc_flow_hybrid_id_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an ID token in the OIDC hybrid flow
-  - `"__asteroid_oidc_flow_authorization_code_id_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` key name for ID tokens in the OIDC
-  authorization code flow
-  - `"__asteroid_oidc_flow_implicit_id_token_signing_key"`: the `t:Asteroid.Crypto.Key.name/0`
-  key name for ID tokens in the OIDC implicit flow
-  - `"__asteroid_oidc_flow_hybrid_id_token_signing_key"`: the `t:Asteroid.Crypto.Key.name/0`
-  key name for ID tokens in the OIDC hybrid flow
-  - `"__asteroid_oidc_flow_authorization_code_id_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for ID tokens in the OIDC
-  authorization code flow
-  - `"__asteroid_oidc_flow_implicit_id_token_signing_alg"`: the `t:Asteroid.Crypto.Key.jws_alg/0`
-  signing algorithm for ID tokens in the OIDC implicit flow
-  - `"__asteroid_oidc_flow_hybrid_id_token_signing_alg"`: the `t:Asteroid.Crypto.Key.jws_alg/0`
-  signing algorithm for ID tokens in the OIDC hybrid flow
   - `"__asteroid_oidc_flow_authorization_code_issue_id_token_refresh"`: a `boolean()` set
   to true if an ID token is to be issued when refreshing tokens in the OIDC authorization code
   flow
@@ -230,18 +216,6 @@ defmodule Asteroid.Client do
   #{link_to_option(:oidc_endpoint_userinfo_encrypt_response_callback)} is set to
   `:client_configuration`, a boolean determining if an encrypted response shall be returned from
   the `/api/oidc/userinfo` endpoint
-  - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`: when the
-  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
-  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
-  the OIDC authorization code flow
-  - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`: when the
-  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
-  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
-  the OIDC implicit flow
-  - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`: when the
-  #{link_to_option(:oidc_id_token_encryption_policy)} is set to
-  `:client_configuration`, a boolean determining if an encrypted ID token shall be returned in
-  the OIDC hybrid flow
 
   ## Configuration
 

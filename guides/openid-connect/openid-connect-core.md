@@ -70,22 +70,26 @@ Self-Issued OpenID Provider:
 
 ## ID tokens
 
-Returned ID tokens are necessarily signed. The key name is configured with the
-[`:oidc_id_token_signing_alg_callback`](Asteroid.Config.html#module-oidc_id_token_signing_alg_callback) configuration option.
+Returned ID tokens are necessarily signed. They are signed with one of the stored keys matching
+the `"id_token_signed_response_alg"` client attribute.
 
-They can also be encrypted. Refer to the following configuration options:
-- [`:oidc_id_token_encryption_policy`](Asteroid.Config.html#module-oidc_id_token_encryption_policy)
+They can optionally be encrypted. Asteroid uses the `"id_token_encrypted_response_alg"` and
+`"id_token_encrypted_response_enc"` client attributes to determine if the ID token should be
+encrypted, and with which algorithms. In this case, Asteroid looks for a suitable key in the
+client JWKs.
+
+The following configuration options whitelists the acceptable algorithms:
+- [`:oidc_id_token_signing_alg_values_supported`](Asteroid.Config.html#module-oidc_id_token_signing_alg_values_supported)
 - [`:oidc_id_token_encryption_alg_values_supported`](Asteroid.Config.html#module-oidc_id_token_encryption_alg_values_supported)
 - [`:oidc_id_token_encryption_enc_values_supported`](Asteroid.Config.html#module-oidc_id_token_encryption_enc_values_supported)
 
-The 2 latter configuration options are used to publish the
-`"id_token_encryption_alg_values_supported"` and `"id_token_encryption_enc_values_supported"`
-respectively. The `"id_token_signing_alg_values_supported"` discovery metadata uses the signing
-algorithms of the following configuration options:
-- [`:oidc_flow_authorization_code_id_token_signing_alg`](Asteroid.Config.html#module-oidc_flow_authorization_code_id_token_signing_alg)
-- [`:oidc_flow_implicit_id_token_signing_alg`](Asteroid.Config.html#module-oidc_flow_implicit_id_token_signing_alg)
-- [`:oidc_flow_hybrid_id_token_signing_alg`](Asteroid.Config.html#module-oidc_flow_hybrid_id_token_signing_alg)
+The values of these configuration options are used:
+- to restrict client registration to whitelisted algorithms
+- to advertise them on the `.well-known/*` discovery documents
 
+It does not restrict a client's information somehow registered with other non-whitelisted values
+to be used for ID token signing and encryption. If you change the whitelisted algorithms, you
+might want to update the clients accordingly as well.
 
 ID tokens include the `"c_hash"` and `"at_hash"` values when returned from the authorization
 endpoint directly. `"at_hash"` is returned from the token endpoint when exchanged against an

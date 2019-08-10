@@ -366,20 +366,12 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   @spec put_id_token_crypto_metadata(map()) :: map()
 
   defp put_id_token_crypto_metadata(metadata) do
-    id_token_signing_algs =
-      [
-        astrenv(:oidc_flow_authorization_code_id_token_signing_alg),
-        astrenv(:oidc_flow_implicit_id_token_signing_alg),
-        astrenv(:oidc_flow_hybrid_id_token_signing_alg)
-      ]
-      |> Enum.filter(&(&1 != nil))
-
-
+    id_token_sig_alg = astrenv(:oidc_id_token_signing_alg_values_supported, [])
     id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
     id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
 
     metadata
-    |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_signing_algs)
+    |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
     |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
     |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
   end

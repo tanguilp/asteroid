@@ -371,12 +371,10 @@ defmodule AsteroidWeb.AuthorizeController do
           acr: nil, #FIXME
           amr: nil, #FIXME
           azp: nil,
-          signing_key: astrenv(:oidc_id_token_signing_key_callback).(ctx),
-          signing_alg: astrenv(:oidc_id_token_signing_alg_callback).(ctx),
+          client: client,
           associated_access_token_serialized: maybe_access_token_serialized,
           associated_authorization_code_serialized: maybe_authorization_codeserialized
         }
-        |> IDToken.set_encryption_params(ctx)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else

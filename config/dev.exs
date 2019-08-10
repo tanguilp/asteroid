@@ -534,18 +534,7 @@ config :asteroid, :oauth2_jar_request_uri_get_opts, [
 config :asteroid, :oidc_id_token_lifetime_callback,
   &Asteroid.Token.IDToken.lifetime/1
 
-config :asteroid, :oidc_id_token_signing_key_callback,
-  &Asteroid.Token.IDToken.signing_key/1
-
-config :asteroid, :oidc_id_token_signing_alg_callback,
-  &Asteroid.Token.IDToken.signing_alg/1
-
-config :asteroid, :oidc_flow_authorization_code_id_token_signing_alg, "RS256"
-
-config :asteroid, :oidc_flow_implicit_id_token_signing_alg, "RS512"
-
-config :asteroid, :oidc_id_token_encrypt_callback,
-  &Asteroid.Token.IDToken.encrypt_token?/1
+config :asteroid, :oidc_id_token_signing_alg_values_supported, ["RS256"]
 
 config :asteroid, :oidc_id_token_encryption_alg_values_supported, ["RSA1_5"]
 

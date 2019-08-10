@@ -14,10 +14,26 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
         JOSE.JWK.generate_key({:rsa, 1024})
         |> Crypto.Key.set_key_use(:enc)
 
-      Client.gen_new(id: "client_authorize_oidc_test")
-      |> Client.add("client_id", "client_authorize_oidc_test")
+      Client.gen_new(id: "client_oidc_azcode_sig")
+      |> Client.add("client_id", "client_oidc_azcode_sig")
+      |> Client.add("client_secret", "password1")
       |> Client.add("client_type", "confidential")
-      |> Client.add("__asteroid_oidc_flow_implicit_id_token_encrypt", true)
+      |> Client.add("grant_types", ["authorization_code", "refresh_token"])
+      |> Client.add("redirect_uris", ["https://www.example.com"])
+      |> Client.add("id_token_signed_response_alg", "RS384")
+      |> Client.add("jwks",
+                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
+      |> Client.store()
+
+      Client.gen_new(id: "client_oidc_azcode_enc")
+      |> Client.add("client_id", "client_oidc_azcode_enc")
+      |> Client.add("client_secret", "password1")
+      |> Client.add("client_type", "confidential")
+      |> Client.add("grant_types", ["authorization_code"])
+      |> Client.add("redirect_uris", ["https://www.example.com"])
+      |> Client.add("id_token_signed_response_alg", "RS384")
+      |> Client.add("id_token_encrypted_response_alg", "RSA1_5")
+      |> Client.add("id_token_encrypted_response_enc", "A128GCM")
       |> Client.add("jwks",
                     [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
       |> Client.store()
@@ -124,7 +140,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
         flow: :oidc_authorization_code,
         response_type: :code,
         response_mode: :query,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         requested_scopes: MapSet.new(),
         params: %{}
@@ -143,21 +159,19 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     {:ok, authorization_code} = Asteroid.Token.AuthorizationCode.get(az_code)
 
-    assert authorization_code.data["client_id"] == "client_confidential_1"
+    assert authorization_code.data["client_id"] == "client_oidc_azcode_sig"
     assert authorization_code.data["sub"] == "user_1"
   end
 
   test "Success - implicit - id_token returned", %{conn: conn} do
     Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
-    Process.put(:oidc_flow_implicit_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_implicit_id_token_signing_alg, "RS384")
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :id_token,
         response_mode: :fragment,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -179,14 +193,14 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       "state" => "sxgjwzedrgdfchexgim"
     } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
@@ -196,18 +210,13 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
   do
     Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
-    Process.put(:oidc_flow_implicit_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_implicit_id_token_signing_alg, "RS384")
-    Process.put(:oidc_id_token_encryption_policy, :client_configuration)
-    Process.put(:oidc_id_token_encryption_alg_values_supported, ["RSA1_5"])
-    Process.put(:oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A192GCM"])
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :id_token,
         response_mode: :fragment,
-        client_id: "client_authorize_oidc_test",
+        client_id: "client_oidc_azcode_enc",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -231,14 +240,14 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     {id_token_jws, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, id_token_jwe)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_authorize_oidc_test"
+    assert id_token_data["aud"] == "client_oidc_azcode_enc"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
@@ -247,15 +256,13 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   test "Success - implicit - id_token & token returned", %{conn: conn} do
     Process.put(:oidc_flow_implicit_access_token_lifetime, 30)
     Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
-    Process.put(:oidc_flow_implicit_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_implicit_id_token_signing_alg, "RS384")
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_implicit,
         response_type: :"id_token token",
         response_mode: :fragment,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -284,12 +291,12 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     assert (expires_in |> Integer.parse() |> elem(0)) >= 29
     assert (expires_in |> Integer.parse() |> elem(0)) <= 31
-    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["client_id"] == "client_oidc_azcode_sig"
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -297,7 +304,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
@@ -308,15 +315,13 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     Process.put(:oidc_flow_hybrid_access_token_lifetime, 30)
     Process.put(:oidc_flow_hybrid_authorization_code_lifetime, 30)
     Process.put(:oidc_flow_hybrid_id_token_lifetime, 60)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_hybrid,
         response_type: :"code id_token token",
         response_mode: :fragment,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -344,7 +349,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     {:ok, authorization_code} = Asteroid.Token.AuthorizationCode.get(az_code)
 
-    assert authorization_code.data["client_id"] == "client_confidential_1"
+    assert authorization_code.data["client_id"] == "client_oidc_azcode_sig"
     assert authorization_code.data["sub"] == "user_1"
     assert authorization_code.data["exp"] >= now() + 29
     assert authorization_code.data["exp"] <= now() + 31
@@ -353,12 +358,12 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     assert (expires_in |> Integer.parse() |> elem(0)) >= 29
     assert (expires_in |> Integer.parse() |> elem(0)) <= 31
-    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["client_id"] == "client_oidc_azcode_sig"
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -366,7 +371,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
@@ -377,15 +382,13 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   test "Success - hybrid - code & id_token returned", %{conn: conn} do
     Process.put(:oidc_flow_hybrid_authorization_code_lifetime, 30)
     Process.put(:oidc_flow_hybrid_id_token_lifetime, 60)
-    Process.put(:oidc_flow_hybrid_id_token_signing_key, "key_auto")
-    Process.put(:oidc_flow_hybrid_id_token_signing_alg, "RS384")
 
     authz_request =
       %AsteroidWeb.AuthorizeController.Request{
         flow: :oidc_hybrid,
         response_type: :"code id_token",
         response_mode: :fragment,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -410,12 +413,12 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     {:ok, authorization_code} = Asteroid.Token.AuthorizationCode.get(az_code)
 
-    assert authorization_code.data["client_id"] == "client_confidential_1"
+    assert authorization_code.data["client_id"] == "client_oidc_azcode_sig"
     assert authorization_code.data["sub"] == "user_1"
     assert authorization_code.data["exp"] >= now() + 29
     assert authorization_code.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
@@ -423,7 +426,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     id_token_data = Jason.decode!(id_token_str)
 
-    assert id_token_data["aud"] == "client_confidential_1"
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
@@ -439,7 +442,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
         flow: :oidc_hybrid,
         response_type: :"code token",
         response_mode: :fragment,
-        client_id: "client_confidential_1",
+        client_id: "client_oidc_azcode_sig",
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
@@ -466,7 +469,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     {:ok, authorization_code} = Asteroid.Token.AuthorizationCode.get(az_code)
 
-    assert authorization_code.data["client_id"] == "client_confidential_1"
+    assert authorization_code.data["client_id"] == "client_oidc_azcode_sig"
     assert authorization_code.data["sub"] == "user_1"
     assert authorization_code.data["exp"] >= now() + 29
     assert authorization_code.data["exp"] <= now() + 31
@@ -475,7 +478,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
 
     assert (expires_in |> Integer.parse() |> elem(0)) >= 29
     assert (expires_in |> Integer.parse() |> elem(0)) <= 31
-    assert access_token.data["client_id"] == "client_confidential_1"
+    assert access_token.data["client_id"] == "client_oidc_azcode_sig"
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31

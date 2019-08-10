@@ -419,7 +419,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
   test "ropc valid username, JWS access token", %{conn: conn} do
     Process.put(:oauth2_flow_ropc_access_token_serialization_format, :jws)
-    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto_sig")
     Process.put(:oauth2_flow_ropc_access_token_signing_alg, "RS384")
 
     req_body = %{
@@ -442,7 +442,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert {:ok, _} = RefreshToken.get(response["refresh_token"])
     assert response["scope"] == nil
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, _, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], response["access_token"])
@@ -663,7 +663,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
   test "client credentials valid confidential client authentication, JWS token issued", %{conn: conn} do
     Process.put(:oauth2_flow_client_credentials_access_token_serialization_format, :jws)
-    Process.put(:oauth2_flow_client_credentials_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_client_credentials_access_token_signing_key, "key_auto_sig")
     Process.put(:oauth2_flow_client_credentials_access_token_signing_alg, "RS384")
 
     req_body = %{
@@ -684,7 +684,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["scope"] == nil
     assert response["refresh_token"] == nil
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, access_token_str, _} =
@@ -1061,7 +1061,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
   test "refresh token valid request confidential client, JWS access token", %{conn: conn} do
     Process.put(:oauth2_flow_ropc_access_token_serialization_format, :jws)
-    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_ropc_access_token_signing_key, "key_auto_sig")
     Process.put(:oauth2_flow_ropc_access_token_signing_alg, "RS384")
 
     {:ok, refresh_token} =
@@ -1091,7 +1091,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, access_token_str, _} =
@@ -1599,7 +1599,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
 
   test "grant type code success with refresh token without scopes, with JWS access token", %{conn: conn} do
     Process.put(:oauth2_flow_authorization_code_access_token_serialization_format, :jws)
-    Process.put(:oauth2_flow_authorization_code_access_token_signing_key, "key_auto")
+    Process.put(:oauth2_flow_authorization_code_access_token_signing_key, "key_auto_sig")
     Process.put(:oauth2_flow_authorization_code_access_token_signing_alg, "RS512")
 
     {:ok, code} =
@@ -1633,7 +1633,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointTest do
     assert response["token_type"] == "bearer"
     assert is_integer(response["expires_in"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, access_token_str, _} =

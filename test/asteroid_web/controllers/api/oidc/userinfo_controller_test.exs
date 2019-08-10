@@ -202,7 +202,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
   test "Success case - requesting using all scopes values, signed resp, get req", %{conn: conn} do
     Process.put(:oidc_endpoint_userinfo_sign_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto")
+    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto_sig")
     Process.put(:oidc_endpoint_userinfo_signing_alg, "RS384")
 
     {:ok, access_token} =
@@ -221,7 +221,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     response = response(conn, 200)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, payload_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], response)
@@ -318,7 +318,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
   %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
   do
     Process.put(:oidc_endpoint_userinfo_sign_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto")
+    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto_sig")
     Process.put(:oidc_endpoint_userinfo_signing_alg, "RS384")
     Process.put(:oidc_endpoint_userinfo_encrypt_response_policy, :always)
     Process.put(:oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA1_5"])
@@ -342,7 +342,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     {payload_signed, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, response)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto")
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, payload_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], payload_signed)

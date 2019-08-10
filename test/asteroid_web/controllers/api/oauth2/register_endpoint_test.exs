@@ -254,25 +254,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpointTest do
       |> json_response(400)
 
     assert response["error"] == "invalid_client_metadata"
-    assert response["error_description"] =~ "must be registered along with the response type"
-  end
-
-  test "incoherent grant and response types 2", %{conn: conn} do
-    req_body = %{
-      "client_name" => "Example client number twelve",
-      "redirect_uris" => ["https://www.example.com/redirect_uri"],
-      "grant_types" => ["implicit", "authorization_code", "client_credentials", "password"],
-      "response_types" => ["token"]
-    }
-
-    response =
-      conn
-      |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.register_endpoint_path(conn, :handle), req_body)
-      |> json_response(400)
-
-    assert response["error"] == "invalid_client_metadata"
-    assert response["error_description"] =~ "must be registered along with the grant type"
+    assert response["error_description"] =~ "have missing mandatory grant type"
   end
 
   test "Scope not declared neither at the client level or in the conf", %{conn: conn} do

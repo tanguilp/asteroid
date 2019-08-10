@@ -11,7 +11,13 @@ defmodule Asteroid.Token.IDToken do
   OpenID Connect's ID token structure
   """
 
-  @enforce_keys [:iss, :sub, :aud, :exp, :iat, :signing_key, :signing_alg]
+  @client_id_token_crypto_fields [
+    "id_token_signed_response_alg",
+    "id_token_encrypted_response_alg",
+    "id_token_encrypted_response_enc"
+  ]
+
+  @enforce_keys [:iss, :sub, :aud, :exp, :iat, :client]
 
   defstruct [
     :iss,
@@ -24,11 +30,7 @@ defmodule Asteroid.Token.IDToken do
     :acr,
     :amr,
     :azp,
-    :signing_key,
-    :signing_alg,
-    :encryption_key,
-    :encryption_alg,
-    :encryption_enc,
+    :client,
     :associated_access_token_serialized,
     :associated_authorization_code_serialized,
     :data
@@ -51,11 +53,7 @@ defmodule Asteroid.Token.IDToken do
     acr: OIDC.acr() | nil,
     amr: OIDC.amr() | nil,
     azp: String.t() | nil,
-    signing_key: Crypto.Key.name() | nil,
-    signing_alg: Crypto.Key.jws_alg() | nil,
-    encryption_key: %JOSE.JWK{} | nil,
-    encryption_alg: Crypto.Key.jwe_alg() | nil,
-    encryption_enc: Crypto.Key.jwe_enc() | nil,
+    client: Client.t(),
     associated_access_token_serialized: String.t() | nil,
     associated_authorization_code_serialized: String.t() | nil,
     data: map()
@@ -96,9 +94,11 @@ defmodule Asteroid.Token.IDToken do
   signer of `JOSE.JWT.sign/2`
   """
 
-  @spec serialize(t()) :: String.t()
+  @spec serialize(%__MODULE__{}) :: String.t()
 
   def serialize(id_token) do
+    client = Client.fetch_attributes(id_token.client, @client_id_token_crypto_fields)
+
     jwt =
       id_token.data || %{}
       |> Map.put("iss", id_token.iss)
@@ -116,30 +116,68 @@ defmodule Asteroid.Token.IDToken do
       |> put_if_not_nil("c_hash",
                         token_hash(id_token, id_token.associated_authorization_code_serialized))
 
-    {:ok, jwk} = Crypto.Key.get(id_token.signing_key)
+    signing_alg = client.attrs["id_token_signed_response_alg"] || "RS256"
 
-    serialized_jws =
-      if id_token.signing_alg do
-        jws = JOSE.JWS.from_map(%{"alg" => id_token.signing_alg})
+    eligible_jwks =
+      Crypto.Key.get_all()
+      |> Enum.filter(
+        fn
+          %JOSE.JWK{fields: fields} ->
+            fields["use"] == "sig" and
+            (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
+            (fields["alg"] == signing_alg or fields["alg"] == nil)
+        end
+      )
 
-        JOSE.JWT.sign(jwk, jws, jwt)
-        |> JOSE.JWS.compact
-        |> elem(1)
-      else
-        JOSE.JWT.sign(jwk, jwt)
-        |> JOSE.JWS.compact
-        |> elem(1)
-      end
+    case eligible_jwks do
+      [jwk | _] ->
+        serialized_jws =
+          JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), jwt)
+          |> JOSE.JWS.compact
+          |> elem(1)
 
-    if id_token.encryption_key do
-      JOSE.JWE.block_encrypt(
-        id_token.encryption_key,
-        serialized_jws,
-        %{"alg" => id_token.encryption_alg, "enc" => id_token.encryption_enc})
-      |> JOSE.JWE.compact()
-      |> elem(1)
-    else
-      serialized_jws
+        encryption_alg = client.attrs["id_token_encrypted_response_alg"]
+
+        if encryption_alg do
+          case Client.get_jwks(client) do
+            {:ok, keys} ->
+              eligible_jwks =
+                keys
+                |> Enum.map(&JOSE.JWK.from/1)
+                |> Enum.filter(
+                  fn
+                    %JOSE.JWK{fields: fields} ->
+                      (fields["use"] == "enc" or fields["use"] == nil) and
+                      (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
+                      (fields["alg"] == encryption_alg or fields["alg"] == nil)
+                  end
+                )
+
+              case eligible_jwks do
+                [jwk | _] ->
+                  encryption_enc =
+                    client.attrs["id_token_encrypted_response_enc"] || "A128CBC-HS256"
+
+                  JOSE.JWE.block_encrypt(
+                    jwk,
+                    serialized_jws,
+                    %{"alg" => encryption_alg, "enc" => encryption_enc})
+                  |> JOSE.JWE.compact()
+                  |> elem(1)
+
+                [] ->
+                  raise Crypto.Key.NoSuitableKeyError
+              end
+
+            {:error, _} ->
+              raise Crypto.Key.NoSuitableKeyError
+          end
+        else
+          serialized_jws
+        end
+
+      [] ->
+        raise Crypto.Key.NoSuitableKeyError
     end
   end
 
@@ -149,31 +187,31 @@ defmodule Asteroid.Token.IDToken do
     nil
   end
 
-  defp token_hash(%__MODULE__{signing_alg: signing_alg}, token) when signing_alg in [
-    "ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "PS256", "PS384", "PS512",
-    "RS256", "RS384", "RS512"
-  ] do
+  defp token_hash(%__MODULE__{client: client}, token) do
+    client = Client.fetch_attributes(client, ["id_token_signed_response_alg"])
+
     hash_alg =
       cond do
-        signing_alg in ["ES256", "HS256", "PS256", "RS256"] ->
+        client.attrs["id_token_signed_response_alg"] in ["ES256", "HS256", "PS256", "RS256"] ->
           :sha256
 
-        signing_alg in ["ES384", "HS384", "PS384", "RS384"] ->
+        client.attrs["id_token_signed_response_alg"] in ["ES384", "HS384", "PS384", "RS384"] ->
           :sha384
 
-        signing_alg in ["ES512", "HS512", "PS512", "RS512"] ->
+        client.attrs["id_token_signed_response_alg"] in ["ES512", "HS512", "PS512", "RS512"] ->
           :sha512
+
+        true ->
+          nil
       end
 
-    digest = :crypto.hash(hash_alg, token)
+    if hash_alg do
+      digest = :crypto.hash(hash_alg, token)
 
-    digest
-    |> :binary.part({0, div(byte_size(digest), 2)})
-    |> Base.url_encode64(padding: false)
-  end
-
-  defp token_hash(_, _) do
-    nil
+      digest
+      |> :binary.part({0, div(byte_size(digest), 2)})
+      |> Base.url_encode64(padding: false)
+    end
   end
 
   @doc """
@@ -290,203 +328,5 @@ defmodule Asteroid.Token.IDToken do
 
   def issue_id_token?(_) do
     false
-  end
-
-  @doc """
-  Returns the signing key name for an ID token
-
-  - If the client has the following field set to an integer value for the corresponding flow
-  returns that value:
-    - `"__asteroid_oidc_flow_authorization_code_id_token_signing_key"`
-    - `"__asteroid_oidc_flow_implicit_id_token_signing_key"`
-    - `"__asteroid_oidc_flow_hybrid_id_token_signing_key"`
-  - Otherwise, if the following configuration option is set to an integer for the corresponding
-  flow, returns its value:
-    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_id_token_signing_key)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_key)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_id_token_signing_key)}
-  - otherwise, returns `nil`
-  """
-
-  @spec signing_key(Context.t()) :: Asteroid.Crypto.Key.name()
-
-  def signing_key(%{flow: flow, client: client}) do
-    attr =
-      case flow do
-        :oidc_authorization_code ->
-          "__asteroid_oidc_flow_authorization_code_id_token_signing_key"
-
-        :oidc_implicit ->
-          "__asteroid_oidc_flow_implicit_id_token_signing_key"
-
-        :oidc_hybrid ->
-          "__asteroid_oidc_flow_hybrid_id_token_signing_key"
-      end
-
-    client = Client.fetch_attributes(client, [attr])
-
-    if client.attrs[attr] != nil do
-      client.attrs[attr]
-    else
-      conf_opt =
-        case flow do
-          :oidc_authorization_code ->
-            :oidc_flow_authorization_code_id_token_signing_key
-
-          :oidc_implicit ->
-            :oidc_flow_implicit_id_token_signing_key
-
-          :oidc_hybrid ->
-            :oidc_flow_hybrid_id_token_signing_key
-        end
-
-      astrenv(conf_opt, nil)
-    end
-  end
-
-  def signing_key(_) do
-    nil
-  end
-
-  @doc """
-  Returns the signing key algorithm for an ID token
-
-  - If the client has the following field set to an integer value for the corresponding flow
-  returns that value:
-    - `"__asteroid_oidc_flow_authorization_code_id_token_signing_alg"`
-    - `"__asteroid_oidc_flow_implicit_id_token_signing_alg"`
-    - `"__asteroid_oidc_flow_hybrid_id_token_signing_alg"`
-  - Otherwise, if the following configuration option is set to an integer for the corresponding
-  flow, returns its value:
-    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_id_token_signing_alg)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_alg)}
-    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_id_token_signing_alg)}
-  - otherwise, returns `nil`
-  """
-
-  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.jws_alg()
-
-  def signing_alg(%{flow: flow, client: client}) do
-    attr =
-      case flow do
-        :oidc_authorization_code ->
-          "__asteroid_oidc_flow_authorization_code_id_token_signing_alg"
-
-        :oidc_implicit ->
-          "__asteroid_oidc_flow_implicit_id_token_signing_alg"
-
-        :oidc_hybrid ->
-          "__asteroid_oidc_flow_hybrid_id_token_signing_alg"
-      end
-
-    client = Client.fetch_attributes(client, [attr])
-
-    if client.attrs[attr] != nil do
-      client.attrs[attr]
-    else
-      conf_opt =
-        case flow do
-          :oidc_authorization_code ->
-            :oidc_flow_authorization_code_id_token_signing_alg
-
-          :oidc_implicit ->
-            :oidc_flow_implicit_id_token_signing_alg
-
-          :oidc_hybrid ->
-            :oidc_flow_hybrid_id_token_signing_alg
-        end
-
-      astrenv(conf_opt, nil)
-    end
-  end
-
-  @doc """
-  Returns `true` if an ID token should be signed, `false` otherwise
-
-  - If the #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_signing_alg)}
-  configuration option is set to `:client_configuration` and the
-  client has the following field set to an boolean value for the corresponding flow
-  returns that value:
-    - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`
-    - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`
-    - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`
-    - otherwise, returns `true` if the configuration option is set to `:always`, and `false` if
-    set to the value `:disabled`
-  """
-
-  @spec encrypt_token?(Context.t()) :: boolean()
-
-  def encrypt_token?(%{flow: flow, client: client}) do
-    case astrenv(:oidc_id_token_encryption_policy, :disabled) do
-      :always ->
-        true
-
-      :disabled -> false
-
-      :client_configuration ->
-        attr =
-          case flow do
-            :oidc_authorization_code ->
-              "__asteroid_oidc_flow_authorization_code_id_token_encrypt"
-
-            :oidc_implicit ->
-              "__asteroid_oidc_flow_implicit_id_token_encrypt"
-
-            :oidc_hybrid ->
-              "__asteroid_oidc_flow_hybrid_id_token_encrypt"
-          end
-
-        client = Client.fetch_attributes(client, [attr])
-
-        client.attrs[attr] == true
-    end
-  end
-
-  @doc """
-  Sets the encryption key, alg and enc to an ID token
-  """
-
-  @spec set_encryption_params(%__MODULE__{}, Context.t()) :: %__MODULE__{}
-
-  def set_encryption_params(id_token, %{client: client} = ctx) do
-    if astrenv(:oidc_id_token_encrypt_callback).(ctx) == true do
-      case Client.get_jwks(client) do
-        {:ok, keys} ->
-          jwe_alg_supported =
-            astrenv(:oidc_id_token_encryption_alg_values_supported) || []
-          jwe_enc_supported =
-            astrenv(:oidc_id_token_encryption_enc_values_supported) || []
-
-          eligible_jwks =
-            keys
-            |> Enum.map(&JOSE.JWK.from/1)
-            |> Enum.filter(
-              fn
-                %JOSE.JWK{fields: fields} ->
-                  (fields["use"] == "enc" or fields["use"] == nil) and
-                  (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
-                  (fields["alg"] in jwe_alg_supported or fields["alg"] == nil)
-              end
-            )
-
-          case eligible_jwks do
-            [key | _] ->
-              #FIXME: determine how to select alg and enc for encryption
-              %__MODULE__{id_token |
-                encryption_key: key,
-                encryption_alg: key.fields["alg"] || List.first(jwe_alg_supported),
-                encryption_enc: List.first(jwe_enc_supported)
-              }
-
-            [] ->
-              raise Crypto.Key.NoSuitableKeyError
-          end
-
-        {:error, _} ->
-          raise Crypto.Key.NoSuitableKeyError
-      end
-    else
-      id_token
-    end
   end
 end

@@ -1918,133 +1918,13 @@ defmodule Asteroid.Config do
     unit: "seconds"
 
     @doc """
-    Callback called to determine the signing key name of an ID token
-
-    Note that client configuration takes precedence over configuration options. See
-    `Asteroid.Client` fields.
+    List of acceptable signature `alg` algorithms to sign ID tokens
     """
 
-    @type oidc_id_token_signing_key_callback ::
-    (Asteroid.Context.t() -> Crypto.Key.name())
+    @type oidc_id_token_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
 
-    field :oidc_id_token_signing_key_callback,
-    config_time: :runtime,
-    uses: [
-      :oidc_flow_authorization_code_id_token_signing_key,
-      :oidc_flow_implicit_id_token_signing_key,
-      :oidc_flow_hybrid_id_token_signing_key
-    ]
-
-    @doc """
-    Defines the signing key name of an ID token in the OIDC authorization code flow
-    """
-
-    @type oidc_flow_authorization_code_id_token_signing_key :: Crypto.Key.name()
-
-    field :oidc_flow_authorization_code_id_token_signing_key,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_key_callback]
-
-    @doc """
-    Defines the signing key name of an ID token in the OIDC implicit flow
-    """
-
-    @type oidc_flow_implicit_id_token_signing_key :: Crypto.Key.name()
-
-    field :oidc_flow_implicit_id_token_signing_key,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an ID token in the OIDC hybrid flow
-    """
-
-    @type oidc_flow_hybrid_id_token_signing_key :: Crypto.Key.name()
-
-    field :oidc_flow_hybrid_id_token_signing_key,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_key_callback]
-
-    @doc """
-    Callback called to determine the signing algorithm of an ID token
-
-    Note that client configuration takes precedence over configuration options. See
-    `Asteroid.Client` fields.
-    """
-
-    @type oidc_id_token_signing_alg_callback ::
-    (Asteroid.Context.t() -> Crypto.Key.jws_alg())
-
-    field :oidc_id_token_signing_alg_callback,
-    config_time: :runtime,
-    uses: [
-      :oidc_flow_authorization_code_id_token_signing_alg,
-      :oidc_flow_implicit_id_token_signing_alg,
-      :oidc_flow_hybrid_id_token_signing_alg
-    ]
-
-    @doc """
-    Defines the signing algorithm of an ID token in the OIDC authorization code flow
-    """
-
-    @type oidc_flow_authorization_code_id_token_signing_alg :: Crypto.Key.jws_alg()
-
-    field :oidc_flow_authorization_code_id_token_signing_alg,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an ID token in the OIDC implicit flow
-    """
-
-    @type oidc_flow_implicit_id_token_signing_alg :: Crypto.Key.jws_alg()
-
-    field :oidc_flow_implicit_id_token_signing_alg,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an ID token in the OIDC hybrid flow
-    """
-
-    @type oidc_flow_hybrid_id_token_signing_alg :: Crypto.Key.jws_alg()
-
-    field :oidc_flow_hybrid_id_token_signing_alg,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_signing_alg_callback]
-
-    @doc """
-    Policy for ID token encryption
-
-    3 values are possible:
-    - `:disabled`: the ID token is never encrypted
-    - `:client_configuration`: uses one of the following client to determine whether the ID
-    token should be encrypted:
-      - `"__asteroid_oidc_flow_authorization_code_id_token_encrypt"`
-      - `"__asteroid_oidc_flow_implicit_id_token_encrypt"`
-      - `"__asteroid_oidc_flow_hybrid_id_token_encrypt"`
-    - `:always`: the ID token is always encrypted
-    """
-
-    @type oidc_id_token_encryption_policy ::
-    :disabled
-    | :client_configuration
-    | :always
-
-    field :oidc_id_token_encryption_policy,
-    config_time: :runtime,
-    used_by: [:oidc_id_token_encrypt_callback]
-
-    @doc """
-    Callback used to determine if an ID token should be encrypted
-    """
-
-    @type oidc_id_token_encrypt_callback ::
-    (Asteroid.Context.t() -> boolean())
-
-    field :oidc_id_token_encrypt_callback,
-    config_time: :runtime,
-    uses: [:oidc_id_token_encryption_policy]
+    field :oidc_id_token_signing_alg_values_supported,
+    config_time: :runtime
 
     @doc """
     List of acceptable encryption `alg` algorithms to encrypt ID tokens
