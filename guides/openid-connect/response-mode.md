@@ -27,5 +27,5 @@ configuration option, which can take 3 values:
 - `:oidc_only`: the default value
 - `:enabled`: enabled also for OAuth2 authorization and implicit flows
 
-If the `"response_mode"` parameter is set, it must be one of: `"query"`, `"fragment"` or
-`"form_post"`.
+When set, the `"response_mode"` parameter must be one of: `"query"`, `"fragment"` or
+`"form_post"`. Otherwise an error will be returned.
