@@ -492,11 +492,5 @@ config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
 config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oidc_endpoint_userinfo_sign_response_callback,
-  &Asteroid.OIDC.Userinfo.sign_response?/1
-
-config :asteroid, :oidc_endpoint_userinfo_encrypt_response_callback,
-  &Asteroid.OIDC.Userinfo.encrypt_response?/1
-
 config :asteroid, :oidc_id_token_encrypt_callback,
   &Asteroid.Token.IDToken.encrypt_token?/1

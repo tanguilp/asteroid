@@ -546,12 +546,6 @@ config :asteroid, :token_id_token_before_serialize_callback,
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
 
-config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
-  &Asteroid.Utils.id_first_param/2
-
-config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
-  &Asteroid.Utils.id_first_param/2
-
 config :asteroid, :oidc_loa_config, [
   loa1: [
     callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
@@ -566,13 +560,13 @@ config :asteroid, :oidc_loa_config, [
 
 # userinfo
 
-config :asteroid, :oidc_endpoint_userinfo_sign_response_callback,
-  &Asteroid.OIDC.Userinfo.sign_response?/1
+config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
+  &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oidc_endpoint_userinfo_encrypt_response_callback,
-  &Asteroid.OIDC.Userinfo.encrypt_response?/1
+config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
+  &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oidc_endpoint_userinfo_encrypt_response_policy, :client_configuration
+config :asteroid, :oidc_endpoint_userinfo_signature_alg_values_supported, ["RS256"]
 
 config :asteroid, :oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA1_5"]
 

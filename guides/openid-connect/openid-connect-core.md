@@ -156,26 +156,22 @@ configuration: it is recommended **not** adding other authentication plugs.
 Note that this API does not requires from the access token to have the `"openid"` scope, since
 an access token can be requested with fewer scopes than originated.
 
-The response can be signed and/or encrypted. For signature, refer to the following configuration
-options:
-- [`:oidc_endpoint_userinfo_sign_response_policy`](Asteroid.Config.html#module-oidc_endpoint_userinfo_sign_response_policy)
-- [`:oidc_endpoint_userinfo_signing_key`](Asteroid.Config.html#module-oidc_endpoint_userinfo_signing_key)
-- [`:oidc_endpoint_userinfo_signing_alg`](Asteroid.Config.html#module-oidc_endpoint_userinfo_signing_alg)
+The response can be signed and/or encrypted. Asteroid uses the following OpenID Connect client
+fields to determine if a response should be encrypted or signed:
+- `"userinfo_signed_response_alg"`
+- `"userinfo_encrypted_response_alg"`
+- `"userinfo_encrypted_response_enc"`
 
-Encryption is done with one of the valid key (for this usage) of the calling client (and are
-retrieved using the `Asteroid.Client.get_jwks/1` function). Encryption is configured through:
-- [`:oidc_endpoint_userinfo_encrypt_response_policy`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encrypt_response_policy)
+Encrypting without signing is possible, using the signing `"none"` algorithm. It requires
+activating the `"none"` algorithm. See
+[ JWS "none" algorithm ](crypto-keys.html#jws-none-algorithm).
+
+The acceptable signature and encryption algorithms are whitelisted using the following
+configuration options:
+- [`:oidc_endpoint_userinfo_signature_alg_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_signature_alg_values_supported)
 - [`:oidc_endpoint_userinfo_encryption_alg_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_alg_values_supported)
 - [`:oidc_endpoint_userinfo_encryption_enc_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_enc_values_supported)
 
-Keys' configuration is published in the discovery data as soon as signing (resp. encryption) is
-enabled with a policy different than `:disabled`. The following metadata is published:
-- `"userinfo_signing_alg_values_supported"`: the algorithm of the
-[`:oidc_endpoint_userinfo_signing_alg`](Asteroid.Config.html#module-oidc_endpoint_userinfo_signing_alg)
-configuration option
-- `"userinfo_encryption_alg_values_supported"`: the values of the
-[`:oidc_endpoint_userinfo_encryption_alg_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_alg_values_supported)
-configuration option
-- `"userinfo_encryption_enc_values_supported"`: the values of the
-[`:oidc_endpoint_userinfo_encryption_enc_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_enc_values_supported)
-configuration option
+The values of these configuration options are used:
+- to restrict client registration to whitelisted algorithms
+- to advertise them on the `.well-known/*` discovery documents

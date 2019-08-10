@@ -269,33 +269,14 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   @spec put_userinfo_endpoint_key_info(map()) :: map()
 
   defp put_userinfo_endpoint_key_info(metadata) do
-    metadata = 
-      case astrenv(:oidc_endpoint_userinfo_sign_response_policy) do
-        :disabled ->
-          metadata
+    sig_alg = astrenv(:oidc_endpoint_userinfo_signature_alg_values_supported, [])
+    enc_alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
+    enc_enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
 
-        _ ->
-          case astrenv(:oidc_endpoint_userinfo_signing_alg, nil) do
-            nil ->
-              metadata
-
-            alg ->
-              put_if_not_empty(metadata, "userinfo_signing_alg_values_supported", [alg])
-          end
-      end
-
-    case astrenv(:oidc_endpoint_userinfo_encrypt_response_policy) do
-      :disabled ->
-        metadata
-
-      _ ->
-        alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
-        enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
-
-        metadata
-        |> put_if_not_empty("userinfo_encryption_alg_values_supported", alg)
-        |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc)
-    end
+    metadata
+    |> put_if_not_empty("userinfo_signing_alg_values_supported", sig_alg)
+    |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
+    |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
   end
 
   @spec put_code_challenge_methods_supported(map()) :: map()

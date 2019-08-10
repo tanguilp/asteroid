@@ -38,9 +38,20 @@ defmodule AsteroidWeb.UserinfoControllerTest do
         JOSE.JWK.generate_key({:rsa, 1024})
         |> Crypto.Key.set_key_use(:enc)
 
-      Client.gen_new(id: "client_userinfo_test")
-      |> Client.add("client_id", "client_userinfo_test")
+      Client.gen_new(id: "client_userinfo_sig")
+      |> Client.add("client_id", "client_userinfo_sig")
       |> Client.add("client_type", "confidential")
+      |> Client.add("userinfo_signed_response_alg", "RS384")
+      |> Client.add("jwks",
+                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
+      |> Client.store()
+
+      Client.gen_new(id: "client_userinfo_enc")
+      |> Client.add("client_id", "client_userinfo_enc")
+      |> Client.add("client_type", "confidential")
+      |> Client.add("userinfo_signed_response_alg", "RS384")
+      |> Client.add("userinfo_encrypted_response_alg", "RSA1_5")
+      |> Client.add("userinfo_encrypted_response_enc", "A128GCM")
       |> Client.add("jwks",
                     [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
       |> Client.store()
@@ -201,14 +212,10 @@ defmodule AsteroidWeb.UserinfoControllerTest do
   end
 
   test "Success case - requesting using all scopes values, signed resp, get req", %{conn: conn} do
-    Process.put(:oidc_endpoint_userinfo_sign_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto_sig")
-    Process.put(:oidc_endpoint_userinfo_signing_alg, "RS384")
-
     {:ok, access_token} =
       AccessToken.gen_new()
       |> AccessToken.put_value("scope", ["profile", "email", "address", "phone"])
-      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("client_id", "client_userinfo_sig")
       |> AccessToken.put_value("sub", "user_userinfo_test")
       |> AccessToken.put_value("exp", now() + 3600)
       |> AccessToken.put_value("iat", now())
@@ -230,7 +237,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     assert "application/jwt" in simplified_content_type_from_conn(conn)
     assert payload["iss"] == OAuth2.issuer()
-    assert payload["aud"] == "client_confidential_1"
+    assert payload["aud"] == "client_userinfo_sig"
     assert payload["sub"] == "user_userinfo_test"
     assert payload["name"] == "Full Jr. Name"
     assert payload["family_name"] == "Name"
@@ -259,75 +266,13 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     refute Map.has_key?(payload, "non_standard_claim_1")
   end
 
-  test "Success case - requesting using all scopes values, encrypted only resp, get req",
-  %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
-  do
-    Process.put(:oidc_endpoint_userinfo_encrypt_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA1_5"])
-    Process.put(:oidc_endpoint_userinfo_encryption_enc_values_supported, ["A128GCM"])
-
-    {:ok, access_token} =
-      AccessToken.gen_new()
-      |> AccessToken.put_value("scope", ["profile", "email", "address", "phone"])
-      |> AccessToken.put_value("client_id", "client_userinfo_test")
-      |> AccessToken.put_value("sub", "user_userinfo_test")
-      |> AccessToken.put_value("exp", now() + 3600)
-      |> AccessToken.put_value("iat", now())
-      |> AccessToken.store()
-
-    conn =
-      conn
-      |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
-      |> get(Routes.userinfo_path(conn, :show))
-
-    response = response(conn, 200)
-
-    {payload_str, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, response)
-
-    payload = Jason.decode!(payload_str)
-
-    assert "application/jwt" in simplified_content_type_from_conn(conn)
-    assert payload["sub"] == "user_userinfo_test"
-    assert payload["name"] == "Full Jr. Name"
-    assert payload["family_name"] == "Name"
-    assert payload["given_name"] == "Full"
-    refute Map.has_key?(payload, "middle_name")
-    refute Map.has_key?(payload, "nickname")
-    refute Map.has_key?(payload, "preferred_username")
-    assert payload["profile"] == "https://www.example.com/profiles/full_name"
-    assert payload["picture"] == "https://www.example.com/pictures/full_name"
-    refute Map.has_key?(payload, "website")
-    assert payload["gender"] == "male"
-    assert payload["birthdate"] == "2015-01-23T00:00:00Z"
-    refute Map.has_key?(payload, "zoneinfo")
-    refute Map.has_key?(payload, "locale")
-    assert payload["updated_at"] == "2019-07-17T21:02:47Z"
-    assert payload["email"] == "full.name@example.com"
-    assert payload["email_verified"] == true
-    assert payload["address"] == %{
-        "street_address" => "42, Sir Example Street",
-        "locality" => "St. Exampleburg",
-        "postal_code" => "77852",
-        "country" => "Groland"
-      }
-    assert payload["phone_number"] == "+3942390027"
-    refute Map.has_key?(payload, "phone_number_verified")
-    refute Map.has_key?(payload, "non_standard_claim_1")
-  end
   test "Success case - requesting using all scopes values, signed and encrypted resp, get req",
   %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
   do
-    Process.put(:oidc_endpoint_userinfo_sign_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_signing_key, "key_auto_sig")
-    Process.put(:oidc_endpoint_userinfo_signing_alg, "RS384")
-    Process.put(:oidc_endpoint_userinfo_encrypt_response_policy, :always)
-    Process.put(:oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA1_5"])
-    Process.put(:oidc_endpoint_userinfo_encryption_enc_values_supported, ["A128GCM"])
-
     {:ok, access_token} =
       AccessToken.gen_new()
       |> AccessToken.put_value("scope", ["profile", "email", "address", "phone"])
-      |> AccessToken.put_value("client_id", "client_userinfo_test")
+      |> AccessToken.put_value("client_id", "client_userinfo_enc")
       |> AccessToken.put_value("sub", "user_userinfo_test")
       |> AccessToken.put_value("exp", now() + 3600)
       |> AccessToken.put_value("iat", now())
@@ -351,7 +296,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     assert "application/jwt" in simplified_content_type_from_conn(conn)
     assert payload["iss"] == OAuth2.issuer()
-    assert payload["aud"] == "client_userinfo_test"
+    assert payload["aud"] == "client_userinfo_enc"
     assert payload["sub"] == "user_userinfo_test"
     assert payload["name"] == "Full Jr. Name"
     assert payload["family_name"] == "Name"

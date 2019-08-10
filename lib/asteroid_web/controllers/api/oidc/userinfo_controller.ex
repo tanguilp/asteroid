@@ -6,12 +6,16 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   import Asteroid.Utils
 
   alias Asteroid.Client
-  alias Asteroid.Context
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
-  alias Asteroid.OIDC
   alias Asteroid.Subject
   alias Asteroid.Token.AccessToken
+
+  @client_userinfo_crypto_fields [
+    "userinfo_signed_response_alg",
+    "userinfo_encrypted_response_alg",
+    "userinfo_encrypted_response_enc"
+  ]
 
   @scope_claims_mapping %{
     "profile" => [
@@ -43,6 +47,8 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
          {:ok, subject} <-
            Subject.load_from_unique_attribute("sub", access_token.data["sub"], attributes: claims)
     do
+      client = Client.fetch_attributes(client, @client_userinfo_crypto_fields)
+
       ctx =
         %{}
         |> Map.put(:endpoint, :userinfo)
@@ -59,10 +65,10 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
               put_if_not_nil(acc, claim, subject.attrs[claim])
           end
         )
-        |> put_iss_aud_if_signed(ctx)
+        |> put_iss_aud_if_signed(client)
         |> astrenv(:oidc_endpoint_userinfo_before_send_resp_callback).(ctx)
-        |> maybe_sign(ctx)
-        |> maybe_encrypt(ctx)
+        |> maybe_sign(client)
+        |> maybe_encrypt(client)
 
       case result_claims do
         %{} ->
@@ -106,11 +112,10 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
     )
   end
 
-  @spec put_iss_aud_if_signed(map(), Context.t()) :: map()
+  @spec put_iss_aud_if_signed(map(), Client.t()) :: map()
 
-  defp put_iss_aud_if_signed(claims, %{client: client} = ctx) do
-    if OIDC.Userinfo.sign_response?(ctx) do
-      client = Client.fetch_attributes(client, ["client_id"])
+  defp put_iss_aud_if_signed(claims, client) do
+    if client.attrs["userinfo_signed_response_alg"] do
 
       claims
       |> Map.put("iss", OAuth2.issuer())
@@ -120,42 +125,45 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
     end
   end
 
-  @spec maybe_sign(map(), Context.t()) :: String.t() | map()
+  @spec maybe_sign(map(), Client.t()) :: String.t() | map()
 
-  defp maybe_sign(claims, ctx) do
-    if OIDC.Userinfo.sign_response?(ctx) do
-      signing_key = astrenv(:oidc_endpoint_userinfo_signing_key)
-      signing_alg = astrenv(:oidc_endpoint_userinfo_signing_alg)
+  defp maybe_sign(claims, client) do
+    signing_alg = client.attrs["userinfo_signed_response_alg"]
 
-      {:ok, jwk} = Crypto.Key.get(signing_key)
+    if signing_alg do
+      eligible_jwks =
+        Crypto.Key.get_all()
+        |> Enum.filter(
+          fn
+            %JOSE.JWK{fields: fields} ->
+              fields["use"] == "sig" and
+              (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
+              (fields["alg"] == signing_alg or fields["alg"] == nil)
+          end
+        )
 
-      if signing_alg do
-        jws = JOSE.JWS.from_map(%{"alg" => signing_alg})
+      case eligible_jwks do
+        [jwk | _] ->
+          JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), claims)
+          |> JOSE.JWS.compact
+          |> elem(1)
 
-        JOSE.JWT.sign(jwk, jws, claims)
-        |> JOSE.JWS.compact
-        |> elem(1)
-      else
-        JOSE.JWT.sign(jwk, claims)
-        |> JOSE.JWS.compact
-        |> elem(1)
+        [] ->
+          raise Crypto.Key.NoSuitableKeyError
       end
     else
       claims
     end
   end
 
-  @spec maybe_encrypt(map() | String.t(), Context.t()) :: String.t() | map()
+  @spec maybe_encrypt(map() | String.t(), Client.t()) :: String.t() | map()
 
-  defp maybe_encrypt(claims_or_jws, %{client: client} = ctx) do
-    if OIDC.Userinfo.encrypt_response?(ctx) do
+  defp maybe_encrypt(claims_or_jws, client) do
+    encryption_alg = client.attrs["userinfo_encrypted_response_alg"]
+
+    if encryption_alg do
       case Client.get_jwks(client) do
         {:ok, keys} ->
-          jwe_alg_supported =
-            astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported) || []
-          jwe_enc_supported =
-            astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported) || []
-
           eligible_jwks =
             keys
             |> Enum.map(&JOSE.JWK.from/1)
@@ -164,12 +172,12 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
                 %JOSE.JWK{fields: fields} ->
                   (fields["use"] == "enc" or fields["use"] == nil) and
                   (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
-                  (fields["alg"] in jwe_alg_supported or fields["alg"] == nil)
+                  (fields["alg"] == encryption_alg or fields["alg"] == nil)
               end
             )
 
           case eligible_jwks do
-            [key | _] ->
+            [jwk | _] ->
               payload =
                 case claims_or_jws do
                   %{} ->
@@ -179,11 +187,12 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
                     claims_or_jws
                 end
 
-              #FIXME: determine how to select alg and enc for encryption
-              alg = key.fields["alg"] || List.first(jwe_alg_supported)
-              enc = List.first(jwe_enc_supported)
+              encryption_enc = client.attrs["userinfo_encrypted_response_enc"] || "A128CBC-HS256"
 
-              JOSE.JWE.block_encrypt(key, payload, %{"alg" => alg, "enc" => enc})
+              JOSE.JWE.block_encrypt(
+                jwk,
+                payload,
+                %{"alg" => encryption_alg, "enc" => encryption_enc})
               |> JOSE.JWE.compact()
               |> elem(1)
 
