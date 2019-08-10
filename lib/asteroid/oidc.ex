@@ -5,7 +5,9 @@ defmodule Asteroid.OIDC do
 
   import Asteroid.Utils
 
+  alias Asteroid.Client
   alias Asteroid.OAuth2
+  alias Asteroid.Subject
 
   defmodule InteractionRequiredError do
     @moduledoc """
@@ -174,5 +176,47 @@ defmodule Asteroid.OIDC do
     "openid" in OAuth2.Scope.scopes_for_flow(:oidc_authorization_code) or
     "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
     "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
+  end
+
+  @doc """
+  Returns the subject identifier, taking into account the subject type
+
+  If the subject type is `"pairwise"`, it returns the hash of the concatenation of:
+  - the hashed sector identifier's host component, or if missing the hasshed host component of
+  the unique registered redirect URI for this client
+  - the hashed subject id (and not the `"sub"`)
+  - the salt configured by the `:oidc_subject_identifier_pairwise_salt` configuration option
+
+  It uses sha256 as the hash function.
+  """
+
+  @spec subject_identifier(Subject.t(), Client.t()) :: String.t()
+
+  def subject_identifier(subject, client) do
+    subject = Subject.fetch_attributes(subject, ["sub"])
+
+    client =
+      Client.fetch_attributes(client, ["subject_type", "sector_identifier_uri", "redirect_uris"])
+
+    if client.attrs["subject_type"] == "pairwise" do
+      host_component =
+        if client.attrs["sector_identifier_uri"] do
+          URI.parse(client.attrs["sector_identifier_uri"]).host
+        else
+          [redirect_uri] = client.attrs["redirect_uris"]
+
+          URI.parse(redirect_uri).host
+        end
+
+      salt = astrenv(:oidc_subject_identifier_pairwise_salt)
+
+      hashed_subject_id = :crypto.hash(:sha256, subject.id)
+      hashed_host_component = :crypto.hash(:sha256, host_component)
+
+      :crypto.hash(:sha256, hashed_host_component <> hashed_subject_id <> salt)
+      |> Base.url_encode64(padding: false)
+    else
+      subject.attrs["sub"]
+    end
   end
 end

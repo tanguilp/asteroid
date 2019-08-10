@@ -819,10 +819,25 @@ defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
 
   @spec process_oidc_subject_type(map(), map()) :: map()
 
-  defp process_oidc_subject_type(processed_metadata, %{"subject_type" => subject_type})
-    when subject_type in ["pairwise", "public"]
-  do
-    Map.put(processed_metadata, "subject_type", subject_type)
+  defp process_oidc_subject_type(processed_metadata, %{"subject_type" => "pairwise"}) do
+    redir_hosts =
+      Enum.reduce(
+        processed_metadata,
+        MapSet.new(),
+        fn redirect_uri, acc -> MapSet.put(acc, URI.parse(redirect_uri).host) end)
+
+    if MapSet.size(redir_hosts) > 1 and processed_metadata["sector_identifier_uri"] == nil do
+      raise InvalidClientMetadataFieldError,
+        field: "pairwise",
+        reason: "`sector_identifier_uri` is mandatory when registering more than one " <>
+                "host within redirect URIs"
+    else
+        Map.put(processed_metadata, "subject_type", "pairwise")
+    end
+  end
+
+  defp process_oidc_subject_type(processed_metadata, %{"subject_type" => "public"}) do
+    Map.put(processed_metadata, "subject_type", "public")
   end
 
   defp process_oidc_subject_type(_processed_metadata, %{"subject_type" => _}) do

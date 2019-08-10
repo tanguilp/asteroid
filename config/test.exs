@@ -494,3 +494,8 @@ config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
 
 config :asteroid, :oidc_id_token_encrypt_callback,
   &Asteroid.Token.IDToken.encrypt_token?/1
+
+config :asteroid, :oidc_subject_identifier_callback, &Asteroid.OIDC.subject_identifier/2
+
+config :asteroid, :oidc_subject_identifier_pairwise_salt,
+  Base.encode64(:crypto.strong_rand_bytes(24))

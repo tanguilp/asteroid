@@ -8,6 +8,7 @@ defmodule Asteroid.Config do
   alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OIDC
+  alias Asteroid.Subject
 
   @typedoc """
   A map describing scope configuration
@@ -2204,6 +2205,36 @@ defmodule Asteroid.Config do
     @type oauth2_response_mode_policy :: :disabled | :oidc_only | :enabled
 
     field :oauth2_response_mode_policy,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked to calculate the `"sub"` returned in OpenID Connect ID tokens and
+    on the `/userinfo` endpoint
+    """
+
+    @type oidc_subject_identifier_callback ::
+    (Subject.t(), Client.t() -> String.t())
+
+    field :oidc_subject_identifier_callback,
+    config_time: :runtime
+
+    @doc """
+    Salt for the pairwise subject identifier type
+
+    By default, a random value set at compile time, which means that the pairwise `"subs"`
+    **will change** when compiling again, and **won't be stable**. To have stability, change
+    this configuration option with a random value (which doesn't need to be particularly
+    protected against theft), for example generating it with the following command:
+
+    ```elixir
+    $ mix phx.gen.secret
+    vpEKRs4qZesc+zhKWwc/S3rku3HTRFuQ2NC2wfFOAiL9IK17/DFv1j3EyTEUI3Ry
+    ```
+    """
+
+    @type oidc_subject_identifier_pairwise_salt :: String.t()
+
+    field :oidc_subject_identifier_pairwise_salt,
     config_time: :runtime
 
     ### end of configuration options

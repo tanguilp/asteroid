@@ -362,7 +362,7 @@ defmodule AsteroidWeb.AuthorizeController do
       ] do
         %IDToken{
           iss: OAuth2.issuer(),
-          sub: subject.attrs["sub"],
+          sub: astrenv(:oidc_subject_identifier_callback).(subject, client),
           aud: client.attrs["client_id"],
           exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
           iat: now(),

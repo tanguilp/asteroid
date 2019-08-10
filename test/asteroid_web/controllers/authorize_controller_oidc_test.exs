@@ -38,6 +38,17 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
                     [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
       |> Client.store()
 
+      Client.gen_new(id: "client_oidc_pairwise")
+      |> Client.add("client_id", "client_oidc_pairwise")
+      |> Client.add("client_secret", "password1")
+      |> Client.add("client_type", "confidential")
+      |> Client.add("grant_types", ["authorization_code"])
+      |> Client.add("redirect_uris", ["https://www.example.com"])
+      |> Client.add("id_token_signed_response_alg", "RS384")
+      |> Client.add("subject_type", "pairwise")
+      |> Client.add("sector_identifier_uri", "https://example.com/sector")
+      |> Client.store()
+
     %{rsa_enc_alg_all: rsa_enc_alg_all}
   end
 
@@ -482,5 +493,48 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
+  end
+
+  test "Success - implicit - id_token returned with pairwise sub", %{conn: conn} do
+    Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
+
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        flow: :oidc_implicit,
+        response_type: :id_token,
+        response_mode: :fragment,
+        client_id: "client_oidc_pairwise",
+        redirect_uri: "https://www.example.com",
+        nonce: "some_nonce_dfeasjgfndyxcrgfds",
+        requested_scopes: MapSet.new(),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new()
+      })
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "id_token" => id_token_jws,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+
+    id_token_data = Jason.decode!(id_token_str)
+
+    assert id_token_data["aud"] == "client_oidc_pairwise"
+    assert id_token_data["iss"] == OAuth2.issuer()
+    assert id_token_data["nonce"] == authz_request.nonce
+    assert id_token_data["sub"] != "user_1"
   end
 end

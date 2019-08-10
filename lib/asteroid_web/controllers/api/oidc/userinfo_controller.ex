@@ -65,6 +65,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
               put_if_not_nil(acc, claim, subject.attrs[claim])
           end
         )
+        |> Map.put("sub", astrenv(:oidc_subject_identifier_callback).(subject, client))
         |> put_iss_aud_if_signed(client)
         |> astrenv(:oidc_endpoint_userinfo_before_send_resp_callback).(ctx)
         |> maybe_sign(client)
@@ -101,7 +102,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   defp claims_for_access_token(access_token) do
     Enum.reduce(
       access_token.data["scope"] || [],
-      ["sub"], # The sub (subject) Claim MUST always be returned in the UserInfo Response.
+      [],
       fn
         scope, acc when scope in unquote(Map.keys(@scope_claims_mapping)) ->
           @scope_claims_mapping[scope] ++ acc

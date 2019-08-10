@@ -57,7 +57,7 @@ Passing Request Parameters as JWTs:
 
 Subject identifier types:
   - [x] `"public"`
-  - [ ] `"pairwise"`
+  - [x] `"pairwise"`
 
 Client authentication:
   - [x] `client_secret_basic` (via `APIacAuthBasic`)
@@ -179,3 +179,9 @@ The values of these configuration options are used:
 ## Passing Request Parameters as JWTs
 
 This is implemented through [JWT Secured Authorization Request (JAR)](jar.html).
+
+## Subject identifier types
+
+The `"pairwise"` subject identifier type is supported. See the following configuration options:
+- [`:oidc_subject_identifier_callback`](Asteroid.Config.html#module-oidc_subject_identifier_callback)
+- [`:oidc_subject_identifier_pairwise_salt`](Asteroid.Config.html#module-oidc_subject_identifier_pairwise_salt)
