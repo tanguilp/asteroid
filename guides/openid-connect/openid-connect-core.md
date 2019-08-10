@@ -175,3 +175,7 @@ configuration options:
 The values of these configuration options are used:
 - to restrict client registration to whitelisted algorithms
 - to advertise them on the `.well-known/*` discovery documents
+
+## Passing Request Parameters as JWTs
+
+This is implemented through [JWT Secured Authorization Request (JAR)](jar.html).

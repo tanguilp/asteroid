@@ -17,16 +17,19 @@ A client shall sign the request object. It uses one of its private keys to do so
 communicate the list of its signing key by:
 - publishing it on a JWK URI. Asteroid uses the client's `"jwks_uri"` to retrieve those keys
 (using the `JWKSURIUpdater` library). This is the preferred method, suited for servers
-- including it in the `Asteroid.Client` `"jwks"` attribute. This is suited for mobile or javascript
-applications that cannot publish keys at an endpoint
+- including it in the `Asteroid.Client` `"jwks"` attribute. This is suited for mobile or
+javascript applications that cannot publish keys at an endpoint
 
-The internal `Asteroid.Client.get_jwks/1` function is used for the prupose of retrieving the
+The internal `Asteroid.Client.get_jwks/1` function is used for the purpose of retrieving the
 client's keys.
 
 Asteroid comes with a configured list of acceptable signing algorithms with the
 [`:oauth2_jar_request_object_signing_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
 configuration option (which is also published in the metadata under the
 `"request_object_signing_alg_values_supported"` key).
+
+In case the `"request_object_signing_alg"` attribute of the client is set, this value is used as
+the only allowed signature algorithm.
 
 Asteroid will try all the eligible keys. An eligible key is one that fulfills **all** of the
 following conditions:

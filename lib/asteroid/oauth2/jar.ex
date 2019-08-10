@@ -222,12 +222,17 @@ defmodule Asteroid.OAuth2.JAR do
       {:ok, unverified_params} ->
         case unverified_params do
           %{"client_id" => client_id} ->
-            jws_alg_supported =
-              astrenv(:oauth2_jar_request_object_signing_alg_values_supported) || []
+            {:ok, client} =  Client.load_from_unique_attribute(
+              "client_id",
+              client_id,
+              attributes: ["jwks", "jwks_uri", "request_object_signing_alg"])
 
-            {:ok, client} =  Client.load_from_unique_attribute("client_id",
-                                                               client_id,
-                                                               attributes: ["jwks", "jwks_uri"])
+            jws_alg_supported =
+              if client.attrs["request_object_signing_alg"] do
+                [client.attrs["request_object_signing_alg"]]
+              else
+                astrenv(:oauth2_jar_request_object_signing_alg_values_supported) || []
+              end
 
             jws_alg = Jason.decode!(JOSE.JWS.peek_protected(jws))["alg"]
 
