@@ -2201,7 +2201,7 @@ defmodule Asteroid.Config do
     - `:enabled`: the `"response_mode"` param is used for all flows
     """
 
-    @type oauth2_response_mode_policy :: :disabled | :oidc_only | :eanbled
+    @type oauth2_response_mode_policy :: :disabled | :oidc_only | :enabled
 
     field :oauth2_response_mode_policy,
     config_time: :runtime
