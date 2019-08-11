@@ -113,6 +113,14 @@ config :asteroid, :token_store_device_code, [
   module: Asteroid.Store.DeviceCode.Mnesia
 ]
 
+config :asteroid, :token_store_authenticated_session, [
+  module: Asteroid.Store.AuthenticatedSession.Mnesia
+]
+
+config :asteroid, :token_store_authentication_event, [
+  module: Asteroid.Store.AuthenticationEvent.Mnesia
+]
+
 config :asteroid, :token_store_request_object, [
   module: Asteroid.Store.GenericKV.Mnesia,
   opts: [table_name: :request_object]

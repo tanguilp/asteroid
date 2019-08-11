@@ -169,6 +169,60 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
+    Authenticated session store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the object's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all object's implementation functions. Refer
+    to the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_authenticated_session, [
+      module: Asteroid.Store.AuthenticatedSession.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_authenticated_session :: Keyword.t()
+
+    field :token_store_authenticated_session,
+      config_time: :runtime
+
+    @doc """
+    Authentication event store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the object's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all object's implementation functions. Refer
+    to the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_authenticated_session, [
+      module: Asteroid.Store.AuthenticationEvent.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_authentication_event :: Keyword.t()
+
+    field :token_store_authentication_event,
+      config_time: :runtime
+
+    @doc """
     Callback invoked before storing a refresh token
     """
 
@@ -208,6 +262,28 @@ defmodule Asteroid.Config do
       Asteroid.Token.DeviceCode.t())
 
     field :token_store_device_code_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing authenticated session
+    """
+
+    @type token_store_authenticated_session_before_store_callback ::
+    (Asteroid.OIDC.AuthenticatedSession.t(), Asteroid.Context.t() ->
+      Asteroid.OIDC.AuthenticatedSession.t())
+
+    field :token_store_authenticated_session_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing authentication event
+    """
+
+    @type token_store_authentication_event_before_store_callback ::
+    (Asteroid.OIDC.AuthenticationEvent.t(), Asteroid.Context.t() ->
+      Asteroid.OIDC.AuthenticationEvent.t())
+
+    field :token_store_authentication_event_before_store_callback,
     config_time: :runtime
 
     @doc """

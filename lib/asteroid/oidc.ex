@@ -203,12 +203,20 @@ defmodule Asteroid.OIDC do
         if client.attrs["sector_identifier_uri"] do
           URI.parse(client.attrs["sector_identifier_uri"]).host
         else
-          [redirect_uri] = client.attrs["redirect_uris"]
+          # in this case all the redirect URIs should have the same host per the
+          # OIDC dynamic client registration specification
+          [redirect_uri | _] = client.attrs["redirect_uris"]
 
           URI.parse(redirect_uri).host
         end
 
       salt = astrenv(:oidc_subject_identifier_pairwise_salt)
+
+      # we don't follow the OIDC specification here because hashing
+      # sha256(a <> b) can result in same hash by carefully choosing a and b,
+      # for instance the following pairs will have the same hash:
+      # - a = "www.example.com", b = "alcom"
+      # - a = "www.example.co", b = "malcom"
 
       hashed_subject_id = :crypto.hash(:sha256, subject.id)
       hashed_host_component = :crypto.hash(:sha256, host_component)

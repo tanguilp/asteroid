@@ -499,3 +499,11 @@ config :asteroid, :oidc_subject_identifier_callback, &Asteroid.OIDC.subject_iden
 
 config :asteroid, :oidc_subject_identifier_pairwise_salt,
   Base.encode64(:crypto.strong_rand_bytes(24))
+
+config :asteroid, :token_store_authenticated_session, [
+  module: Asteroid.Store.AuthenticatedSession.Mnesia
+]
+
+config :asteroid, :token_store_authentication_event, [
+  module: Asteroid.Store.AuthenticationEvent.Mnesia
+]

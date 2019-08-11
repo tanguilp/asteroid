@@ -4,7 +4,9 @@ defmodule Asteroid.Store do
     :token_store_refresh_token,
     :token_store_authorization_code,
     :token_store_device_code,
-    :token_store_request_object
+    :token_store_request_object,
+    :token_store_authenticated_session,
+    :token_store_authentication_event
   ]
 
   import Asteroid.Utils

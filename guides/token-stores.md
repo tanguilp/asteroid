@@ -20,16 +20,20 @@ backends that store them on disk (Mnesia, Riak...).
 
 Asteroid defines the following behaviours and implementations:
 
-|   Token type       |          Behaviour                     | Implementation                                |
-|:------------------:|:--------------------------------------:|-----------------------------------------------|
-| Refresh token      |`Asteroid.TokenStore.RefreshToken`      |`Asteroid.TokenStore.RefreshToken.Mnesia`      |
-|                    |                                        |`Asteroid.TokenStore.RefreshToken.Riak`        |
-| Access token       |`Asteroid.TokenStore.AccessToken`       |`Asteroid.TokenStore.AccessToken.Mnesia`       |
-|                    |                                        |`Asteroid.TokenStore.AccessToken.Riak`         |
-| Authorization code |`Asteroid.TokenStore.AuthorizationCode` |`Asteroid.TokenStore.AuthorizationCode.Mnesia` |
-|                    |                                        |`Asteroid.TokenStore.AuthorizationCode.Riak`   |
-| Device code	     |`Asteroid.TokenStore.DeviceCode` 	      |`Asteroid.TokenStore.DeviceCode.Mnesia` 	      |
-|                    |                                        |`Asteroid.TokenStore.DeviceCode.Riak`          |
+|   Token type          |          Behaviour                   | Implementation                              |
+|:---------------------:|:------------------------------------:|---------------------------------------------|
+| Refresh token         |`Asteroid.Store.RefreshToken`         |`Asteroid.Store.RefreshToken.Mnesia`         |
+|                       |                                      |`Asteroid.Store.RefreshToken.Riak`           |
+| Access token          |`Asteroid.Store.AccessToken`          |`Asteroid.Store.AccessToken.Mnesia`          |
+|                       |                                      |`Asteroid.Store.AccessToken.Riak`            |
+| Authorization code    |`Asteroid.Store.AuthorizationCode`    |`Asteroid.Store.AuthorizationCode.Mnesia`    |
+|                       |                                      |`Asteroid.Store.AuthorizationCode.Riak`      |
+| Device code	        |`Asteroid.Store.DeviceCode` 	       |`Asteroid.Store.DeviceCode.Mnesia` 	     |
+|                       |                                      |`Asteroid.Store.DeviceCode.Riak`             |
+| Authenticated session |`Asteroid.Store.AuthenticatedSession` |`Asteroid.Store.AuthenticatedSession.Mnesia` |
+|                       |                                      |`Asteroid.Store.AuthenticatedSession.Riak`   |
+| Authentication event	|`Asteroid.Store.AuthenticationEvent`  |`Asteroid.Store.AuthenticationEvent.Mnesia`  |
+|                       |                                      |`Asteroid.Store.AuthenticationEvent.Riak`    |
 
 Note that you don't necessarily need to configure token stores for all the token types, but only
 for those who you'll be using. For instance, there's no need to configure a refresh token
@@ -67,17 +71,17 @@ Implementation should be called at Asteroid startup. Defaults to `true`
 
 ```elixir
 config :asteroid, :token_store_access_token, [
-  module: Asteroid.TokenStore.AccessToken.Riak,
+  module: Asteroid.Store.AccessToken.Riak,
   opts: [bucket_type: "ephemeral_token", purge_interval: 10]
 ]
 
 config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.TokenStore.RefreshToken.Riak,
+  module: Asteroid.Store.RefreshToken.Riak,
   opts: [bucket_type: "token"]
 ]
 
 config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.TokenStore.AuthorizationCode.Riak,
+  module: Asteroid.Store.AuthorizationCode.Riak,
   opts: [bucket_type: "ephemeral_token"]
 ]
 
@@ -87,20 +91,20 @@ config :asteroid, :token_store_authorization_code, [
 
 ```elixir
 config :asteroid, :token_store_access_token, [
-  module: Asteroid.TokenStore.AccessToken.Mnesia
+  module: Asteroid.Store.AccessToken.Mnesia
 ]
 
 config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.TokenStore.RefreshToken.Riak,
+  module: Asteroid.Store.RefreshToken.Riak,
   opts: [bucket_type: "token"]
 ]
 
 config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+  module: Asteroid.Store.AuthorizationCode.Mnesia
 ]
 
 config :asteroid, :token_store_device_code, [
-  module: Asteroid.TokenStore.DeviceCode.Mnesia
+  module: Asteroid.Store.DeviceCode.Mnesia
 ]
 ```
 

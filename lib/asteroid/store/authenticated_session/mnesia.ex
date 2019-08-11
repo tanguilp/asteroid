@@ -16,7 +16,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Mnesia do
   ```elixir
   [
     attributes: [:id, :subject_id, :data],
-    index: [:refresh_token_id]
+    index: [:subject_id]
   ]
   ```
 
@@ -45,7 +45,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Mnesia do
     tab_def =
       [
         attributes: [:id, :subject_id, :data],
-        index: [:refresh_token_id]
+        index: [:subject_id]
       ]
       |> Keyword.merge(opts[:tab_def] || [])
 

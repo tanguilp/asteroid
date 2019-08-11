@@ -108,6 +108,14 @@ config :asteroid, :token_store_authorization_code, [
   module: Asteroid.Store.AuthorizationCode.Mnesia
 ]
 
+config :asteroid, :token_store_authenticated_session, [
+  module: Asteroid.Store.AuthenticatedSession.Mnesia
+]
+
+config :asteroid, :token_store_authentication_event, [
+  module: Asteroid.Store.AuthenticationEvent.Mnesia
+]
+
 # uncomment to enable the device authorization flow
 
 #config :asteroid, :token_store_device_code, [
