@@ -91,10 +91,10 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   end
 
   def delete(authentication_event_id) do
-    token_store_module = astrenv(:token_store_authentication_event)[:module]
-    token_store_opts = astrenv(:token_store_authentication_event)[:opts] || []
+    token_store_as_module = astrenv(:token_store_authentication_event)[:module]
+    token_store_as_opts = astrenv(:token_store_authentication_event)[:opts] || []
 
-    token_store_module.delete(authentication_event_id, token_store_opts)
+    token_store_as_module.delete(authentication_event_id, token_store_as_opts)
   end
 
   @doc """

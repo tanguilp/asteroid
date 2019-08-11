@@ -58,7 +58,8 @@ defmodule Asteroid.Store.RefreshToken do
   @doc """
   Returns all the *refresh token ids* issued during an authenticated session
 
-  This callback is made optionnal in case OIDC is not used.
+  This callback is made optionnal in case authenticated sessions are not used. If it is,
+  this callback will be used and its implementation is therefore mandatory.
   """
 
   @callback get_from_authenticated_session_id(Asteroid.OIDC.AuthenticatedSession.id(), opts()) ::

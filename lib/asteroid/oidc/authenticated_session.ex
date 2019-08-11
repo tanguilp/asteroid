@@ -14,6 +14,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   alias Asteroid.Context
   alias Asteroid.Subject
   alias Asteroid.Token
+  alias Asteroid.Token.RefreshToken
 
   @type id :: String.t()
 
@@ -26,6 +27,20 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     subject_id: Subject.id(),
     data: map()
   }
+
+  @doc """
+  Generates a new authenticated session
+  """
+
+  @spec gen_new(Subject.id()) :: t()
+
+  def gen_new(subject_id) do
+    %__MODULE__{
+      id: secure_random_b64(),
+      subject_id: subject_id,
+      data: %{},
+    }
+  end
 
   @doc """
   Gets an authenticated session from the store
@@ -92,6 +107,25 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     token_store_opts = astrenv(:token_store_authenticated_session)[:opts] || []
 
     token_store_module.delete(authenticated_session_id, token_store_opts)
+
+    token_store_rt_module = astrenv(:token_store_refresh_token)[:module]
+    token_store_rt_opts = astrenv(:token_store_refresh_token)[:opts] || []
+
+    {:ok, refresh_token_ids} =
+      token_store_rt_module.get_from_authenticated_session_id(authenticated_session_id,
+                                                              token_store_rt_opts)
+
+    for refresh_token_id <- refresh_token_ids do
+      {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
+
+      rt_scopes = refresh_token.data["scope"] || []
+
+      if "openid" in rt_scopes and "offline_access" not in rt_scopes do
+        RefreshToken.delete(refresh_token_id)
+      end
+    end
+
+    :ok
   end
 
   @doc """

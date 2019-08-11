@@ -12,7 +12,7 @@ Flows:
 
 Refresh tokens:
   - [x] refresh token can return new ID token (configurable)
-  - [ ] `"offline_access"` scope
+  - [x] `"offline_access"` scope
 
 Response types:
   - [x] `"code"`
@@ -185,3 +185,21 @@ This is implemented through [JWT Secured Authorization Request (JAR)](jar.html).
 The `"pairwise"` subject identifier type is supported. See the following configuration options:
 - [`:oidc_subject_identifier_callback`](Asteroid.Config.html#module-oidc_subject_identifier_callback)
 - [`:oidc_subject_identifier_pairwise_salt`](Asteroid.Config.html#module-oidc_subject_identifier_pairwise_salt)
+
+## Offline access
+
+When using an OpenID Connect flow, issued refresh tokens are linked to the a authenticated
+session.
+
+When this authenticated session is destroyed, be it because the last authentication event has
+expired or because the authenticated session was programmatically destroyed, Asteroid destroys
+associated refresh tokens that *do not have* the `"offline_access"` scope.
+
+In a nutshell, when an authenticated session is destroyed:
+- a refresh tokens issued in an OpenID Connect flow:
+  - is destroyed if it contains the `"openid"` scope
+    - except if it also contains the `"offline_access"` scope
+- other refresh tokens are left unchanged
+
+Offline access is enabled by adding the `"offline_access"` scope in the relevant scope
+configuration option, like any other scope.

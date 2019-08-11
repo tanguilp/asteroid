@@ -507,3 +507,9 @@ config :asteroid, :token_store_authenticated_session, [
 config :asteroid, :token_store_authentication_event, [
   module: Asteroid.Store.AuthenticationEvent.Mnesia
 ]
+
+config :asteroid, :token_store_authenticated_session_before_store_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :token_store_authentication_event_before_store_callback,
+  &Asteroid.Utils.id_first_param/2

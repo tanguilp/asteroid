@@ -135,6 +135,12 @@ config :asteroid, :token_store_access_token_before_store_callback,
 config :asteroid, :token_store_authorization_code_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
+config :asteroid, :token_store_authenticated_session_before_store_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :token_store_authentication_event_before_store_callback,
+  &Asteroid.Utils.id_first_param/2
+
 ####################### Attribute repositories #######################
 
 # defaults to Mnesia in-memory backend
