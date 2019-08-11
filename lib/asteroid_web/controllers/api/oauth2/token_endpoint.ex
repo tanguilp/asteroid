@@ -7,10 +7,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   alias OAuth2Utils.Scope
   alias Asteroid.Context
+  alias Asteroid.OAuth2
+  alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Token
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode, IDToken}
   alias Asteroid.{Client, Subject}
-  alias Asteroid.OAuth2
 
   defmodule ExceedingScopeError do
     @moduledoc """
@@ -352,6 +353,19 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
         access_token_serialized = AccessToken.serialize(access_token)
 
+        maybe_auth_session =
+          if refresh_token.data["__asteroid_oidc_authenticated_session_id"] do
+            case AuthenticatedSession.get(
+              refresh_token.data["__asteroid_oidc_authenticated_session_id"])
+            do
+              {:ok, authenticated_session} ->
+                authenticated_session
+
+              _ ->
+                nil
+            end
+          end
+
         maybe_id_token_serialized =
           if maybe_initial_flow in [:oidc_authorization_code, :oidc_hybrid] and
             astrenv(:oidc_issue_id_token_on_refresh_callback).(ctx)
@@ -364,7 +378,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               iat: now(),
               auth_time: nil, # FIXME
               nonce: nil,
-              acr: nil, #FIXME
+              acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
               amr: nil, #FIXME
               azp: nil,
               client: client
@@ -478,8 +492,11 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                 {"granted_scopes", _v}, acc ->
                   acc
 
+                {"__asteroid_oidc_authenticated_session_id" = k, v}, acc ->
+                  RefreshToken.put_value(acc, k, v)
+
                 {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
-                  AccessToken.put_value(acc, k, v)
+                  RefreshToken.put_value(acc, k, v)
 
                 {"__asteroid" <> _, _v}, acc ->
                   acc
@@ -538,6 +555,19 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token_serialized = AccessToken.serialize(access_token)
 
+      maybe_auth_session =
+        if authz_code.data["__asteroid_oidc_authenticated_session_id"] do
+          case AuthenticatedSession.get(
+            authz_code.data["__asteroid_oidc_authenticated_session_id"])
+          do
+            {:ok, authenticated_session} ->
+              authenticated_session
+
+            _ ->
+              nil
+          end
+        end
+
       maybe_id_token_serialized =
         if flow in [:oidc_authorization_code, :oidc_hybrid] do
           %IDToken{
@@ -548,7 +578,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             iat: now(),
             auth_time: nil, # FIXME
             nonce: authz_code.data["__asteroid_oidc_nonce"],
-            acr: nil, #FIXME
+            acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
             amr: nil, #FIXME
             azp: nil,
             client: client,

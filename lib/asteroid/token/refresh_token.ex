@@ -15,11 +15,11 @@ defmodule Asteroid.Token.RefreshToken do
   - `"sub"`: the `t:Asteroid.Subject.id/0` of the refresh token
   - `"client_id"`: the `t:Asteroid.Client.id/0` of the refresh token
   - `"device_id"`: the `t:Asteroid.Device.id/0` of the refresh token
-  - `"authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0` of the refresh
-  token
   - `"scope"`: a list of `OAuth2Utils.Scope.scope()` scopes granted to the refresh token
   - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` during which
   the refresh token was granted
+  - `"__asteroid_oidc_authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0`
+  of the refresh token
   - `"status"`: a `String.t()` for the status of the token. A token that has been revoked is not
   necessarily still present in the token store (e.g. for stateful tokens it will be probably
   deleted). Optionally one of:

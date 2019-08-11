@@ -6,6 +6,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
+  alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Subject
   alias OAuth2Utils.Scope
 
@@ -536,5 +537,55 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] != "user_1"
+  end
+
+  test "Success - implicit - id_token returned with acr set", %{conn: conn} do
+    Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
+
+    {:ok, as} =
+      AuthenticatedSession.gen_new("user_1")
+      |> AuthenticatedSession.put_value("current_acr", "urn:example:loa:loa1")
+      |> AuthenticatedSession.store()
+
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        flow: :oidc_implicit,
+        response_type: :id_token,
+        response_mode: :fragment,
+        client_id: "client_oidc_azcode_sig",
+        redirect_uri: "https://www.example.com",
+        nonce: "some_nonce_dfeasjgfndyxcrgfds",
+        requested_scopes: MapSet.new(),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new(),
+        authenticated_session_id: as.id
+      })
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "id_token" => id_token_jws,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws |> IO.inspect())
+
+    id_token_data = Jason.decode!(id_token_str)
+
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
+    assert id_token_data["iss"] == OAuth2.issuer()
+    assert id_token_data["nonce"] == authz_request.nonce
+    assert id_token_data["sub"] == "user_1"
+    assert id_token_data["acr"] == "urn:example:loa:loa1"
   end
 end

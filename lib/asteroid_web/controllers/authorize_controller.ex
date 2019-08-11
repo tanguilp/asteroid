@@ -7,6 +7,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
+  alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Context
   alias Asteroid.Client
   alias Asteroid.Subject
@@ -264,13 +265,16 @@ defmodule AsteroidWeb.AuthorizeController do
   authorization (approving scopes) process, or in case an authentication already occured
   recently (cookie).
 
-  The `opts` parameter is a `map()` whose keys are (all are **mandatory**):
+  The `opts` parameter is a `map()` whose keys are:
   - `:authz_request`: the initial `t:AsteroidWeb.AuthorizeController.Request.t/0` authorization
-  request
+  request (**mandatory**)
   - `:subject`: the `t:Asteroid.Subject.t/0` of the user having approved the request
+  (**mandatory**)
   - `:granted_scopes`: a `t:OAuth2Utils.Scope.Set.t/0` for the granted scope. If none was granted
   (because none were requested, or because user did not authorize them), an empty
-  `t:OAuth2Utils.Scope.Set.t/0` must be set
+  `t:OAuth2Utils.Scope.Set.t/0` must be set (**mandatory**)
+  - `:authenticated_session_id`: a `t:Asteroid.OIDC.AuthenticatedSession.id/0` for the
+  authenticated session of the user
   """
 
   @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
@@ -323,6 +327,8 @@ defmodule AsteroidWeb.AuthorizeController do
                                            to_string(authz_request.pkce_code_challenge_method)
                                          end)
           |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
+          |> AuthorizationCode.put_value("__asteroid_oidc_authenticated_session_id",
+                                         opts[:authenticated_session_id])
           |> AuthorizationCode.store(ctx)
 
         AuthorizationCode.serialize(authorization_code)
@@ -356,6 +362,17 @@ defmodule AsteroidWeb.AuthorizeController do
     maybe_access_token_serialized =
       if maybe_access_token, do: AccessToken.serialize(maybe_access_token)
 
+    maybe_auth_session =
+      if opts[:authenticated_session_id] do
+        case AuthenticatedSession.get(opts[:authenticated_session_id]) do
+          {:ok, authenticated_session} ->
+            authenticated_session
+
+          _ ->
+            nil
+        end
+      end
+
     maybe_id_token_serialized =
       if authz_request.response_type in [
         :id_token, :"id_token token", :"code id_token", :"code id_token token"
@@ -368,9 +385,8 @@ defmodule AsteroidWeb.AuthorizeController do
           iat: now(),
           auth_time: nil, # FIXME
           nonce: authz_request.nonce,
-          acr: nil, #FIXME
+          acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
           amr: nil, #FIXME
-          azp: nil,
           client: client,
           associated_access_token_serialized: maybe_access_token_serialized,
           associated_authorization_code_serialized: maybe_authorization_codeserialized
