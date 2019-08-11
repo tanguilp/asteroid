@@ -560,15 +560,15 @@ config :asteroid, :token_id_token_before_serialize_callback,
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
 
-config :asteroid, :oidc_loa_config, [
+config :asteroid, :oidc_acr_config, [
+  loa2: [
+    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+    auth_events: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+  ],
   loa1: [
     callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
     auth_events: [["password"], ["webauthn"], ["otp"]],
     default: true
-  ],
-  loa2: [
-    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-    auth_events: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
   ]
 ]
 

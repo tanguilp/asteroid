@@ -1,5 +1,5 @@
 defmodule Asteroid.OIDC.AuthenticatedSession do
-  @doc """
+  @moduledoc """
   Convenience functions to work with authenticated sessions
 
   The `%Asteroid.OIDC.AuthenticatedSession{}` object has the following meaningful members in
@@ -12,6 +12,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   import Asteroid.Utils
 
   alias Asteroid.Context
+  alias Asteroid.OIDC
+  alias Asteroid.OIDC.AuthenticationEvent
   alias Asteroid.Subject
   alias Asteroid.Token
   alias Asteroid.Token.RefreshToken
@@ -152,5 +154,87 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
   def delete_value(authenticated_session, key) do
     %{authenticated_session | data: Map.delete(authenticated_session.data, key)}
+  end
+
+  @doc """
+  Computes the current ACR of an authenticated session
+  """
+
+  @spec compute_current_acr(%__MODULE__{} | id()) :: OIDC.acr() | nil
+
+  def compute_current_acr(%__MODULE__{id: id}) do
+    compute_current_acr(id)
+  end
+
+  def compute_current_acr(authenticated_session_id) when is_binary(authenticated_session_id) do
+    ae_store_module = astrenv(:token_store_authentication_event)[:module]
+    ae_store_opts = astrenv(:token_store_authentication_event)[:opts] || []
+
+    case ae_store_module.get_from_authenticated_session_id(authenticated_session_id,
+                                                           ae_store_opts)
+    do
+      {:ok, auth_event_ids} ->
+        auth_events =
+          auth_event_ids
+          |> Enum.map(fn
+            auth_event_id ->
+              {:ok, auth_event} = AuthenticationEvent.get(auth_event_id)
+
+              auth_event
+          end)
+          |> Enum.reduce(MapSet.new(), &(MapSet.put(&2, &1.data["name"])))
+
+        acr_config =
+          Enum.find(
+            astrenv(:oidc_acr_config, []),
+            fn
+              {_acr, acr_conf} ->
+                Enum.find(
+                  acr_conf[:auth_events] || [],
+                  fn
+                    acr_auth_events when is_list(acr_auth_events) ->
+                      acr_auth_events = MapSet.new(acr_auth_events)
+
+                      MapSet.subset?(acr_auth_events, auth_events)
+                  end
+                )
+            end
+          )
+
+        case acr_config do
+          {acr, _} ->
+            Atom.to_string(acr)
+
+          nil ->
+            nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  @doc """
+  Updates the current acr of an authenticated session and stores it
+  """
+
+  @spec update_acr(%__MODULE__{} | id()) :: {:ok, %__MODULE__{}} | {:error, any()}
+
+  def update_acr(%__MODULE__{id: id}) do
+    update_acr(id)
+  end
+
+  def update_acr(authenticated_session_id) when is_binary(authenticated_session_id) do
+    {:ok, auth_session} = get(authenticated_session_id)
+
+    case compute_current_acr(authenticated_session_id) do
+      nil ->
+        delete(authenticated_session_id)
+
+      acr when is_binary(acr) ->
+        auth_session
+        |> put_value("current_acr", acr)
+        |> store()
+    end
   end
 end

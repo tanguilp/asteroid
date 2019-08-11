@@ -1,12 +1,12 @@
 defmodule Asteroid.OIDC.AuthenticationEvent do
-  @doc """
+  @moduledoc """
   Convenience functions to work with authentication events
 
   The `%Asteroid.OIDC.AuthenticationEvent{}` object has the following meaningful members in
   its `:data` field:
-  - `"auth_event_name"`: the event name (`t:Asteroid.AuthenticationEvent.name/0`)
+  - `"name"`: the event name (`t:Asteroid.AuthenticationEvent.name/0`)
   - `"amr"`: the AMR of the event (`t:Asteroid.OIDC.amr/0`)
-  - `"event_time"`: the time the authentication event occured (`non_neg_integer()`)
+  - `"time"`: the time the authentication event occured (`non_neg_integer()`)
   - `"exp"`: expiration time (`non_neg_integer()`)
   """
 
@@ -29,6 +29,20 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
     authenticated_session_id: AuthenticatedSession.id(),
     data: map()
   }
+
+  @doc """
+  Generates a new authentication event
+  """
+
+  @spec gen_new(AuthenticatedSession.id()) :: t()
+
+  def gen_new(authenticated_session_id) do
+    %__MODULE__{
+      id: secure_random_b64(),
+      authenticated_session_id: authenticated_session_id,
+      data: %{},
+    }
+  end
 
   @doc """
   Gets an authentication event from the store
@@ -73,6 +87,8 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
 
     case token_store_module.put(authentication_event, token_store_opts) do
       :ok ->
+        AuthenticatedSession.update_acr(authentication_event.authenticated_session_id)
+
         {:ok, authentication_event}
 
       {:error, _} = error ->
@@ -86,15 +102,21 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
 
   @spec delete(t() | id()) :: :ok | {:error, any()}
 
-  def delete(%__MODULE__{id: id}) do
-    delete(id)
-  end
-
-  def delete(authentication_event_id) do
+  def delete(%__MODULE__{id: id, authenticated_session_id: authenticated_session_id}) do
     token_store_as_module = astrenv(:token_store_authentication_event)[:module]
     token_store_as_opts = astrenv(:token_store_authentication_event)[:opts] || []
 
-    token_store_as_module.delete(authentication_event_id, token_store_as_opts)
+    res = token_store_as_module.delete(id, token_store_as_opts)
+
+    AuthenticatedSession.update_acr(authenticated_session_id)
+
+    res
+  end
+
+  def delete(authentication_event_id) when is_binary(authentication_event_id) do
+    {:ok, authentication_event} = get(authentication_event_id)
+
+    delete(authentication_event)
   end
 
   @doc """

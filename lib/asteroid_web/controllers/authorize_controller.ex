@@ -503,7 +503,7 @@ defmodule AsteroidWeb.AuthorizeController do
     :oidc_implicit,
     :oidc_hybrid
   ] do
-    oidc_loa_config = astrenv(:oidc_loa_config, [])
+    oidc_acr_config = astrenv(:oidc_acr_config, [])
 
     maybe_callback =
       Enum.find_value(
@@ -511,9 +511,9 @@ defmodule AsteroidWeb.AuthorizeController do
         fn
           acr_value ->
             try do
-              loa_atom = String.to_existing_atom(acr_value)
+              acr_atom = String.to_existing_atom(acr_value)
 
-              oidc_loa_config[loa_atom][:callback]
+              oidc_acr_config[acr_atom][:callback]
             rescue
               _ ->
                 nil
@@ -526,11 +526,11 @@ defmodule AsteroidWeb.AuthorizeController do
     else
       maybe_default_callback =
         Enum.find_value(
-          oidc_loa_config,
+          oidc_acr_config,
           fn
-            loa_config ->
-              if loa_config[:default] == true do
-                loa_config[:callback]
+            {_acr, acr_config} ->
+              if acr_config[:default] == true do
+                acr_config[:callback]
               else
                 nil
               end

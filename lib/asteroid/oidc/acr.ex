@@ -1,6 +1,6 @@
-defmodule Asteroid.OIDC.LOA do
+defmodule Asteroid.OIDC.ACR do
   @moduledoc """
-  Functions to work with OpenID Connect LOAs
+  Functions to work with OpenID Connect ACRs
   """
 
   @type config :: [{atom(), [config_option()]}]

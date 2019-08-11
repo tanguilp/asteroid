@@ -2,6 +2,7 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
   use ExUnit.Case, async: true
 
   alias Asteroid.OIDC.AuthenticatedSession
+  alias Asteroid.OIDC.AuthenticationEvent
   alias Asteroid.Token.RefreshToken
 
   test "OIDC associated refresh tokens are destroyed when no offline_access" do
@@ -56,5 +57,81 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
     AuthenticatedSession.delete(as)
 
     assert {:ok, _} = RefreshToken.get(rt.id)
+  end
+
+  test "acr set with 1 auth event associated" do
+    {:ok, as} =
+      AuthenticatedSession.gen_new("user1id")
+      |> AuthenticatedSession.store()
+
+    AuthenticationEvent.gen_new(as.id)
+    |> AuthenticationEvent.put_value("name", "password")
+    |> AuthenticationEvent.store()
+
+    {:ok, as} = AuthenticatedSession.get(as.id)
+
+    assert as.data["current_acr"] == "loa1"
+  end
+
+  test "acr set with 2 auth events associated" do
+    {:ok, as} =
+      AuthenticatedSession.gen_new("user1id")
+      |> AuthenticatedSession.store()
+
+    AuthenticationEvent.gen_new(as.id)
+    |> AuthenticationEvent.put_value("name", "password")
+    |> AuthenticationEvent.store()
+
+    AuthenticationEvent.gen_new(as.id)
+    |> AuthenticationEvent.put_value("name", "webauthn")
+    |> AuthenticationEvent.store()
+
+    {:ok, as} = AuthenticatedSession.get(as.id)
+
+    assert as.data["current_acr"] == "loa2"
+  end
+
+  test "acr set with 1 auth event associated then auth event deleted, session destroyed" do
+    {:ok, as} =
+      AuthenticatedSession.gen_new("user1id")
+      |> AuthenticatedSession.store()
+
+    {:ok, ae} =
+      AuthenticationEvent.gen_new(as.id)
+      |> AuthenticationEvent.put_value("name", "password")
+      |> AuthenticationEvent.store()
+
+    {:ok, as} = AuthenticatedSession.get(as.id)
+
+    assert as.data["current_acr"] == "loa1"
+
+    AuthenticationEvent.delete(ae)
+
+    assert {:error, as} = AuthenticatedSession.get(as.id)
+  end
+
+  test "acr set with 2 auth events associated then one deleted" do
+    {:ok, as} =
+      AuthenticatedSession.gen_new("user1id")
+      |> AuthenticatedSession.store()
+
+    AuthenticationEvent.gen_new(as.id)
+    |> AuthenticationEvent.put_value("name", "password")
+    |> AuthenticationEvent.store()
+
+    {:ok, ae} =
+      AuthenticationEvent.gen_new(as.id)
+      |> AuthenticationEvent.put_value("name", "webauthn")
+      |> AuthenticationEvent.store()
+
+    {:ok, as} = AuthenticatedSession.get(as.id)
+
+    assert as.data["current_acr"] == "loa2"
+
+    AuthenticationEvent.delete(ae)
+
+    {:ok, as} = AuthenticatedSession.get(as.id)
+
+    assert as.data["current_acr"] == "loa1"
   end
 end

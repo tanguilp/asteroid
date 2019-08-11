@@ -1720,12 +1720,12 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
-    Configuration of LOAs
+    Configuration of ACRs
     """
 
-    @type oidc_loa_config :: OIDC.LOA.config()
+    @type oidc_acr_config :: OIDC.ACR.config()
 
-    field :oidc_loa_config,
+    field :oidc_acr_config,
     config_time: :runtime,
     used_by: [:web_authorization_callback]
 
@@ -1779,7 +1779,7 @@ defmodule Asteroid.Config do
     uses: [
       :oauth2_flow_authorization_code_web_authorization_callback,
       :oauth2_flow_implicit_web_authorization_callback,
-      :oidc_loa_config,
+      :oidc_acr_config,
       :oidc_flow_authorization_code_web_authorization_callback,
       :oidc_flow_implicit_web_authorization_callback,
       :oidc_flow_hybrid_web_authorization_callback
@@ -1788,7 +1788,7 @@ defmodule Asteroid.Config do
     @doc """
     Callback invoked on the `/authorize` endpoint to trigger the web authorization
     process flow for the OpenID Connect authorization code flow, if the
-    `:oidc_loa_config` configuration option is not used.
+    `:oidc_acr_config` configuration option is not used.
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -1808,7 +1808,7 @@ defmodule Asteroid.Config do
     @doc """
     Callback invoked on the `/authorize` endpoint to trigger the web authorization
     process flow for the OpenID Connect implicit flow, if the
-    `:oidc_loa_config` configuration option is not used.
+    `:oidc_acr_config` configuration option is not used.
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -1828,7 +1828,7 @@ defmodule Asteroid.Config do
     @doc """
     Callback invoked on the `/authorize` endpoint to trigger the web authorization
     process flow for the OpenID Connect hybrid flow, if the
-    `:oidc_loa_config` configuration option is not used.
+    `:oidc_acr_config` configuration option is not used.
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
