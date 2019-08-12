@@ -7,6 +7,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
+  alias Asteroid.OIDC
   alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Context
   alias Asteroid.Client
@@ -380,6 +381,8 @@ defmodule AsteroidWeb.AuthorizeController do
       if authz_request.response_type in [
         :id_token, :"id_token token", :"code id_token", :"code id_token token"
       ] do
+        additional_claims = additional_claims(authz_request, granted_scopes)
+
         %IDToken{
           iss: OAuth2.issuer(),
           sub: astrenv(:oidc_subject_identifier_callback).(subject, client),
@@ -394,7 +397,7 @@ defmodule AsteroidWeb.AuthorizeController do
           associated_access_token_serialized: maybe_access_token_serialized,
           associated_authorization_code_serialized: maybe_authorization_code_serialized
         }
-        |> IDToken.add_sub_claims(Map.keys(authz_request.claims["id_token"] || %{}), subject)
+        |> IDToken.add_sub_claims(additional_claims, subject)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else
@@ -1020,5 +1023,32 @@ defmodule AsteroidWeb.AuthorizeController do
         auth_time: opts[:auth_time]
       }
     end
+  end
+
+  # The Claims requested by the profile, email, address, and phone scope values are returned
+  # from the UserInfo Endpoint, as described in Section 5.3.2, when a response_type value is
+  # used that results in an Access Token being issued. However, when no Access Token is issued
+  # (which is the case for the response_type value id_token), the resulting Claims are returned
+  # in the ID Token. 
+
+  @spec additional_claims(Request.t(), Scope.Set.t()) :: [String.t()]
+
+  defp additional_claims(authz_request, granted_scopes) do
+    if authz_request.response_type == :id_token do
+      Enum.reduce(
+        OIDC.Userinfo.scope_claims_mapping(),
+        [],
+        fn
+          {claim_scope, claim_values}, acc ->
+            if claim_scope in granted_scopes do
+              claim_values ++ acc
+            else
+              acc
+            end
+        end)
+    else
+      []
+    end
+    ++ Map.keys(authz_request.claims["id_token"] || %{})
   end
 end

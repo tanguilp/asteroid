@@ -8,6 +8,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
+  alias Asteroid.OIDC
   alias Asteroid.Subject
   alias Asteroid.Token.AccessToken
 
@@ -16,28 +17,6 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
     "userinfo_encrypted_response_alg",
     "userinfo_encrypted_response_enc"
   ]
-
-  @scope_claims_mapping %{
-    "profile" => [
-      "name",
-      "family_name",
-      "given_name",
-      "middle_name",
-      "nickname",
-      "preferred_username",
-      "profile",
-      "picture",
-      "website",
-      "gender",
-      "birthdate",
-      "zoneinfo",
-      "locale",
-      "updated_at"
-    ],
-    "email" => ["email", "email_verified"],
-    "address" => ["address"],
-    "phone" => ["phone_number","phone_number_verified"]
-  }
 
   def show(conn, _params) do
     with {:ok, access_token} <- AccessToken.get(APIac.metadata(conn)["bearer"]),
@@ -122,8 +101,8 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
       access_token.data["scope"] || [],
       claims_from_param,
       fn
-        scope, acc when scope in unquote(Map.keys(@scope_claims_mapping)) ->
-          @scope_claims_mapping[scope] ++ acc
+        scope, acc when scope in unquote(Map.keys(OIDC.Userinfo.scope_claims_mapping())) ->
+          OIDC.Userinfo.scope_claims_mapping()[scope] ++ acc
 
         _, acc ->
           acc

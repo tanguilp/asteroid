@@ -226,6 +226,53 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
+  test "Success - implicit - id_token returned, claim scope granted", %{conn: conn} do
+    Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
+
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        flow: :oidc_implicit,
+        response_type: :id_token,
+        response_mode: :fragment,
+        client_id: "client_oidc_azcode_sig",
+        redirect_uri: "https://www.example.com",
+        nonce: "some_nonce_dfeasjgfndyxcrgfds",
+        requested_scopes: MapSet.new(),
+        params: %{"state" => "sxgjwzedrgdfchexgim"}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new(["email", "phone"])
+      })
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+
+    assert %{
+      "id_token" => id_token_jws,
+      "state" => "sxgjwzedrgdfchexgim"
+    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+
+    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
+    jwk = JOSE.JWK.to_public(jwk)
+
+    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+
+    id_token_data = Jason.decode!(id_token_str)
+
+    assert id_token_data["aud"] == "client_oidc_azcode_sig"
+    assert id_token_data["iss"] == OAuth2.issuer()
+    assert id_token_data["nonce"] == authz_request.nonce
+    assert id_token_data["sub"] == "user_1"
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    refute Map.has_key?(id_token_data, "non_standard_claim_1")
+  end
+
   test "Success - implicit - encrypted id_token returned",
   %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
   do
