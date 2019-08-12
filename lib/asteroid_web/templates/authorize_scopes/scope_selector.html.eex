@@ -10,7 +10,7 @@
 
   <p style="margin-top:1em">
   <%= form_for @conn, Routes.authorize_scopes_path(@conn, :index),
-  [style: "padding-left:2em;padding-right:2em;text-align:left"], fn f -> %>
+  [style: "text-align:left"], fn f -> %>
     <%= for scope <- @scopes do %>
       <%= checkbox f, "scopes[#{scope[:name]}]",
         onclick: "return #{scope[:optional] and !scope[:already_authorized]};",
