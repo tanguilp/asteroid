@@ -1,6 +1,6 @@
 <section class="phx-hero">
   <h1>Asteroid demo authentication workflow</h1>
-  <p>Register a new security key</p>
+  <p>Login with your security key</p>
   <img src="<%= Routes.static_path(@conn, "/images/fingerprint-scanning.svg") %>"/><br/>
   <p><em><%= @subject.attrs["sub"] %></em>, press your authenticator now!</p>
 
