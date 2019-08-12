@@ -275,6 +275,9 @@ defmodule AsteroidWeb.AuthorizeController do
   `t:OAuth2Utils.Scope.Set.t/0` must be set (**mandatory**)
   - `:authenticated_session_id`: a `t:Asteroid.OIDC.AuthenticatedSession.id/0` for the
   authenticated session of the user
+  - `:acr`: acr used if `:authenticated_session_id` is not set
+  - `:amr`: amr used if `:authenticated_session_id` is not set
+  - `:auth_time`: authentication time used if `:authenticated_session_id` is not set
   """
 
   @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
@@ -302,7 +305,9 @@ defmodule AsteroidWeb.AuthorizeController do
 
     granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
-    maybe_authorization_codeserialized =
+    session_info = session_info(opts)
+
+    maybe_authorization_code_serialized =
       if authz_request.response_type in [
         :code, :"code id_token", :"code token", :"code id_token token"
       ] do
@@ -329,6 +334,10 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
           |> AuthorizationCode.put_value("__asteroid_oidc_authenticated_session_id",
                                          opts[:authenticated_session_id])
+          |> AuthorizationCode.put_value("__asteroid_oidc_initial_acr", session_info[:acr])
+          |> AuthorizationCode.put_value("__asteroid_oidc_initial_amr", session_info[:amr])
+          |> AuthorizationCode.put_value("__asteroid_oidc_initial_auth_time",
+                                         session_info[:auth_time])
           |> AuthorizationCode.store(ctx)
 
         AuthorizationCode.serialize(authorization_code)
@@ -362,17 +371,6 @@ defmodule AsteroidWeb.AuthorizeController do
     maybe_access_token_serialized =
       if maybe_access_token, do: AccessToken.serialize(maybe_access_token)
 
-    maybe_auth_session =
-      if opts[:authenticated_session_id] do
-        case AuthenticatedSession.get(opts[:authenticated_session_id]) do
-          {:ok, authenticated_session} ->
-            authenticated_session
-
-          _ ->
-            nil
-        end
-      end
-
     maybe_id_token_serialized =
       if authz_request.response_type in [
         :id_token, :"id_token token", :"code id_token", :"code id_token token"
@@ -383,13 +381,13 @@ defmodule AsteroidWeb.AuthorizeController do
           aud: client.attrs["client_id"],
           exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
           iat: now(),
-          auth_time: nil, # FIXME
+          auth_time: session_info[:auth_time],
+          acr: session_info[:acr],
+          amr: session_info[:amr],
           nonce: authz_request.nonce,
-          acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
-          amr: nil, #FIXME
           client: client,
           associated_access_token_serialized: maybe_access_token_serialized,
-          associated_authorization_code_serialized: maybe_authorization_codeserialized
+          associated_authorization_code_serialized: maybe_authorization_code_serialized
         }
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
@@ -399,7 +397,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
       params =
         %{}
-        |> put_if_not_nil("code", maybe_authorization_codeserialized)
+        |> put_if_not_nil("code", maybe_authorization_code_serialized)
         |> put_if_not_nil("access_token", maybe_access_token_serialized)
         |> put_if_not_nil("id_token", maybe_id_token_serialized)
         |> put_if_not_nil("state", authz_request.params["state"])
@@ -996,5 +994,25 @@ defmodule AsteroidWeb.AuthorizeController do
     )
     |> Map.delete("request")
     |> Map.delete("request_uri")
+  end
+
+  @spec session_info(map()) ::
+  %{
+    required(:acr) => Asteroid.OIDC.acr() | nil,
+    required(:auth_time) => non_neg_integer() | nil,
+    required(:amr) => [Asteroid.OIDC.amr(), ...]
+  }
+  | nil
+
+  defp session_info(opts) do
+    if opts[:authenticated_session_id] do
+      AuthenticatedSession.info(opts[:authenticated_session_id])
+    else
+      %{
+        acr: opts[:acr],
+        amr: opts[:amr],
+        auth_time: opts[:auth_time]
+      }
+    end
   end
 end

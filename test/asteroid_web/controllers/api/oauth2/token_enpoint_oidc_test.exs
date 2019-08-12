@@ -6,7 +6,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
   alias Asteroid.Client
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
-  alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Token.{AuthorizationCode, RefreshToken}
   alias OAuth2Utils.Scope
 
@@ -454,13 +453,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["at_hash"] == nil
   end
 
-  test "grant type code flow code success with no refresh token, acr set", %{conn: conn} do
+  test "grant type code flow code success with no refresh token, acr/amr/auth_time set",
+  %{conn: conn}
+  do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, false)
-
-    {:ok, as} =
-      AuthenticatedSession.gen_new("user_1")
-      |> AuthenticatedSession.put_value("current_acr", "urn:example:loa:loa1")
-      |> AuthenticatedSession.store()
 
     {:ok, code} =
       AuthorizationCode.gen_new()
@@ -473,7 +469,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oidc_nonce", "xkgjuf9eswmgwszorixq")
-      |> AuthorizationCode.put_value("__asteroid_oidc_authenticated_session_id", as.id)
+      |> AuthorizationCode.put_value("__asteroid_oidc_initial_acr", "urn:example:loa:loa1")
+      |> AuthorizationCode.put_value("__asteroid_oidc_initial_amr", ["pwd", "phr"])
+      |> AuthorizationCode.put_value("__asteroid_oidc_initial_auth_time", 100_000)
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -509,18 +507,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["at_hash"] ==
       TestOIDCHelpers.token_hash(digest, response["access_token"])
     assert id_token_data["acr"] == "urn:example:loa:loa1"
+    assert Enum.sort(id_token_data["amr"]) == ["phr", "pwd"]
+    assert id_token_data["auth_time"] == 100_000
   end
 
-  test "grant type refresh token flow az code success with new ID token, acr set",
+  test "grant type refresh token flow az code success with new ID token, acramr/auth_time set",
   %{conn: conn}
   do
     Process.put(:oidc_flow_authorization_code_issue_id_token_refresh, true)
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
-
-    {:ok, as} =
-      AuthenticatedSession.gen_new("user_1")
-      |> AuthenticatedSession.put_value("current_acr", "urn:example:loa:loa1")
-      |> AuthenticatedSession.store()
 
     {:ok, refresh_token} =
       RefreshToken.gen_new()
@@ -531,7 +526,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
       |> RefreshToken.put_value("iss", "https://example.net")
       |> RefreshToken.put_value("scope", Scope.Set.new(["openid"]))
       |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
-      |> RefreshToken.put_value("__asteroid_oidc_authenticated_session_id", as.id)
+      |> RefreshToken.put_value("__asteroid_oidc_initial_acr", "urn:example:loa:loa1")
+      |> RefreshToken.put_value("__asteroid_oidc_initial_amr", ["pwd", "phr"])
+      |> RefreshToken.put_value("__asteroid_oidc_initial_auth_time", 100_000)
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -565,6 +562,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["sub"] == "user_1"
     assert id_token_data["at_hash"] == nil
     assert id_token_data["acr"] == "urn:example:loa:loa1"
+    assert Enum.sort(id_token_data["amr"]) == ["phr", "pwd"]
+    assert id_token_data["auth_time"] == 100_000
   end
 
   ##########################################################################

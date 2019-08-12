@@ -8,7 +8,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
   alias OAuth2Utils.Scope
   alias Asteroid.Context
   alias Asteroid.OAuth2
-  alias Asteroid.OIDC.AuthenticatedSession
   alias Asteroid.Token
   alias Asteroid.Token.{RefreshToken, AccessToken, AuthorizationCode, DeviceCode, IDToken}
   alias Asteroid.{Client, Subject}
@@ -353,19 +352,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
         access_token_serialized = AccessToken.serialize(access_token)
 
-        maybe_auth_session =
-          if refresh_token.data["__asteroid_oidc_authenticated_session_id"] do
-            case AuthenticatedSession.get(
-              refresh_token.data["__asteroid_oidc_authenticated_session_id"])
-            do
-              {:ok, authenticated_session} ->
-                authenticated_session
-
-              _ ->
-                nil
-            end
-          end
-
         maybe_id_token_serialized =
           if maybe_initial_flow in [:oidc_authorization_code, :oidc_hybrid] and
             astrenv(:oidc_issue_id_token_on_refresh_callback).(ctx)
@@ -376,11 +362,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               aud: refresh_token.data["client_id"],
               exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
               iat: now(),
-              auth_time: nil, # FIXME
-              nonce: nil,
-              acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
-              amr: nil, #FIXME
-              azp: nil,
+              auth_time: refresh_token.data["__asteroid_oidc_initial_auth_time"],
+              acr: refresh_token.data["__asteroid_oidc_initial_acr"],
+              amr: refresh_token.data["__asteroid_oidc_initial_amr"],
               client: client
             }
             |> astrenv(:token_id_token_before_serialize_callback).(ctx)
@@ -495,6 +479,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                 {"__asteroid_oidc_authenticated_session_id" = k, v}, acc ->
                   RefreshToken.put_value(acc, k, v)
 
+                {"__asteroid_oidc_initial_" <> _ = k, v}, acc ->
+                  RefreshToken.put_value(acc, k, v)
+
                 {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
                   RefreshToken.put_value(acc, k, v)
 
@@ -555,19 +542,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
       access_token_serialized = AccessToken.serialize(access_token)
 
-      maybe_auth_session =
-        if authz_code.data["__asteroid_oidc_authenticated_session_id"] do
-          case AuthenticatedSession.get(
-            authz_code.data["__asteroid_oidc_authenticated_session_id"])
-          do
-            {:ok, authenticated_session} ->
-              authenticated_session
-
-            _ ->
-              nil
-          end
-        end
-
       maybe_id_token_serialized =
         if flow in [:oidc_authorization_code, :oidc_hybrid] do
           %IDToken{
@@ -576,11 +550,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             aud: client.attrs["client_id"],
             exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
             iat: now(),
-            auth_time: nil, # FIXME
+            auth_time: authz_code.data["__asteroid_oidc_initial_auth_time"],
+            acr: authz_code.data["__asteroid_oidc_initial_acr"],
+            amr: authz_code.data["__asteroid_oidc_initial_amr"],
             nonce: authz_code.data["__asteroid_oidc_nonce"],
-            acr: (if maybe_auth_session, do: maybe_auth_session.data["current_acr"]),
-            amr: nil, #FIXME
-            azp: nil,
             client: client,
             associated_access_token_serialized:
               if flow == :oidc_authorization_code do
