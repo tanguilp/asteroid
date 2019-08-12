@@ -33,9 +33,7 @@ ID tokens:
 
 Claims:
   - [x] requesting claims using scope values
-  - [ ] requesting claims using the "claims" request parameter
-    - [ ] standard claims
-    - [ ] essential claims
+  - [x] requesting claims using the "claims" request parameter
   - [ ] requesting the "acr" claim
   - [-] claim types:
     - [x] normal claims

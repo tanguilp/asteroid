@@ -26,8 +26,6 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       |> put_introspection_endpoint()
       |> put_introspection_endpoint_auth_method_supported()
       |> put_device_authorization_endpoint()
-      |> put_userinfo_endpoint()
-      |> put_userinfo_endpoint_key_info()
       |> put_code_challenge_methods_supported()
       |> put_if_not_nil("service_documentation",
                         astrenv(:oauth2_endpoint_metadata_service_documentation, nil))
@@ -39,9 +37,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
                         astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil))
       |> put_jar_enabled()
       |> put_jar_metadata_values()
-      |> put_if_not_empty("claims_supported", astrenv(:oidc_claims_supported, []))
-      |> put_acr_values_supported()
-      |> put_id_token_crypto_metadata()
+      |> put_oidc_metadata()
       |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
       |> sign_metadata()
 
@@ -256,29 +252,6 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
     end
   end
 
-  @spec put_userinfo_endpoint(map()) :: map()
-
-  defp put_userinfo_endpoint(metadata) do
-    if OIDC.enabled?() do
-      Map.put(metadata, "userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
-    else
-      metadata
-    end
-  end
-
-  @spec put_userinfo_endpoint_key_info(map()) :: map()
-
-  defp put_userinfo_endpoint_key_info(metadata) do
-    sig_alg = astrenv(:oidc_endpoint_userinfo_signature_alg_values_supported, [])
-    enc_alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
-    enc_enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
-
-    metadata
-    |> put_if_not_empty("userinfo_signing_alg_values_supported", sig_alg)
-    |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
-    |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
-  end
-
   @spec put_code_challenge_methods_supported(map()) :: map()
 
   defp put_code_challenge_methods_supported(metadata) do
@@ -336,25 +309,37 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
     end
   end
 
-  @spec put_acr_values_supported(map()) :: map()
+  @spec put_oidc_metadata(map()) :: map()
 
-  defp put_acr_values_supported(metadata) do
-    acr_values = Enum.map(astrenv(:oidc_loa_config, []), fn {k, _} -> Atom.to_string(k) end)
+  defp put_oidc_metadata(metadata) do
+    if OIDC.enabled?() do
+      sig_alg = astrenv(:oidc_endpoint_userinfo_signature_alg_values_supported, [])
+      enc_alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
+      enc_enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
 
-    put_if_not_empty(metadata, "acr_values_supported", acr_values)
-  end
+      id_token_sig_alg = astrenv(:oidc_id_token_signing_alg_values_supported, [])
+      id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
+      id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
 
-  @spec put_id_token_crypto_metadata(map()) :: map()
+      acr_values = Enum.map(astrenv(:oidc_loa_config, []), fn {k, _} -> Atom.to_string(k) end)
 
-  defp put_id_token_crypto_metadata(metadata) do
-    id_token_sig_alg = astrenv(:oidc_id_token_signing_alg_values_supported, [])
-    id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
-    id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
-
-    metadata
-    |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
-    |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
-    |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
+      metadata
+      |> Map.put("claims_parameter_supported", true)
+      |> Map.put("request_parameter_supported", true)
+      |> Map.put("request_uri_parameter_supported", true)
+      |> Map.put("subject_types_supported", ["public", "pairwise"])
+      |> Map.put("userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
+      |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
+      |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
+      |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
+      |> put_if_not_empty("userinfo_signing_alg_values_supported", sig_alg)
+      |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
+      |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
+      |> put_if_not_empty("acr_values_supported", acr_values)
+      |> put_if_not_empty("claims_supported", astrenv(:oidc_claims_supported, []))
+    else
+      metadata
+    end
   end
 
   @spec sign_metadata(map()) :: map()
