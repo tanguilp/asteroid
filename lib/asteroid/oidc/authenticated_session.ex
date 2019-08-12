@@ -190,7 +190,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
             fn
               {_acr, acr_conf} ->
                 Enum.find(
-                  acr_conf[:auth_events] || [],
+                  acr_conf[:auth_event_set] || [],
                   fn
                     acr_auth_events when is_list(acr_auth_events) ->
                       acr_auth_events = MapSet.new(acr_auth_events)
@@ -236,5 +236,242 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
         |> put_value("current_acr", acr)
         |> store()
     end
+  end
+
+  @doc """
+  Returns the authentication time and the AMRs of an authenticated session for a given ACR
+
+  It returns:
+  - `:acr`: the acr
+  - `:auth_time`: the timestamp of the most recent authentication event
+  - `:amr`: the list of ARMs of these authentication events
+
+  Returns `nil` if no match was found.
+
+  ## Example
+  ```elixir
+  iex> Asteroid.Utils.astrenv(:oidc_acr_config)
+  [
+    "3-factor": [
+      callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
+      auth_event_set: [["password", "otp", "webauthn"]]
+    ],
+    "2-factor": [
+      callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+      auth_event_set: [
+        ["password", "otp"],
+        ["password", "webauthn"],
+        ["webauthn", "otp"]
+      ]
+    ],
+    "1-factor": [
+      callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+      auth_event_set: [["password"], ["webauthn"]],
+      default: true
+    ]
+  ]
+  iex> alias Asteroid.OIDC.AuthenticationEvent, as: AE
+  Asteroid.OIDC.AuthenticationEvent
+  iex> alias Asteroid.OIDC.AuthenticatedSession, as: AS
+  Asteroid.OIDC.AuthenticatedSession
+  iex> {:ok, as} = AS.gen_new("user_1") |> AS.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticatedSession{
+     data: %{},
+     id: "gvycEhbeig9RjwUu36UEGTxO1MNRE3qQ9WHisfpk0Zk",
+     subject_id: "user_1"
+   }}
+  iex> AE.gen_new(as.id) |> AE.put_value("name", "password") |> AE.put_value("amr", "pwd") |> AE.put_value("time", 100000) |> AE.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticationEvent{
+     authenticated_session_id: "gvycEhbeig9RjwUu36UEGTxO1MNRE3qQ9WHisfpk0Zk",
+     data: %{"amr" => "pwd", "name" => "password", "time" => 100000},
+     id: "WxQ6AHMRthQlk9cqsGUMVWsFNZ3EeNjyFfNCRYkiF20"
+   }}
+  iex> AE.gen_new(as.id) |> AE.put_value("name", "otp") |> AE.put_value("amr", "otp") |> AE.put_value("time", 200000)|> AE.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticationEvent{
+     authenticated_session_id: "gvycEhbeig9RjwUu36UEGTxO1MNRE3qQ9WHisfpk0Zk",
+     data: %{"amr" => "otp", "name" => "otp", "time" => 200000},
+     id: "QnZZE82I4St41JieLpLg8z3HG_T8l6yutlt3dPo_Yx8"
+   }}
+  iex> AE.gen_new(as.id) |> AE.put_value("name", "webauthn") |> AE.put_value("amr", "phr") |> AE.put_value("time", 300000)|> AE.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticationEvent{
+     authenticated_session_id: "gvycEhbeig9RjwUu36UEGTxO1MNRE3qQ9WHisfpk0Zk",
+     data: %{"amr" => "phr", "name" => "webauthn", "time" => 300000},
+     id: "N_V4i9lz5obd-3C0XZagZGtOFuDMZo0ywXSBjoum0KY"
+   }}
+  iex> AS.info(as.id)            
+  %{acr: "3-factor", amr: ["otp", "phr", "pwd"], auth_time: 300000}
+  iex> AS.info(as.id, "1-factor")
+  %{acr: "1-factor", amr: ["pwd"], auth_time: 100000}
+  iex> AS.info(as.id, "2-factor")
+  %{acr: "2-factor", amr: ["otp", "pwd"], auth_time: 200000}
+  iex> AS.info(as.id, "3-factor")
+  %{acr: "3-factor", amr: ["otp", "phr", "pwd"], auth_time: 300000}
+  ```
+  """
+
+  @spec info(%__MODULE__{} | id(), Asteroid.OIDC.acr() | nil) ::
+  %{
+    required(:acr) => Asteroid.OIDC.acr() | nil,
+    required(:auth_time) => non_neg_integer() | nil,
+    required(:amr) => [Asteroid.OIDC.amr(), ...]
+  }
+  | nil
+
+  def info(auth_session_id, acr \\ nil)
+
+  def info(auth_session_id, acr) when is_binary(auth_session_id) do
+    case get(auth_session_id) do
+      {:ok, auth_session} ->
+        info(auth_session, acr)
+
+      {:error, _} ->
+        nil
+    end
+  end
+
+  def info(authenticated_session, acr) do
+    acr =
+      if acr do
+        acr
+      else
+        authenticated_session.data["current_acr"]
+      end
+
+    if acr do
+      auth_events =
+        AuthenticationEvent.get_from_authenticated_session_id(authenticated_session.id)
+
+      case find_matching_auth_event_set(auth_events, acr) do
+        auth_event_set when is_list(auth_event_set) ->
+          amr =
+            Enum.reduce(
+              auth_events,
+              MapSet.new(),
+              fn
+                %AuthenticationEvent{data: %{"name" => name, "amr" => amr}}, acc ->
+                  if name in auth_event_set do
+                    MapSet.put(acc, amr)
+                  else
+                    acc
+                  end
+
+                _, acc ->
+                  acc
+              end)
+            |> MapSet.to_list()
+
+          auth_time =
+            Enum.reduce(
+              auth_events,
+              nil,
+              fn
+                %AuthenticationEvent{data: %{"name" => name, "time" => auth_time}}, acc ->
+                  if name in auth_event_set do
+                    if acc == nil do
+                      auth_time
+                    else
+                      max(acc, auth_time)
+                    end
+                  else
+                    acc
+                  end
+
+                _, acc ->
+                  acc
+              end)
+
+          %{acr: acr, amr: amr, auth_time: auth_time}
+
+        nil ->
+          %{acr: acr, amr: nil, auth_time: nil}
+      end
+    else
+      %{acr: nil, amr: nil, auth_time: nil}
+    end
+  end
+
+  @doc """
+  Find matching authentication event set (`t:Asteroid.OIDC.ACR.auth_event_set/0`) for a given
+  ACR from a set of authentication events, or `nil` if none could be found
+
+  ## Example
+
+  ```elixir
+  iex> Asteroid.Utils.astrenv(:oidc_acr_config)
+  [
+    loa2: [
+      callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+      auth_event_set: [
+        ["password", "otp"],
+        ["password", "webauthn"],
+        ["webauthn", "otp"]
+      ]
+    ],
+    loa1: [
+      callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+      auth_event_set: [["password"], ["webauthn"]],
+      default: true
+    ]
+  ]
+  iex> alias Asteroid.OIDC.AuthenticationEvent
+  Asteroid.OIDC.AuthenticationEvent
+  iex> alias Asteroid.OIDC.AuthenticatedSession
+  Asteroid.OIDC.AuthenticatedSession
+  iex> {:ok, as} = AuthenticatedSession.gen_new("user_1") |> AuthenticatedSession.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticatedSession{
+     data: %{},
+     id: "jcKc4uwqDYN7c84B7gzfzgVBkpLMUBNusTRMG6NdOTg",
+     subject_id: "user_1"
+   }}
+  iex> {:ok, ae1} = AuthenticationEvent.gen_new(as.id) |> AuthenticationEvent.put_value("name", "password") |> AuthenticationEvent.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticationEvent{
+     authenticated_session_id: "jcKc4uwqDYN7c84B7gzfzgVBkpLMUBNusTRMG6NdOTg",
+     data: %{"name" => "password"},
+     id: "zwhSZ4HPs6JuFpeoTCNNV1wCzFBnnrKAU5bv1FCxLDg"
+   }}
+  iex> {:ok, ae2} = AuthenticationEvent.gen_new(as.id) |> AuthenticationEvent.put_value("name", "otp") |> AuthenticationEvent.store()
+  {:ok,
+   %Asteroid.OIDC.AuthenticationEvent{
+     authenticated_session_id: "jcKc4uwqDYN7c84B7gzfzgVBkpLMUBNusTRMG6NdOTg",
+     data: %{"name" => "otp"},
+     id: "cvYtgORDaZfzjxxpUnpS0mf3M1d2lLt74tm6KXifyYg"
+   }}
+  iex> AuthenticatedSession.find_matching_auth_event_set(AuthenticationEvent.get_from_authenticated_session_id(as.id), "loa1")
+  ["password"]
+  iex> AuthenticatedSession.find_matching_auth_event_set(AuthenticationEvent.get_from_authenticated_session_id(as.id), "loa2")
+  ["password", "otp"]
+  iex> AuthenticatedSession.find_matching_auth_event_set(AuthenticationEvent.get_from_authenticated_session_id(as.id), "loa3")
+  nil
+  ```
+  """
+
+  @spec find_matching_auth_event_set([AuthenticationEvent.t()], OIDC.acr()) ::
+  OIDC.ACR.auth_event_set()
+  | nil
+
+  def find_matching_auth_event_set(auth_events, acr) do
+    acr = String.to_existing_atom(acr)
+
+    searched_auth_events_set =
+      Enum.reduce(auth_events, MapSet.new(), &(MapSet.put(&2, &1.data["name"])))
+
+    Enum.find(
+      astrenv(:oidc_acr_config)[acr][:auth_event_set] || [],
+      fn
+        conf_auth_event_set ->
+          conf_auth_event_set = MapSet.new(conf_auth_event_set)
+
+        MapSet.subset?(conf_auth_event_set, searched_auth_events_set)
+      end
+    )
+  rescue
+    _ ->
+      nil
   end
 end

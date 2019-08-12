@@ -11,6 +11,14 @@ defmodule Asteroid.OIDC.ACR do
 
   @type config_option ::
   {:callback, AsteroidWeb.AuthorizeController.web_authorization_callback()}
-  | {:auth_events, [[String.t()]]}
+  | {:auth_event_set, [auth_event_set()]}
   | {:default, boolean()}
+
+  @typedoc """
+  An authentication event set, containing the names of the events
+
+  For instance: `["password", "otp"]`, `["webauthn", "otp"]`
+  """
+
+  @type auth_event_set :: [String.t(), ...]
 end

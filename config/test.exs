@@ -517,11 +517,11 @@ config :asteroid, :token_store_authentication_event_before_store_callback,
 config :asteroid, :oidc_acr_config, [
   loa2: [
     callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-    auth_events: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+    auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
   ],
   loa1: [
     callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-    auth_events: [["password"], ["webauthn"], ["otp"]]
+    auth_event_set: [["password"], ["webauthn"], ["otp"]]
   ]
 ]
 

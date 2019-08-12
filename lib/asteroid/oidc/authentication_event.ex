@@ -70,6 +70,36 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   end
 
   @doc """
+  Returns all authentication events associated to an authenticated session
+  """
+
+  @spec get_from_authenticated_session_id(AuthenticatedSession.id()) :: [%__MODULE__{}]
+
+  def get_from_authenticated_session_id(auth_session_id) do
+    ae_store_module = astrenv(:token_store_authentication_event)[:module]
+    ae_store_opts = astrenv(:token_store_authentication_event)[:opts] || []
+
+    case ae_store_module.get_from_authenticated_session_id(auth_session_id, ae_store_opts) do
+      {:ok, auth_event_ids} ->
+        Enum.reduce(auth_event_ids,
+                    [],
+                    fn
+                      auth_event_id, acc ->
+                        case get(auth_event_id) do
+                          {:ok, auth_event} ->
+                            [auth_event | acc]
+
+                          {:error, _} ->
+                            acc
+                        end
+                    end)
+
+      _ ->
+        []
+    end
+  end
+
+  @doc """
   Stores an authentication event
   """
 

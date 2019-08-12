@@ -561,13 +561,17 @@ config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
 
 config :asteroid, :oidc_acr_config, [
-  loa2: [
-    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-    auth_events: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+  "3-factor": [
+    callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
+    auth_event_set: [["password", "otp", "webauthn"]]
   ],
-  loa1: [
+  "2-factor": [
+    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+    auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+  ],
+  "1-factor": [
     callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-    auth_events: [["password"], ["webauthn"], ["otp"]],
+    auth_event_set: [["password"], ["webauthn"]],
     default: true
   ]
 ]
