@@ -100,9 +100,27 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   @spec claims_for_access_token(AccessToken.t()) :: [String.t()]
 
   defp claims_for_access_token(access_token) do
+    claims_to_exclude = [
+      "iss",
+      "sub",
+      "aud",
+      "exp",
+      "iat",
+      "auth_time",
+      "nonce",
+      "acr",
+      "amr",
+      "azp",
+    ]
+
+    claims_from_param =
+      (access_token.data["__asteroid_oidc_claims"]["userinfo"] || %{})
+      |> Map.keys()
+      |> Enum.filter(&(&1 not in claims_to_exclude))
+
     Enum.reduce(
       access_token.data["scope"] || [],
-      [],
+      claims_from_param,
       fn
         scope, acc when scope in unquote(Map.keys(@scope_claims_mapping)) ->
           @scope_claims_mapping[scope] ++ acc

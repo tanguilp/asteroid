@@ -188,6 +188,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
+        claims: %{
+          "id_token" => %{"email" => nil, "phone_number" => nil, "non_standard_claim_1" => nil},
+          "userinfo" => %{"nickname" => nil}},
         params: %{"state" => "sxgjwzedrgdfchexgim"}
       }
 
@@ -217,6 +220,10 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
   test "Success - implicit - encrypted id_token returned",
@@ -338,6 +345,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
         redirect_uri: "https://www.example.com",
         nonce: "some_nonce_dfeasjgfndyxcrgfds",
         requested_scopes: MapSet.new(),
+        claims: %{
+          "id_token" => %{"email" => nil, "phone_number" => nil, "non_standard_claim_1" => nil},
+          "userinfo" => %{"nickname" => nil}},
         params: %{"state" => "sxgjwzedrgdfchexgim"}
       }
 
@@ -390,6 +400,10 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["sub"] == "user_1"
     assert id_token_data["at_hash"] == TestOIDCHelpers.token_hash(digest, access_token_param)
     assert id_token_data["c_hash"] == TestOIDCHelpers.token_hash(digest, az_code)
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
   test "Success - hybrid - code & id_token returned", %{conn: conn} do

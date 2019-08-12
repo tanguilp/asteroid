@@ -287,8 +287,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         maybe_initial_flow =
           if refresh_token.data["__asteroid_oauth2_initial_flow"] do
             OAuth2.to_flow(refresh_token.data["__asteroid_oauth2_initial_flow"])
-          else
-            nil
           end
 
         granted_scopes =
@@ -330,8 +328,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               |> RefreshToken.store(ctx)
 
             new_refresh_token
-          else
-            nil
           end
 
         access_token =
@@ -347,6 +343,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           |> AccessToken.put_value("sub", (if maybe_subject, do: maybe_subject.attrs["sub"]))
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
           |> AccessToken.put_value("iss", OAuth2.issuer())
+          |> AccessToken.put_value("__asteroid_oidc_claims", 
+                                   refresh_token.data["__asteroid_oidc_claims"])
 
         {:ok, access_token} = AccessToken.store(access_token, ctx)
 
@@ -367,6 +365,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
               amr: refresh_token.data["__asteroid_oidc_initial_amr"],
               client: client
             }
+            |> IDToken.add_sub_claims(refresh_token.data["__asteroid_oidc_claims"] || [],
+                                      maybe_subject)
             |> astrenv(:token_id_token_before_serialize_callback).(ctx)
             |> IDToken.serialize()
           else
@@ -482,6 +482,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                 {"__asteroid_oidc_initial_" <> _ = k, v}, acc ->
                   RefreshToken.put_value(acc, k, v)
 
+                {"__asteroid_oidc_claims" = k, v}, acc ->
+                  RefreshToken.put_value(acc, k, v)
+
                 {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
                   RefreshToken.put_value(acc, k, v)
 
@@ -525,6 +528,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
             {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
               AccessToken.put_value(acc, k, v)
 
+            {"__asteroid_oidc_claims" = k, v}, acc ->
+              AccessToken.put_value(acc, k, v)
+
             {"__asteroid" <> _, _v}, acc ->
               acc
 
@@ -560,6 +566,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
                 access_token_serialized
               end
           }
+          |> IDToken.add_sub_claims(authz_code.data["__asteroid_oidc_claims"] || [], subject)
           |> astrenv(:token_id_token_before_serialize_callback).(ctx)
           |> IDToken.serialize()
         else

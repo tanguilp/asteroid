@@ -325,6 +325,113 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     refute Map.has_key?(payload, "non_standard_claim_1")
   end
 
+  test "Success case - requesting using claims parameter, get req", %{conn: conn} do
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("sub", "user_userinfo_test")
+      |> AccessToken.put_value("exp", now() + 3600)
+      |> AccessToken.put_value("iat", now())
+      |> AccessToken.put_value("__asteroid_oidc_claims", %{
+        "userinfo" => %{
+          "given_name" => nil,
+          "picture" => %{"essential" => true},
+          "birthdate" => %{"essential" => false},
+          "email" => %{"value" => "some_guy@example.com"},
+          "non_standard_claim_1" => %{"values" => ["some_value_1", "some_value_2"]}
+        },
+        "id_token" => %{
+          "nickname" => nil,
+          "gender" => %{"essential" => true, "values" => ["male", "female"]}
+        }
+      })
+      |> AccessToken.store()
+
+    conn =
+      conn
+      |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
+      |> get(Routes.userinfo_path(conn, :show))
+
+    response = json_response(conn, 200)
+
+    assert "application/json" in simplified_content_type_from_conn(conn)
+    assert response["sub"] == "user_userinfo_test"
+    refute Map.has_key?(response, "name")
+    refute Map.has_key?(response, "family_name")
+    assert response["given_name"] == "Full"
+    refute Map.has_key?(response, "middle_name")
+    refute Map.has_key?(response, "nickname")
+    refute Map.has_key?(response, "preferred_username")
+    refute Map.has_key?(response, "profile")
+    assert response["picture"] == "https://www.example.com/pictures/full_name"
+    refute Map.has_key?(response, "website")
+    refute Map.has_key?(response, "gender")
+    assert response["birthdate"] == "2015-01-23T00:00:00Z"
+    refute Map.has_key?(response, "zoneinfo")
+    refute Map.has_key?(response, "locale")
+    refute Map.has_key?(response, "updated_at")
+    assert response["email"] == "full.name@example.com"
+    refute Map.has_key?(response, "email_verified")
+    refute Map.has_key?(response, "address")
+    refute Map.has_key?(response, "phone_number")
+    refute Map.has_key?(response, "phone_number_verified")
+    assert response["non_standard_claim_1"] == "some value"
+  end
+
+  test "Success case - requesting using claims parameter and scopes, get req", %{conn: conn} do
+    {:ok, access_token} =
+      AccessToken.gen_new()
+      |> AccessToken.put_value("scope", ["phone", "email"])
+      |> AccessToken.put_value("client_id", "client_confidential_1")
+      |> AccessToken.put_value("sub", "user_userinfo_test")
+      |> AccessToken.put_value("exp", now() + 3600)
+      |> AccessToken.put_value("iat", now())
+      |> AccessToken.put_value("__asteroid_oidc_claims", %{
+        "userinfo" => %{
+          "given_name" => nil,
+          "picture" => %{"essential" => true},
+          "birthdate" => %{"essential" => false},
+          "email" => %{"value" => "some_guy@example.com"},
+          "non_standard_claim_1" => %{"values" => ["some_value_1", "some_value_2"]}
+        },
+        "id_token" => %{
+          "nickname" => nil,
+          "gender" => %{"essential" => true, "values" => ["male", "female"]}
+        }
+      })
+      |> AccessToken.store()
+
+    conn =
+      conn
+      |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
+      |> get(Routes.userinfo_path(conn, :show))
+
+    response = json_response(conn, 200)
+
+    assert "application/json" in simplified_content_type_from_conn(conn)
+    assert response["sub"] == "user_userinfo_test"
+    refute Map.has_key?(response, "name")
+    refute Map.has_key?(response, "family_name")
+    assert response["given_name"] == "Full"
+    refute Map.has_key?(response, "middle_name")
+    refute Map.has_key?(response, "nickname")
+    refute Map.has_key?(response, "preferred_username")
+    refute Map.has_key?(response, "profile")
+    assert response["picture"] == "https://www.example.com/pictures/full_name"
+    refute Map.has_key?(response, "website")
+    refute Map.has_key?(response, "gender")
+    assert response["birthdate"] == "2015-01-23T00:00:00Z"
+    refute Map.has_key?(response, "zoneinfo")
+    refute Map.has_key?(response, "locale")
+    refute Map.has_key?(response, "updated_at")
+    assert response["email"] == "full.name@example.com"
+    assert response["email_verified"] == true
+    refute Map.has_key?(response, "address")
+    assert response["phone_number"] == "+3942390027"
+    refute Map.has_key?(response, "phone_number_verified")
+    assert response["non_standard_claim_1"] == "some value"
+  end
+
   defp simplified_content_type_from_conn(conn) do
     Plug.Conn.get_resp_header(conn, "content-type")
     |> Enum.map(

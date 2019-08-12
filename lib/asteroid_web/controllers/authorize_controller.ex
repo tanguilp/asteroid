@@ -45,6 +45,7 @@ defmodule AsteroidWeb.AuthorizeController do
       :id_token_hint,
       :login_hint,
       :acr_values,
+      :claims,
       :params
     ]
 
@@ -65,6 +66,7 @@ defmodule AsteroidWeb.AuthorizeController do
       id_token_hint: String.t() | nil,
       login_hint: String.t() | nil,
       acr_values: [Asteroid.OIDC.acr()] | nil,
+      claims: map(),
       params: map()
     }
   end
@@ -185,6 +187,7 @@ defmodule AsteroidWeb.AuthorizeController do
                 id_token_hint: params["id_token_hint"],
                 login_hint: params["login_hint"],
                 acr_values: acr_values_list,
+                claims: params["claims"],
                 params: params
               }
             else
@@ -338,6 +341,7 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AuthorizationCode.put_value("__asteroid_oidc_initial_amr", session_info[:amr])
           |> AuthorizationCode.put_value("__asteroid_oidc_initial_auth_time",
                                          session_info[:auth_time])
+          |> AuthorizationCode.put_value("__asteroid_oidc_claims", authz_request.claims)
           |> AuthorizationCode.store(ctx)
 
         AuthorizationCode.serialize(authorization_code)
@@ -349,6 +353,7 @@ defmodule AsteroidWeb.AuthorizeController do
       ] do
         {:ok, access_token} =
           new_access_token(ctx)
+          |> AccessToken.put_value("iss", OAuth2.issuer())
           |> AccessToken.put_value("iat", now())
           |> AccessToken.put_value("exp",
                                    now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
@@ -357,7 +362,7 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AccessToken.put_value("sub", subject.attrs["sub"])
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
           |> AccessToken.put_value("__asteroid_oauth2_initial_flow", Atom.to_string(flow))
-          |> AccessToken.put_value("iss", OAuth2.issuer())
+          |> AccessToken.put_value("__asteroid_oidc_claims", authz_request.claims)
           |> AccessToken.store(ctx)
 
           access_token
@@ -389,6 +394,7 @@ defmodule AsteroidWeb.AuthorizeController do
           associated_access_token_serialized: maybe_access_token_serialized,
           associated_authorization_code_serialized: maybe_authorization_code_serialized
         }
+        |> IDToken.add_sub_claims(Map.keys(authz_request.claims["id_token"] || %{}), subject)
         |> astrenv(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else

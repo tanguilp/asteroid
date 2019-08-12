@@ -6,6 +6,7 @@ defmodule Asteroid.Token.IDToken do
   alias Asteroid.Crypto
   alias Asteroid.OAuth2
   alias Asteroid.OIDC
+  alias Asteroid.Subject
 
   @moduledoc """
   OpenID Connect's ID token structure
@@ -33,7 +34,7 @@ defmodule Asteroid.Token.IDToken do
     :client,
     :associated_access_token_serialized,
     :associated_authorization_code_serialized,
-    :data
+    data: %{}
   ]
 
   @typedoc """
@@ -100,7 +101,7 @@ defmodule Asteroid.Token.IDToken do
     client = Client.fetch_attributes(id_token.client, @client_id_token_crypto_fields)
 
     jwt =
-      id_token.data || %{}
+      (id_token.data || %{})
       |> Map.put("iss", id_token.iss)
       |> Map.put("sub", id_token.sub)
       |> Map.put("aud", id_token.aud)
@@ -328,5 +329,36 @@ defmodule Asteroid.Token.IDToken do
 
   def issue_id_token?(_) do
     false
+  end
+
+  @doc """
+  Add subject claims from a list of claims
+  """
+
+  @spec add_sub_claims(t(), [String.t()], Subject.t()) :: t()
+
+  def add_sub_claims(id_token, [], _subject) do
+    id_token
+  end
+
+  def add_sub_claims(id_token, claims, subject) do
+    claims_to_exclude = [
+      "iss",
+      "sub",
+      "aud",
+      "exp",
+      "iat",
+      "auth_time",
+      "nonce",
+      "acr",
+      "amr",
+      "azp",
+    ]
+
+    claims_to_load = Enum.filter(claims, &(&1 not in claims_to_exclude))
+
+    subject = Subject.fetch_attributes(subject, claims_to_load)
+
+    Enum.reduce(claims_to_load, id_token, &(put_value(&2, &1, subject.attrs[&1])))
   end
 end

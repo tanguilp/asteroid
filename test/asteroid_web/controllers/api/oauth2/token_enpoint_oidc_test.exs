@@ -55,6 +55,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oidc_nonce", "xkgjuf9eswmgwszorixq")
+      |> AuthorizationCode.put_value("__asteroid_oidc_claims",
+                                     ["email", "phone_number", "non_standard_claim_1"])
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -89,6 +91,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["sub"] == "user_1"
     assert id_token_data["at_hash"] ==
       TestOIDCHelpers.token_hash(digest, response["access_token"])
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
   test "grant type code flow code success with no refresh token & encrypted ID token",
@@ -212,6 +218,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_hybrid")
       |> AuthorizationCode.put_value("__asteroid_oidc_nonce", "xkgjuf9eswmgwszorixq")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
+      |> AuthorizationCode.put_value("__asteroid_oidc_claims",
+                                     ["email", "phone_number", "non_standard_claim_1"])
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -244,6 +252,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
     assert id_token_data["at_hash"] == nil
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
   test "grant type code flow hybrid success with refresh token", %{conn: conn} do
@@ -340,6 +352,8 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
       |> RefreshToken.put_value("iss", "https://example.net")
       |> RefreshToken.put_value("scope", Scope.Set.new(["openid"]))
       |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
+      |> RefreshToken.put_value("__asteroid_oidc_claims",
+                                ["email", "phone_number", "non_standard_claim_1"])
       |> RefreshToken.store(%{})
 
     req_body = %{
@@ -372,6 +386,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     assert id_token_data["nonce"] == nil
     assert id_token_data["sub"] == "user_1"
     assert id_token_data["at_hash"] == nil
+    assert id_token_data["nickname"] == nil
+    assert id_token_data["email"] == "user1@example.com"
+    assert id_token_data["phone_number"] == "+3942390027"
+    assert id_token_data["non_standard_claim_1"] == "some value"
   end
 
   test "grant type refresh token flow hybrid success with no new ID token", %{conn: conn} do
