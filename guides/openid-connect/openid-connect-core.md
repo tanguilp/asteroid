@@ -34,7 +34,7 @@ ID tokens:
 Claims:
   - [x] requesting claims using scope values
   - [x] requesting claims using the "claims" request parameter
-  - [ ] requesting the "acr" claim
+  - [x] requesting the "acr" claim
   - [-] claim types:
     - [x] normal claims
     - [ ] aggregated claims
@@ -63,8 +63,11 @@ Client authentication:
   - [ ] `client_secret_jwt`
   - [ ] `private_key_jwt`
 
+Initiating Login from a Third Party
+  - [ ] Support
+
 Self-Issued OpenID Provider:
-  - [ ] Basic support
+  - [ ] Support
 
 ## ID tokens
 
@@ -95,6 +98,68 @@ authorization code but not upon renewal). ID token may be returned when using a 
 depending on the following configuration options:
 - [`:oidc_flow_authorization_code_issue_id_token_refresh`](Asteroid.Config.html#module-oidc_flow_authorization_code_issue_id_token_refresh)
 - [`:oidc_flow_hybrid_issue_id_token_refresh`](Asteroid.Config.html#module-oidc_flow_hybrid_issue_id_token_refresh)
+
+ID tokens also include the `"acr"`, `"amr"`, `"auth_time"` and `"nonce"` claims if available.
+
+## Claims
+
+The `claims` parameter is supported, in the sense that it is parsed and forwarded to the web
+flow.
+
+Since the specification stipulates that all claims (except `acr`), even those marked as
+`"essential": true` are not really mandatory (an error should not be returned, even if a
+condition is not met), Asteroid won't return an error handling this parameter (except for
+`"acr"`).
+
+Asteroid distinguishes 2 types of claims:
+- Technical ID token claims:
+  - `"iss"`,
+  - `"sub"`,
+  - `"aud"`,
+  - `"exp"`,
+  - `"iat"`,
+  - `"auth_time"`,
+  - `"nonce"`,
+  - `"acr"`,
+  - `"amr"`,
+  - `"azp"`,
+- subject claims: all claims not included in the list aforementioned
+
+Subject claims are returned in the ID token or on the `/userinfo` endpoint, depending on the
+`"claims"` parameter, from the subject. If the subject has no a specific claim, it is not
+returned.
+
+Technical claims are only returned in the ID Token.
+
+## Requesting the `"acr"` Claim
+
+The `"acr"` clain is a special case. When requesting on the `/authorize` endpoint, Asteroid
+tries to determine the preferred acr for the current request. It does so by (in order):
+- analyzing the `"claims"` parameter for a requested `"acr"`
+- analyzing the `"acr_values"` parameter
+- looking up at the `"default_acr_values"` of the client's
+
+It then sets the `:preferred_acr` member of the request object
+(`AsteroidWeb.AuthorizeController.Request`) accordingly.
+
+It still up to the web flow to decide:
+- which acr to use
+- to reauthenticate or not depending on the `"max_age"` parameter
+
+Back from the web flow and in the case the `"acr"` claim was requested as an essetnail claim,
+Asteroid checks that the returned ACR does indeed satisfy the requirement. If not, an error is
+returned.
+
+Note: example of an `"claims"` parameter where the `"acr"` is requested as an essential claim:
+
+```json
+{
+ "id_token":
+  {
+   "acr": {"essential": true, "values": ["2-factor", "3-factor"]}
+  }
+}
+```
 
 ## Userinfo endpoint
 
@@ -180,7 +245,7 @@ This is implemented through [JWT Secured Authorization Request (JAR)](jar.html).
 
 ## Subject identifier types
 
-The `"pairwise"` subject identifier type is supported. See the following configuration options:
+The `"pairwise"` subject identifier type is supported. Refer the following configuration options:
 - [`:oidc_subject_identifier_callback`](Asteroid.Config.html#module-oidc_subject_identifier_callback)
 - [`:oidc_subject_identifier_pairwise_salt`](Asteroid.Config.html#module-oidc_subject_identifier_pairwise_salt)
 

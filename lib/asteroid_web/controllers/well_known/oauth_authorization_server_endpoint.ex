@@ -321,7 +321,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
       id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
 
-      acr_values = Enum.map(astrenv(:oidc_loa_config, []), fn {k, _} -> Atom.to_string(k) end)
+      acr_values = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
 
       metadata
       |> Map.put("claims_parameter_supported", true)

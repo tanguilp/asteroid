@@ -46,6 +46,7 @@ defmodule AsteroidWeb.AuthorizeController do
       :id_token_hint,
       :login_hint,
       :acr_values,
+      :preferred_acr,
       :claims,
       :params
     ]
@@ -67,6 +68,7 @@ defmodule AsteroidWeb.AuthorizeController do
       id_token_hint: String.t() | nil,
       login_hint: String.t() | nil,
       acr_values: [Asteroid.OIDC.acr()] | nil,
+      preferred_acr: Asteroid.OIDC.acr(),
       claims: map(),
       params: map()
     }
@@ -145,32 +147,37 @@ defmodule AsteroidWeb.AuthorizeController do
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <-
            maybe_pkce_params(client, params, flow),
          :ok <-  nonce_parameter_present(params, flow),
-         {:ok, response_mode} <- response_mode(params, flow)
+         {:ok, response_mode} <- response_mode(params, flow),
+         {:ok, claims_param} <- parse_claims_param(params)
     do
       client = Client.fetch_attributes(client, ["client_id"])
 
-      authz_request =
-        case protocol do
-          :oauth2 ->
-              %Request{
-                flow: flow,
-                response_type: response_type,
-                response_mode: response_mode,
-                client_id: client.attrs["client_id"],
-                redirect_uri: redirect_uri,
-                requested_scopes: requested_scopes,
-                pkce_code_challenge: maybe_code_challenge,
-                pkce_code_challenge_method: maybe_code_challenge_method,
-                params: params
-              }
+      case protocol do
+        :oauth2 ->
+          req =
+            %Request{
+              flow: flow,
+              response_type: response_type,
+              response_mode: response_mode,
+              client_id: client.attrs["client_id"],
+              redirect_uri: redirect_uri,
+              requested_scopes: requested_scopes,
+              pkce_code_challenge: maybe_code_challenge,
+              pkce_code_challenge_method: maybe_code_challenge_method,
+              params: params
+            }
 
-          :oidc ->
-            with :ok <- oidc_param_display_valid(params["display"]),
-                 :ok <- oidc_param_prompt_valid(params["prompt"]),
-                 {:ok, max_age_int} <- oidc_param_max_age_valid(params["max_age"]),
-                 {:ok, ui_locales_list} <- oidc_param_ui_locales_valid(params["ui_locales"]),
-                 {:ok, acr_values_list} <- oidc_param_acr_values_valid(params["acr_values"])
-            do
+            astrenv(:web_authorization_callback).(conn, req)
+
+        :oidc ->
+          with :ok <- oidc_param_display_valid(params["display"]),
+               :ok <- oidc_param_prompt_valid(params["prompt"]),
+               {:ok, max_age_int} <- oidc_param_max_age_valid(params["max_age"]),
+               {:ok, ui_locales_list} <- oidc_param_ui_locales_valid(params["ui_locales"]),
+               {:ok, acr_values_list} <- oidc_param_acr_values_valid(params["acr_values"]),
+               {:ok, preferred_acr} <- preferred_acr(claims_param, acr_values_list, client)
+          do
+            req =
               %Request{
                 flow: flow,
                 response_type: response_type,
@@ -188,16 +195,17 @@ defmodule AsteroidWeb.AuthorizeController do
                 id_token_hint: params["id_token_hint"],
                 login_hint: params["login_hint"],
                 acr_values: acr_values_list,
-                claims: params["claims"],
+                preferred_acr: preferred_acr,
+                claims: claims_param,
                 params: params
               }
-            else
-              {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-                AsteroidWeb.Error.respond_authorize(conn, e)
-            end
-        end
 
-      astrenv(:web_authorization_callback).(conn, authz_request)
+              astrenv(:web_authorization_callback).(conn, req)
+          else
+            {:error, e} ->
+              AsteroidWeb.Error.respond_authorize(conn, e)
+          end
+      end
     else
       {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, OAuth2.AccessDeniedError.exception(
@@ -286,7 +294,31 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec authorization_granted(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_granted(conn, %{authz_request: %Request{flow: flow}} = opts) do
+  def authorization_granted(conn, opts) do
+    session_info = session_info(opts)
+
+    case opts[:authz_request].claims["id_token"]["acr"] do
+      %{"essential" => true, "values" => acr_list} ->
+        if session_info[:acr] in acr_list do
+          do_authorization_granted(conn, opts, session_info)
+        else
+          Logger.debug("#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) "
+          <> "with reason: returned acr value doesn't match mandatory acr")
+
+          conn
+          |> assign(:authz_request, opts[:authz_request])
+          |> AsteroidWeb.Error.respond_authorize(OAuth2.AccessDeniedError.exception([
+            reason: "requested essential acr condition not satisfied"]))
+        end
+
+        _ ->
+          do_authorization_granted(conn, opts, session_info)
+    end
+  end
+
+  @spec do_authorization_granted(Plug.Conn.t(), Plug.opts(), map()) :: Plug.Conn.t()
+
+  defp do_authorization_granted(conn, opts, session_info) do
     authz_request = opts[:authz_request]
 
     {:ok, client} =
@@ -308,8 +340,6 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:flow_result, opts)
 
     granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
-
-    session_info = session_info(opts)
 
     maybe_authorization_code_serialized =
       if authz_request.response_type in [
@@ -362,7 +392,8 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
           |> AccessToken.put_value("sub", subject.attrs["sub"])
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
-          |> AccessToken.put_value("__asteroid_oauth2_initial_flow", Atom.to_string(flow))
+          |> AccessToken.put_value("__asteroid_oauth2_initial_flow",
+                                   Atom.to_string(authz_request.flow))
           |> AccessToken.put_value("__asteroid_oidc_claims", authz_request.claims)
           |> AccessToken.store(ctx)
 
@@ -528,24 +559,16 @@ defmodule AsteroidWeb.AuthorizeController do
   ] do
     oidc_acr_config = astrenv(:oidc_acr_config, [])
 
-    maybe_callback =
-      Enum.find_value(
-        authz_req.acr_values || [],
-        fn
-          acr_value ->
-            try do
-              acr_atom = String.to_existing_atom(acr_value)
+    maybe_preferred_acr =
+      try do
+        String.to_existing_atom(authz_req.preferred_acr)
+      rescue
+        _ ->
+          nil
+      end
 
-              oidc_acr_config[acr_atom][:callback]
-            rescue
-              _ ->
-                nil
-            end
-        end
-      )
-
-    if maybe_callback do
-      maybe_callback.(conn, authz_req)
+    if oidc_acr_config[maybe_preferred_acr][:callback] do
+      oidc_acr_config[maybe_preferred_acr][:callback].(conn, authz_req)
     else
       maybe_default_callback =
         Enum.find_value(
@@ -781,7 +804,7 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec oidc_param_acr_values_valid(String.t() | nil) ::
-  {:ok, [String.t()] | nil}
+  {:ok, [OIDC.acr()] | nil}
   | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp oidc_param_acr_values_valid(nil) do
@@ -795,6 +818,92 @@ defmodule AsteroidWeb.AuthorizeController do
 
       [] ->
         OAuth2.Request.MalformedParamError.exception([name: "acr_values", value: ""])
+    end
+  end
+
+  @spec preferred_acr(map() | nil, [OIDC.acr()] | nil, Client.t()) ::
+  {:ok, OIDC.acr()}
+  | {:ok, nil}
+  | {:error, Exception.t()}
+
+  defp preferred_acr(claims_param, acr_values, client) do
+    case preferred_acr_from_claims_param(claims_param) do
+      {:ok, acr} when is_binary(acr) ->
+        {:ok, acr}
+
+      {:error, _} = error ->
+        error
+
+      {:ok, nil} ->
+        case preferred_acr_from_acr_values_param(acr_values) do
+          {:ok, acr} when is_binary(acr) ->
+            {:ok, acr}
+
+          {:error, _} = error ->
+            error
+
+          {:ok, nil} ->
+            acrs_config =
+              Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+
+            client = Client.fetch_attributes(client, ["default_acr_values"])
+
+            {:ok, Enum.find(client.attrs["default_acr_values"] || [], &(&1 in acrs_config))}
+        end
+    end
+  end
+
+  @spec preferred_acr_from_claims_param(map()) ::
+  {:ok, OIDC.acr()}
+  | {:ok, nil}
+  | {:error, Exception.t()}
+
+  defp preferred_acr_from_claims_param(nil) do
+    {:ok, nil}
+  end
+
+  defp preferred_acr_from_claims_param(claims_param) do
+    acrs_config = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+
+    case claims_param["id_token"]["acr"] do
+      %{"values" => [acr | _]} ->
+        if acr in acrs_config do
+          {:ok, acr}
+        else
+          {:error, OAuth2.Request.InvalidRequestError.exception(
+            reason: "`acr` value of the `claims` parameter is unknown", parameter: "claims")}
+        end
+
+      %{"value" => acr} when is_binary(acr)->
+        if acr in acrs_config do
+          {:ok, acr}
+        else
+          {:error, OAuth2.Request.InvalidRequestError.exception(
+            reason: "`acr` value of the `claims` parameter is unknown", parameter: "claims")}
+        end
+
+      _ ->
+        {:ok, nil}
+    end
+  end
+
+  @spec preferred_acr_from_acr_values_param([OIDC.acr()]) ::
+  {:ok, OIDC.acr()}
+  | {:ok, nil}
+  | {:error, Exception.t()}
+
+  defp preferred_acr_from_acr_values_param(nil) do
+    {:ok, nil}
+  end
+
+  defp preferred_acr_from_acr_values_param([acr | _]) do
+    acrs_config = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+
+    if acr in acrs_config do
+      {:ok, acr}
+    else
+      {:error, OAuth2.Request.InvalidRequestError.exception(
+        reason: "unknown acr requested", parameter: "acr_values")}
     end
   end
 
@@ -855,6 +964,23 @@ defmodule AsteroidWeb.AuthorizeController do
 
   defp response_mode(_params, flow) do
     {:ok, OAuth2.default_response_mode(flow)}
+  end
+
+  @spec parse_claims_param(map()) :: {:ok, map() | nil} | {:error, Exception.t()}
+
+  defp parse_claims_param(%{"claims" => claims_param}) do
+    case Jason.decode(claims_param) do
+      {:ok, %{} = claims} ->
+        {:ok, claims}
+
+      _ ->
+        {:error,
+          OAuth2.Request.MalformedParamError.exception(name: "claims", value: claims_param)}
+    end
+  end
+
+  defp parse_claims_param(_) do
+    {:ok, nil}
   end
 
   @spec maybe_put_scope(map(), Scope.Set.t(), Scope.Set.t(), OAuth2.response_type()) :: map()

@@ -21,10 +21,13 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
       |> Client.add("client_secret", "password1")
       |> Client.add("client_type", "confidential")
       |> Client.add("grant_types", ["authorization_code", "refresh_token"])
+      |> Client.add("response_types", ["code"])
+      |> Client.add("scope", ["openid"])
       |> Client.add("redirect_uris", ["https://www.example.com"])
       |> Client.add("id_token_signed_response_alg", "RS384")
       |> Client.add("jwks",
                     [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
+      |> Client.add("default_acr_values", ["loa2"])
       |> Client.store()
 
       Client.gen_new(id: "client_oidc_azcode_enc")
@@ -70,6 +73,41 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "invalid_request"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
       "missing parameter"
+  end
+
+  test "Error - acr value not in config (claims parameter)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "claims" => Jason.encode!(
+        %{"id_token" => %{"acr" => %{"essential" => true, "values" => ["non_existent_acr"]}}})
+    }
+
+    conn = get(conn, "/authorize?#{URI.encode_query(params)}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "invalid_request"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+      "invalid parameter `claims`"
+  end
+
+  test "Error - acr value not in config (acr_values parameter)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "acr_values" => "non_existent_acr"
+    }
+
+    conn = get(conn, "/authorize?#{URI.encode_query(params)}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "invalid_request"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+      "invalid parameter `acr_values`"
   end
 
   # valid request to /authorize
@@ -143,6 +181,168 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert response["response_type"] == params["response_type"]
     assert Scope.Set.equal?(Scope.Set.new(response["requested_scopes"]),
                             Scope.Set.new(params["scope"]))
+  end
+
+  test "Success - az code - acr requested in claims values (essential)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "claims" => Jason.encode!(
+        %{"id_token" => %{"acr" => %{"essential" => true, "values" => ["loa1"]}}})
+    }
+
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback,
+                fn conn, request ->
+                  request_map =
+                    Map.from_struct(%{request |
+                      client_id: request.client_id,
+                      requested_scopes: Scope.Set.to_list(request.requested_scopes)
+                    })
+
+                  conn
+                  |> put_status(200)
+                  |> Phoenix.Controller.json(request_map)
+                end
+    )
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa1"
+  end
+
+  test "Success - az code - acr requested in claims values (non essential)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "claims" => Jason.encode!(
+        %{"id_token" => %{"acr" => %{"values" => ["loa1"]}}})
+    }
+
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback,
+                fn conn, request ->
+                  request_map =
+                    Map.from_struct(%{request |
+                      client_id: request.client_id,
+                      requested_scopes: Scope.Set.to_list(request.requested_scopes)
+                    })
+
+                  conn
+                  |> put_status(200)
+                  |> Phoenix.Controller.json(request_map)
+                end
+    )
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa1"
+  end
+
+
+  test "Success - az code - acr requested in claims value (essential)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "claims" => Jason.encode!(
+        %{"id_token" => %{"acr" => %{"essential" => true, "value" => "loa1"}}})
+    }
+
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback,
+                fn conn, request ->
+                  request_map =
+                    Map.from_struct(%{request |
+                      client_id: request.client_id,
+                      requested_scopes: Scope.Set.to_list(request.requested_scopes)
+                    })
+
+                  conn
+                  |> put_status(200)
+                  |> Phoenix.Controller.json(request_map)
+                end
+    )
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa1"
+  end
+
+  test "Success - az code - acr requested in claims value (non essential)", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "claims" => Jason.encode!(
+        %{"id_token" => %{"acr" => %{"value" => "loa1"}}})
+    }
+
+    Process.put(:oidc_flow_authorization_code_web_authorization_callback,
+                fn conn, request ->
+                  request_map =
+                    Map.from_struct(%{request |
+                      client_id: request.client_id,
+                      requested_scopes: Scope.Set.to_list(request.requested_scopes)
+                    })
+
+                  conn
+                  |> put_status(200)
+                  |> Phoenix.Controller.json(request_map)
+                end
+    )
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa1"
+  end
+
+  test "Success - az code - acr requested in acr_values", %{conn: conn} do
+    params = %{
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid",
+      "acr_values" => "loa2"
+    }
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa2"
+  end
+
+  test "Success - az code - acr selected from client configuration", %{conn: conn} do
+    params = %{
+      "client_id" => "client_oidc_azcode_sig",
+      "redirect_uri" => "https://www.example.com",
+      "response_type" => "code",
+      "scope" => "openid"
+    }
+
+    response =
+      conn
+      |> get("/authorize?#{URI.encode_query(params)}")
+      |> json_response(200)
+
+    assert response["preferred_acr"] == "loa2"
   end
 
   # request back from workflow
@@ -776,5 +976,34 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["acr"] == "test_acr"
     assert id_token_data["amr"] == ["test_amr"]
     assert id_token_data["auth_time"] == 500_000
+  end
+
+  test "Error - az code - loa not acceptable in ragrdes to the claims param", %{conn: conn} do
+    authz_request =
+      %AsteroidWeb.AuthorizeController.Request{
+        flow: :oidc_authorization_code,
+        response_type: :code,
+        response_mode: :query,
+        client_id: "client_oidc_azcode_sig",
+        redirect_uri: "https://www.example.com",
+        requested_scopes: MapSet.new(),
+        claims: %{"id_token" => %{"acr" => %{"essential" => true, "values" => ["loa2"]}}},
+        params: %{}
+      }
+
+    conn = AsteroidWeb.AuthorizeController.authorization_granted(
+      conn,
+      %{
+        authz_request: authz_request,
+        subject: Subject.load("user_1") |> elem(1),
+        granted_scopes: Scope.Set.new(),
+        acr: "loa1"
+      })
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+    response = URI.decode_query(URI.parse(redirected_to(conn)).query)
+
+    assert response["error"] == "access_denied"
+    assert response["error_description"] =~ "requested essential acr condition not satisfied"
   end
 end
