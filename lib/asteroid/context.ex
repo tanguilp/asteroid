@@ -29,8 +29,7 @@ defmodule Asteroid.Context do
     optional(:client) => Asteroid.Client.t(),
     optional(:subject) => Asteroid.Subject.t(),
     optional(:device) => Asteroid.Device.t(),
-    optional(:query_params) => Plug.Conn.query_param(),
-    optional(:body_params) => Plug.Conn.query_param(),
+    optional(:conn) => Plug.Conn.t(),
     optional(any()) => any()
   }
 end

@@ -72,7 +72,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:subject, subject)
         |> Map.put(:client, client)
-        |> Map.put(:body_params, params)
+        |> Map.put(:conn, conn)
 
       granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
@@ -163,7 +163,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
       reason: "Missing `username` or `password` parameter"))
   end
 
-  def handle(conn, %{"grant_type" => "client_credentials"} = params) do
+  def handle(conn, %{"grant_type" => "client_credentials"}) do
     scope_param = conn.body_params["scope"]
 
     with :ok <- Asteroid.OAuth2.grant_type_enabled?(:client_credentials),
@@ -180,7 +180,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> Map.put(:grant_type, :client_credentials)
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:client, client)
-        |> Map.put(:body_params, params)
+        |> Map.put(:conn, conn)
 
       granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
@@ -254,9 +254,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
     end
   end
 
-  def handle(conn,
-             %{"grant_type" => "refresh_token",
-               "refresh_token" => refresh_token_param} = params)
+  def handle(conn, %{"grant_type" => "refresh_token", "refresh_token" => refresh_token_param})
   when refresh_token_param != nil do
     scope_param = conn.body_params["scope"]
 
@@ -306,7 +304,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
           |> put_if_not_nil(:subject, maybe_subject)
           |> Map.put(:client, client)
           |> put_if_not_nil(:scope, requested_scopes)
-          |> Map.put(:body_params, params)
+          |> Map.put(:conn, conn)
 
         maybe_new_refresh_token =
           if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
@@ -457,7 +455,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> Map.put(:granted_scopes, granted_scopes)
         |> Map.put(:subject, subject)
         |> Map.put(:client, client)
-        |> Map.put(:body_params, params)
+        |> Map.put(:conn, conn)
 
       maybe_refresh_token =
         if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
@@ -627,7 +625,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
 
   def handle(conn,
              %{"grant_type" => "urn:ietf:params:oauth:grant-type:device_code",
-               "device_code" => device_code_param} = params)
+               "device_code" => device_code_param})
   do
     with :ok <- OAuth2.DeviceAuthorization.rate_limited?(device_code_param),
          :ok <-
@@ -655,7 +653,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
         |> Map.put(:granted_scopes, granted_scopes)
         |> Map.put(:subject, subject)
         |> Map.put(:client, client)
-        |> Map.put(:body_params, params)
+        |> Map.put(:conn, conn)
 
       maybe_refresh_token =
         if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do

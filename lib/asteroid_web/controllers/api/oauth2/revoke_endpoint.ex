@@ -116,7 +116,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeEndpoint do
       %{}
       |> Map.put(:endpoint, :revoke)
       |> Map.put(:client, client)
-      |> Map.put(:body_params, conn.body_params)
+      |> Map.put(:conn, conn)
 
     conn
     |> astrenv(:oauth2_endpoint_revoke_before_send_conn_callback).(ctx)

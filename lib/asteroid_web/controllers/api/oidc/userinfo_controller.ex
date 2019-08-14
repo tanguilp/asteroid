@@ -34,6 +34,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
         |> Map.put(:client, client)
         |> Map.put(:subject, subject)
         |> Map.put(:access_token, access_token)
+        |> Map.put(:conn, conn)
 
       result_claims =
         Enum.reduce(

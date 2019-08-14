@@ -338,6 +338,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:client, client)
       |> Map.put(:subject, subject)
       |> Map.put(:flow_result, opts)
+      |> Map.put(:conn, conn)
 
     granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 

@@ -83,7 +83,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> put_if_not_nil(:subject, maybe_subject)
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :access_token) # FIXME: document it
-      |> Map.put(:body_params, conn.body_params)
+      |> Map.put(:conn, conn)
 
     response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
@@ -118,7 +118,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       |> put_if_not_nil(:subject, maybe_subject)
       |> Map.put(:client, client)
       |> Map.put(:token_sort, :refresh_token) # FIXME: document it
-      |> Map.put(:body_params, conn.body_params)
+      |> Map.put(:conn, conn)
 
     response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
@@ -157,7 +157,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
       %{}
       |> Map.put(:endpoint, :introspect)
       |> Map.put(:client, client)
-      |> Map.put(:body_params, conn.body_params)
+      |> Map.put(:conn, conn)
 
     resp =
       %{"active" => false}

@@ -26,7 +26,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
         |> Map.put(:flow, :device_authorization)
         |> Map.put(:requested_scopes, requested_scopes)
         |> Map.put(:client, client)
-        |> Map.put(:body_params, params)
+        |> Map.put(:conn, conn)
 
       requested_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 

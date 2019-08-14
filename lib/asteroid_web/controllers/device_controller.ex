@@ -66,6 +66,7 @@ defmodule AsteroidWeb.DeviceController do
           |> Map.put(:granted_scopes, opts[:granted_scopes])
           |> Map.put(:subject, subject)
           |> Map.put(:flow_result, opts)
+          |> Map.put(:conn, conn)
 
         granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
@@ -141,6 +142,7 @@ defmodule AsteroidWeb.DeviceController do
           |> Map.put(:flow, :device_authorization)
           |> Map.put(:requested_scopes, Scope.Set.new(device_code.data["scope"] || []))
           |> Map.put(:flow_result, opts[:error])
+          |> Map.put(:conn, conn)
 
         device_code
         |> DeviceCode.put_value("status", "denied")
