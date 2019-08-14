@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint do
+defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
   @moduledoc false
 
   use AsteroidWeb, :controller

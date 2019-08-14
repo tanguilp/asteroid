@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
+defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
@@ -14,7 +14,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     conn =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -30,7 +30,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "invalid"))
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.device_authorization_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -45,7 +45,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     conn =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="Asteroid")
@@ -60,7 +60,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -74,7 +74,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -86,7 +86,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_2", "password2"))
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "unauthorized_client"
@@ -100,7 +100,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(400)
 
     assert response["error"] == "invalid_scope"
@@ -114,7 +114,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])
@@ -141,7 +141,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])
@@ -172,7 +172,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpointTest do
 
     response =
       conn
-      |> post(Routes.device_authorization_endpoint_path(conn, :handle), req)
+      |> post(Routes.device_authorization_path(conn, :handle), req)
       |> json_response(200)
 
     assert is_binary(response["device_code"])

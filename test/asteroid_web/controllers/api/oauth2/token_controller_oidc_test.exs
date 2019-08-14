@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
+defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
@@ -69,7 +69,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -127,7 +127,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_enc", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -179,7 +179,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -231,7 +231,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -284,7 +284,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -329,7 +329,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -364,7 +364,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -414,7 +414,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -447,7 +447,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -502,7 +502,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"
@@ -557,7 +557,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenEndpointOIDCTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_oidc_test_sig", "password1"))
-      |> post(Routes.token_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.token_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["token_type"] == "bearer"

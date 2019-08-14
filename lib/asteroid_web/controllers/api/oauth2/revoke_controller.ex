@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.RevokeEndpoint do
+defmodule AsteroidWeb.API.OAuth2.RevokeController do
   @moduledoc false
 
   use AsteroidWeb, :controller

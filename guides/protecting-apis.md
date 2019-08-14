@@ -4,19 +4,20 @@ Asteroid provides with numerous APIs and web endpoints as shown by the `mix phx.
 
 ```bash
 $ mix phx.routes
-                          authorize_path  GET   /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
-                             device_path  GET   /device                                  AsteroidWeb.DeviceController :pre_authorize
-                     request_object_path  GET   /api/request_object/:id                  AsteroidWeb.API.RequestObjectController :show
-                     request_object_path  POST  /api/request_object                      AsteroidWeb.API.RequestObjectController :create
-                           userinfo_path  GET   /api/oidc/userinfo                       AsteroidWeb.API.OIDC.UserinfoController :show
-                     token_endpoint_path  POST  /api/oauth2/token                        AsteroidWeb.API.OAuth2.TokenEndpoint :handle
-                introspect_endpoint_path  POST  /api/oauth2/introspect                   AsteroidWeb.API.OAuth2.IntrospectEndpoint :handle
-                    revoke_endpoint_path  POST  /api/oauth2/revoke                       AsteroidWeb.API.OAuth2.RevokeEndpoint :handle
-                  register_endpoint_path  POST  /api/oauth2/register                     AsteroidWeb.API.OAuth2.RegisterEndpoint :handle
-      device_authorization_endpoint_path  POST  /api/oauth2/device_authorization         AsteroidWeb.API.OAuth2.DeviceAuthorizationEndpoint :handle
-oauth_authorization_server_endpoint_path  GET   /.well-known/oauth-authorization-server  AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
-oauth_authorization_server_endpoint_path  GET   /.well-known/openid-configuration        AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint :handle
-                      keys_endpoint_path  GET   /discovery/keys                          AsteroidWeb.Discovery.KeysEndpoint :handle
+                 authorize_path  GET   /authorize                               AsteroidWeb.AuthorizeController :pre_authorize
+                    device_path  GET   /device                                  AsteroidWeb.DeviceController :pre_authorize
+            request_object_path  GET   /api/request_object/:id                  AsteroidWeb.API.RequestObjectController :show
+            request_object_path  POST  /api/request_object                      AsteroidWeb.API.RequestObjectController :create
+                  userinfo_path  GET   /api/oidc/userinfo                       AsteroidWeb.API.OIDC.UserinfoController :show
+                  userinfo_path  POST  /api/oidc/userinfo                       AsteroidWeb.API.OIDC.UserinfoController :show
+                     token_path  POST  /api/oauth2/token                        AsteroidWeb.API.OAuth2.TokenController :handle
+                introspect_path  POST  /api/oauth2/introspect                   AsteroidWeb.API.OAuth2.IntrospectController :handle
+                    revoke_path  POST  /api/oauth2/revoke                       AsteroidWeb.API.OAuth2.RevokeController :handle
+                  register_path  POST  /api/oauth2/register                     AsteroidWeb.API.OAuth2.RegisterController :handle
+      device_authorization_path  POST  /api/oauth2/device_authorization         AsteroidWeb.API.OAuth2.DeviceAuthorizationController :handle
+oauth_authorization_server_path  GET   /.well-known/oauth-authorization-server  AsteroidWeb.WellKnown.OauthAuthorizationServerController :handle
+oauth_authorization_server_path  GET   /.well-known/openid-configuration        AsteroidWeb.WellKnown.OauthAuthorizationServerController :handle
+                      keys_path  GET   /discovery/keys                          AsteroidWeb.Discovery.KeysController :handle
 ```
 
 At compile-time, Asteroid loads from configuration a list of plugs to configure on each

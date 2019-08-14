@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.TokenEndpoint do
+defmodule AsteroidWeb.API.OAuth2.TokenController do
   @moduledoc false
 
   use AsteroidWeb, :controller

@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.RegisterEndpoint do
+defmodule AsteroidWeb.API.OAuth2.RegisterController do
   @moduledoc false
 
   use AsteroidWeb, :controller

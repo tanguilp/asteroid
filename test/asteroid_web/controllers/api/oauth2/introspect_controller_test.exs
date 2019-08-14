@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
+defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
   use AsteroidWeb.ConnCase, async: true
 
   import Asteroid.Utils
@@ -15,7 +15,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     assert_raise Plug.Parsers.UnsupportedMediaTypeError, fn ->
       conn
       |> put_req_header("content-type", "plain/text")
-      |> post(Routes.introspect_endpoint_path(conn, :handle), "Some plain text")
+      |> post(Routes.introspect_path(conn, :handle), "Some plain text")
       |> json_response(400)
     end
   end
@@ -28,7 +28,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -42,7 +42,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -57,7 +57,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(400)
 
     assert response["error"] == "invalid_request"
@@ -68,7 +68,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       "token" => "egxeghqearfza"
     }
     conn =
-      post(conn, Routes.introspect_endpoint_path(conn, :handle), req_body)
+      post(conn, Routes.introspect_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm="always erroneous client password")
@@ -102,7 +102,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     conn =
       conn
       |> put_req_header("authorization", basic_auth_header("invalid_client", "secret"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
       ~s(Basic realm=)
@@ -120,7 +120,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
       "token" => "onetokenewxoqziurmfaiy"
     }
 
-    conn = post(conn, Routes.introspect_endpoint_path(conn, :handle),
+    conn = post(conn, Routes.introspect_path(conn, :handle),
                                                                           req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
@@ -159,7 +159,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -191,7 +191,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -227,7 +227,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(auth_access_token))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -260,7 +260,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -293,7 +293,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -326,7 +326,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}
@@ -352,7 +352,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}
@@ -378,7 +378,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}
@@ -407,7 +407,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -442,7 +442,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -477,7 +477,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response["active"] == true
@@ -512,7 +512,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}
@@ -539,7 +539,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}
@@ -566,7 +566,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectEndpointTest do
     response =
       conn
       |> put_req_header("authorization", basic_auth_header("client_confidential_1", "password1"))
-      |> post(Routes.introspect_endpoint_path(conn, :handle), req_body)
+      |> post(Routes.introspect_path(conn, :handle), req_body)
       |> json_response(200)
 
     assert response == %{"active" => false}

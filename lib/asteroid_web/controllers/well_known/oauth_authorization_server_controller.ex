@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
+defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @moduledoc false
 
   use AsteroidWeb, :controller
@@ -71,7 +71,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
       _ ->
       Map.put(metadata,
               "token_endpoint",
-              Routes.token_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.token_url(AsteroidWeb.Endpoint, :handle))
     end
   end
 
@@ -80,7 +80,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_registration_endpoint(metadata) do
       Map.put(metadata,
               "registration_endpoint",
-              Routes.register_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.register_url(AsteroidWeb.Endpoint, :handle))
   end
 
   @spec put_scopes_supported(map()) :: map()
@@ -185,7 +185,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
     if astrenv(:crypto_keys) do
       Map.put(metadata,
               "jwks_uri",
-              Routes.keys_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.keys_url(AsteroidWeb.Endpoint, :handle))
     else
       metadata
     end
@@ -196,7 +196,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_revocation_endpoint(metadata) do
       Map.put(metadata,
               "revocation_endpoint",
-              Routes.revoke_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.revoke_url(AsteroidWeb.Endpoint, :handle))
   end
 
   @spec put_revocation_endpoint_auth_method_supported(map()) :: map()
@@ -220,7 +220,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
   defp put_introspection_endpoint(metadata) do
       Map.put(metadata,
               "introspection_endpoint",
-              Routes.introspect_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.introspect_url(AsteroidWeb.Endpoint, :handle))
   end
 
   @spec put_introspection_endpoint_auth_method_supported(map()) :: map()
@@ -246,7 +246,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerEndpoint do
     do
       Map.put(metadata,
               "device_authorization_endpoint",
-              Routes.device_authorization_endpoint_url(AsteroidWeb.Endpoint, :handle))
+              Routes.device_authorization_url(AsteroidWeb.Endpoint, :handle))
     else
       metadata
     end

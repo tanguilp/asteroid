@@ -130,49 +130,49 @@ defmodule AsteroidWeb.Router do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_token
 
-      post "/", TokenEndpoint, :handle
+      post "/", TokenController, :handle
     end
 
     scope "/introspect" do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_introspect
 
-      post "/", IntrospectEndpoint, :handle
+      post "/", IntrospectController, :handle
     end
 
     scope "/revoke" do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_revoke
 
-      post "/", RevokeEndpoint, :handle
+      post "/", RevokeController, :handle
     end
 
     scope "/register" do
       pipe_through :api_json
       pipe_through :oauth2_endpoint_register
 
-      post "/", RegisterEndpoint, :handle
+      post "/", RegisterController, :handle
     end
 
     scope "/device_authorization" do
       pipe_through :api_json
       pipe_through :oauth2_endpoint_device_authorization
 
-      post "/", DeviceAuthorizationEndpoint, :handle
+      post "/", DeviceAuthorizationController, :handle
     end
   end
 
   scope "/.well-known", AsteroidWeb.WellKnown do
     pipe_through :well_known
 
-    get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
-    get "/openid-configuration", OauthAuthorizationServerEndpoint, :handle
+    get "/oauth-authorization-server", OauthAuthorizationServerController, :handle
+    get "/openid-configuration", OauthAuthorizationServerController, :handle
   end
 
   scope "/discovery", AsteroidWeb.Discovery do
     pipe_through :discovery
 
-    get "/keys", KeysEndpoint, :handle
+    get "/keys", KeysController, :handle
   end
 
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: stack}) do

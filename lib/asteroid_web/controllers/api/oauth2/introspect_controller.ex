@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.API.OAuth2.IntrospectEndpoint do
+defmodule AsteroidWeb.API.OAuth2.IntrospectController do
   @moduledoc false
 
   use AsteroidWeb, :controller

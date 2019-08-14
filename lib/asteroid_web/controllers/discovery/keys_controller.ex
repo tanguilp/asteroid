@@ -1,4 +1,4 @@
-defmodule AsteroidWeb.Discovery.KeysEndpoint do
+defmodule AsteroidWeb.Discovery.KeysController do
   @moduledoc false
 
   use AsteroidWeb, :controller
