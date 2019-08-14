@@ -130,7 +130,8 @@ defmodule Asteroid.MixProject do
         "guides/openid-connect/sessions-loas.md",
         "guides/openid-connect/openid-connect-core.md",
         "guides/openid-connect/oidc-dynamic-client-registration.md",
-        "guides/openid-connect/response-mode.md"
+        "guides/openid-connect/response-mode.md",
+        "guides/openid-connect/openid-connect-discovery.md",
       ],
       groups_for_extras:
       [
@@ -151,7 +152,8 @@ defmodule Asteroid.MixProject do
         "guides/openid-connect/sessions-loas.md",
         "guides/openid-connect/openid-connect-core.md",
         "guides/openid-connect/oidc-dynamic-client-registration.md",
-        "guides/openid-connect/response-mode.md"
+        "guides/openid-connect/response-mode.md",
+        "guides/openid-connect/openid-connect-discovery.md",
       ]
       ]
     ]

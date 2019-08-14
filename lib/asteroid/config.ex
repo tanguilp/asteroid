@@ -2313,6 +2313,17 @@ defmodule Asteroid.Config do
     field :oidc_subject_identifier_pairwise_salt,
     config_time: :runtime
 
+    @doc """
+    OIDC display values supported
+
+    Voluntary information to be published on the metadata endpoint. It is not used otherwise.
+    """
+
+    @type oidc_endpoint_metadata_display_values_supported :: [String.t()]
+
+    field :oidc_endpoint_metadata_display_values_supported,
+    config_time: :runtime
+
     ### end of configuration options
   end
 

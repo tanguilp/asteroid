@@ -323,12 +323,20 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
       acr_values = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
 
+      response_modes_supported =
+        if astrenv(:oauth2_response_mode_policy, :disabled) == :disabled do
+          ["query", "fragment"]
+        else
+          ["query", "fragment", "form_post"]
+        end
+
       metadata
       |> Map.put("claims_parameter_supported", true)
       |> Map.put("request_parameter_supported", true)
       |> Map.put("request_uri_parameter_supported", true)
       |> Map.put("subject_types_supported", ["public", "pairwise"])
       |> Map.put("userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
+      |> Map.put("response_modes_supported", response_modes_supported)
       |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
       |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
       |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
@@ -337,6 +345,8 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
       |> put_if_not_empty("acr_values_supported", acr_values)
       |> put_if_not_empty("claims_supported", astrenv(:oidc_claims_supported, []))
+      |> put_if_not_empty("display_values_supported",
+                          astrenv(:oidc_endpoint_metadata_display_values_supported, []))
     else
       metadata
     end
