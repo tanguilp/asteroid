@@ -393,6 +393,8 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
           |> AccessToken.put_value("sub", subject.attrs["sub"])
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
+          |> AccessToken.put_value("__asteroid_oidc_authenticated_session_id",
+                                   opts[:authenticated_session_id])
           |> AccessToken.put_value("__asteroid_oauth2_initial_flow",
                                    Atom.to_string(authz_request.flow))
           |> AccessToken.put_value("__asteroid_oidc_claims", authz_request.claims)

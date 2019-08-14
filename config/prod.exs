@@ -179,8 +179,7 @@ config :asteroid, :api_oauth2_plugs,
     {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.OAuth2.Client.get_client_secret/2,
-      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
-      error_response_verbosity: :debug}#,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the above `#` and the following lines to enable client_secret_post client
     # authentication for all OAuth2 endpoints
     #{APIacAuthClientSecretPost,
@@ -192,6 +191,10 @@ config :asteroid, :api_oauth2_plugs,
 
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
     #{Corsica, [origins: "*"]},
     # uncomment the following line to enable throttling for public clients on the
@@ -206,10 +209,18 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
 
 config :asteroid, :api_oauth2_endpoint_introspect_plugs,
   [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
   ]
 
 config :asteroid, :api_oauth2_endpoint_revoke_plugs,
   [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
     #{Corsica, [origins: "*"]}
   ]
