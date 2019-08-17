@@ -343,6 +343,14 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           |> AccessToken.put_value("iss", OAuth2.issuer())
           |> AccessToken.put_value("__asteroid_oidc_claims", 
                                    refresh_token.data["__asteroid_oidc_claims"])
+          |> AccessToken.put_value("__asteroid_oidc_authenticated_session_id", 
+                                   refresh_token.data["__asteroid_oidc_authenticated_session_id"])
+          |> AccessToken.put_value("__asteroid_oidc_initial_acr", 
+                                   refresh_token.data["__asteroid_oidc_initial_acr"])
+          |> AccessToken.put_value("__asteroid_oidc_initial_amr", 
+                                   refresh_token.data["__asteroid_oidc_initial_amr"])
+          |> AccessToken.put_value("__asteroid_oidc_initial_auth_time", 
+                                   refresh_token.data["__asteroid_oidc_initial_auth_time"])
 
         {:ok, access_token} = AccessToken.store(access_token, ctx)
 
@@ -522,6 +530,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
             {"granted_scopes", _v}, acc ->
               acc
+
+            {"__asteroid_oidc_authenticated_session_id" = k, v}, acc ->
+              AccessToken.put_value(acc, k, v)
 
             {"__asteroid_oauth2_initial_flow" = k, v}, acc ->
               AccessToken.put_value(acc, k, v)

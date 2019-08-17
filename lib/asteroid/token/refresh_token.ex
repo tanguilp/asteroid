@@ -20,6 +20,13 @@ defmodule Asteroid.Token.RefreshToken do
   the refresh token was granted
   - `"__asteroid_oidc_authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0`
   of the refresh token
+  - `"__asteroid_oidc_claims"`: the claims that were requested, if any
+  - `"__asteroid_oidc_initial_acr"`: the `t:Asteroid.OIDC.acr/0` of the refresh token, if
+  any. This is the value got from the session when the token was first released
+  - `"__asteroid_oidc_initial_amr"`: a list of `t:Asteroid.OIDC.acr/0` of the refresh token,
+  if any. This is the value got from the session when the token was first released
+  - `"__asteroid_oidc_initial_auth_time"`: a `non_neg_integer()` of the refresh token,
+  if any. This is the value got from the session when the token was first released
   - `"status"`: a `String.t()` for the status of the token. A token that has been revoked is not
   necessarily still present in the token store (e.g. for stateful tokens it will be probably
   deleted). Optionally one of:

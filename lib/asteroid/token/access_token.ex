@@ -22,6 +22,11 @@ defmodule Asteroid.Token.AccessToken do
   deleted). Optionally one of:
     - `"active"`: active token
     - `"revoked"`: revoked token
+  - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` that led to
+  the issuance of this token
+  - `"__asteroid_oidc_authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0`
+  , if any
+  - `"__asteroid_oidc_claims"`: the claims that were requested, if any
   """
 
   @enforce_keys [:id, :serialization_format, :data]

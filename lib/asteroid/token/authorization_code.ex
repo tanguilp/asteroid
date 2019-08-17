@@ -23,6 +23,15 @@ defmodule Asteroid.Token.AuthorizationCode do
   - `"__asteroid_oauth2_pkce_code_challenge_method"`: the PKCE code challenge method, if any,
   stored as a `t:Asteroid.OAuth2.PKCE.code_challenge_method_str/0`
   - `"__asteroid_oidc_nonce"`: the OIDC nonce, if any
+  - `"__asteroid_oidc_claims"`: the claims that were requested, if any
+  - `"__asteroid_oidc_authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0`
+  of the authroization code, if any
+  - `"__asteroid_oidc_initial_acr"`: the `t:Asteroid.OIDC.acr/0` of the authorization code, if
+  any. This is the value got from the session when the token was first released
+  - `"__asteroid_oidc_initial_amr"`: a list of `t:Asteroid.OIDC.acr/0` of the authorization code,
+  if any. This is the value got from the session when the token was first released
+  - `"__asteroid_oidc_initial_auth_time"`: a `non_neg_integer()` of the authorization code,
+  if any. This is the value got from the session when the token was first released
   """
 
   @enforce_keys [:id, :serialization_format, :data]
