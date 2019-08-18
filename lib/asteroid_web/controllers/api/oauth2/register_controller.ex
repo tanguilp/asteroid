@@ -1134,7 +1134,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     when is_list(default_acr_values)
   do
     acr_values_supported =
-      Enum.map(astrenv(:oidc_loa_config, []), fn {k, _} -> Atom.to_string(k) end)
+      Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
 
     if Enum.all?(default_acr_values, &(&1 in acr_values_supported)) do
       Map.put(processed_metadata, "default_acr_values", default_acr_values)

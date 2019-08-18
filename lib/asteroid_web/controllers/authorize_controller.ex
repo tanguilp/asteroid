@@ -529,8 +529,10 @@ defmodule AsteroidWeb.AuthorizeController do
   if the flow is implicit
 
   If the protocol is OpenID Connect, it uses the
-  #{Asteroid.Config.link_to_option(:oidc_loa_config)} configuration option to determine which
-  callback to use. Refer to the OpenID Connect session documentation for further information.
+  #{Asteroid.Config.link_to_option(:oidc_acr_config)} configuration option to determine which
+  callback to use:
+  - if a preferred acr was computed, it uses its associated callback
+  - otherwise, if one entry in the config is marked as `default: true`, it uses it
 
   If this configuration option is not used, it fall backs to:
   - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_web_authorization_callback)}
