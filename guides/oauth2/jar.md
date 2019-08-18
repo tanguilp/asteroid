@@ -3,6 +3,11 @@
 Asteroid implements the draft RFC JWT Secured Authorization Request (JAR)
 ([draft-ietf-oauth-jwsreq-19](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-19)).
 
+## Parameters
+
+Contrary to OpenID Connect, this draft specification requires that all OAuth2 parameters
+not in the request object must be ignored. They are therefore removed before further processing.
+
 ## Signing and encryption keys
 
 A request object can be either:

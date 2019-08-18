@@ -89,8 +89,7 @@ defmodule AsteroidWeb.AuthorizeController do
   def pre_authorize(conn, %{"request" => _} = params) do
     case protocol(params) do
       :oauth2 ->
-        #FIXME: update when specification is issued
-        jar_pre_authorize_oidc(conn, params)
+        jar_pre_authorize_oauth2(conn, params)
 
       :oidc ->
         jar_pre_authorize_oidc(conn, params)
@@ -100,8 +99,7 @@ defmodule AsteroidWeb.AuthorizeController do
   def pre_authorize(conn, %{"request_uri" => _} = params) do
     case protocol(params) do
       :oauth2 ->
-        #FIXME: update when specification is issued
-        jar_pre_authorize_oidc(conn, params)
+        jar_pre_authorize_oauth2(conn, params)
 
       :oidc ->
         jar_pre_authorize_oidc(conn, params)
@@ -602,6 +600,47 @@ defmodule AsteroidWeb.AuthorizeController do
       end
     end
   end
+
+  @spec jar_pre_authorize_oauth2(Plug.Conn.t(), map()) :: Plug.Conn.t()
+
+  defp jar_pre_authorize_oauth2(conn, %{"request" => request_object} = params) do
+    if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
+      case OAuth2.JAR.verify_and_parse(request_object) do
+        {:ok, jar_req_params} ->
+            req_params =
+              Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+
+            pre_authorize(conn, req_params)
+
+        {:error, e} ->
+          AsteroidWeb.Error.respond_authorize(conn, e)
+      end
+    else
+      AsteroidWeb.Error.respond_authorize(conn,
+                                          OAuth2.JAR.RequestNotSupportedError.exception([]))
+    end
+  end
+
+  defp jar_pre_authorize_oauth2(conn, %{"request_uri" => request_uri} = params) do
+    if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+      with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
+           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj)
+      do
+        req_params =
+          Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+
+        pre_authorize(conn, req_params)
+      else
+        {:error, e} ->
+          AsteroidWeb.Error.respond_authorize(conn, e)
+      end
+    else
+      AsteroidWeb.Error.respond_authorize(conn,
+                                          OAuth2.JAR.RequestURINotSupportedError.exception([]))
+    end
+  end
+
+  @spec jar_pre_authorize_oidc(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
   defp jar_pre_authorize_oidc(
     conn,

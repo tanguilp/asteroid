@@ -274,7 +274,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
     case astrenv(:oauth2_jar_enabled, :disabled) do
       :disabled ->
         Map.put(metadata, "request_parameter_supported", false)
-      
+
       :request_only ->
         Map.put(metadata, "request_parameter_supported", true)
 
