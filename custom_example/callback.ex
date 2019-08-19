@@ -3,6 +3,7 @@ defmodule CustomExample.Callback do
 
   import Asteroid.Utils
 
+  alias Asteroid.OIDC
   alias Asteroid.Token.AccessToken
   alias Asteroid.Subject
 
@@ -26,6 +27,21 @@ defmodule CustomExample.Callback do
 
   def introspect_add_subject_attributes(response, _) do
     response
+  end
+
+  def introspect_add_authenticated_session_info(response, %{token: token}) do
+    case token.data["__asteroid_oidc_authenticated_session_id"] do
+      session_id when is_binary(session_id) ->
+        session_info = OIDC.AuthenticatedSession.info(session_id) || %{}
+
+        response
+        |> put_if_not_nil("current_acr", session_info[:acr])
+        |> put_if_not_nil("current_amr", session_info[:amr])
+        |> put_if_not_nil("current_auth_time", session_info[:auth_time])
+
+      nil ->
+        response
+    end
   end
 
   @spec test_ropc_username_password_callback(Plug.Conn.t(), String.t(), String.t())

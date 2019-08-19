@@ -17,8 +17,8 @@ Asteroid supports the following specifications:
 - Proof Key for Code Exchange by OAuth Public Clients ([RFC7636](https://tools.ietf.org/html/rfc7636))
 - OAuth 2.0 Dynamic Client Registration Protocol ([RFC7591](https://tools.ietf.org/html/rfc7591))
 - OAuth 2.0 Authorization Server Metadata ([RFC8414](https://tools.ietf.org/html/rfc8414))
+- OAuth 2.0 Device Authorization Grant ([RFC8628](https://www.rfc-editor.org/rfc/rfc8628.html))
 - JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00))
-- OAuth 2.0 Device Authorization Grant ([draft-ietf-oauth-device-flow-15](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15))
 
 Asteroid strives to fully implement the specifications. For specifics about support, refer to
 the documentation.

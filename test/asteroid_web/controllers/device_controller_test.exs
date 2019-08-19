@@ -14,7 +14,6 @@ defmodule AsteroidWeb.DeviceControllerTest do
       conn
       |> bypass_through(AsteroidWeb.Router, [:browser])
       |> get("/device")
-      |> Phoenix.Controller.put_view(AsteroidWeb.DeviceView)
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: nil,
@@ -33,7 +32,6 @@ defmodule AsteroidWeb.DeviceControllerTest do
       conn
       |> bypass_through(AsteroidWeb.Router, [:browser])
       |> get("/device")
-      |> Phoenix.Controller.put_view(AsteroidWeb.DeviceView)
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: "ABCDEFGH1",
@@ -51,7 +49,6 @@ defmodule AsteroidWeb.DeviceControllerTest do
       conn
       |> bypass_through(AsteroidWeb.Router, [:browser])
       |> get("/device")
-      |> Phoenix.Controller.put_view(AsteroidWeb.DeviceView)
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: nil,
@@ -72,7 +69,6 @@ defmodule AsteroidWeb.DeviceControllerTest do
       conn
       |> bypass_through(AsteroidWeb.Router, [:browser])
       |> get("/device")
-      |> Phoenix.Controller.put_view(AsteroidWeb.DeviceView)
       |> AsteroidWeb.DeviceController.authorization_granted(%{
         authz_request: authz_request,
         user_code: "ABCDEFGH2",

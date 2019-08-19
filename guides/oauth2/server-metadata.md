@@ -7,30 +7,31 @@ This RFC allows advertising metadata related to the OAuth2 server, and to be use
 automated fashion by OAuth2 clients.
 
 OAuth2 server metadata is made available on the `/.well-known/oauth-authorization-server`
-and `/.well-known/oauth-authorization-server` URLs.
+and `/.well-known/openid-configuration` URLs.
 
 ## Support
 
-- [x] Advertises the following metadata:
-  - `"issuer"`
-  - `"grant_types_supported"`
-  - `"scopes_supported"`
-  - `"response_types_supported"`
-  - `"authorization_endpoint"`
-  - `"registration_endpoint"`
-  - `"token_endpoint"`
-  - `"token_endpoint_auth_methods_supported"`
-  - `"revocation_endpoint"`
-  - `"revocation_endpoint_auth_methods_supported"`
-  - `"introspection_endpoint"`
-  - `"introspect_endpoint_auth_methods_supported"`
-  - `"code_challenge_methods_supported"`
-  - `"jwks_uri"`
-  - `"service_documentation"`
-  - `"ui_locales_supported"`
-  - `"op_policy_uri"`
-  - `"op_tos_uri"`
-  - `"device_authorization_endpoint"` (from [OAuth 2.0 Device Authorization Grant - section 4](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15#section-4))
+- Advertised metadata:
+  - [x] `"issuer"`
+  - [x] `"grant_types_supported"`
+  - [x] `"scopes_supported"`
+  - [x] `"response_types_supported"`
+  - [x] `"authorization_endpoint"`
+  - [x] `"registration_endpoint"`
+  - [x] `"token_endpoint"`
+  - [x] `"token_endpoint_auth_methods_supported"`
+  - [x] `"revocation_endpoint"`
+  - [x] `"revocation_endpoint_auth_methods_supported"`
+  - [x] `"introspection_endpoint"`
+  - [x] `"introspect_endpoint_auth_methods_supported"`
+  - [x] `"code_challenge_methods_supported"`
+  - [x] `"jwks_uri"`
+  - [x] `"service_documentation"`
+  - [x] `"ui_locales_supported"`
+  - [x] `"op_policy_uri"`
+  - [x] `"op_tos_uri"`
+  - [x] `"device_authorization_endpoint"` (from [OAuth 2.0 Device Authorization Grant - section 4](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15#section-4))
+  - [x] other OpenID Connect metadata
 - [x] Signed metadata
 
 ## Published metadata

@@ -3,10 +3,12 @@ defmodule Asteroid.Application do
 
   use Application
 
+  import Asteroid.Utils
+
   alias Asteroid.AttributeRepository
   alias Asteroid.Client
   alias Asteroid.Subject
-  alias Asteroid.TokenStore
+  alias Asteroid.Store
   alias Asteroid.Crypto
 
   def start(_type, _args) do
@@ -16,16 +18,18 @@ defmodule Asteroid.Application do
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
-         :ok <- TokenStore.auto_install_from_config(),
-         :ok <- TokenStore.auto_start_from_config(),
+         :ok <- Store.auto_install_from_config(),
+         :ok <- Store.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
       # creating clients and subjects for the demo app
       create_clients()
       create_subjects()
 
-      # See https://hexdocs.pm/elixir/Supervisor.html
-      # for other strategies and supported options
+      if astrenv(:crypto_jws_none_alg_enabled, false) do
+        JOSE.JWA.unsecured_signing(true)
+      end
+
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
       Supervisor.start_link(children, opts)
     end

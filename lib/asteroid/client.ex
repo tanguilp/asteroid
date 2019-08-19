@@ -12,6 +12,8 @@ defmodule Asteroid.Client do
   - those who can't: *public clients* (mobile applications, SPAs...). In this case there are
   multiple instances of the same client running, used by different subjects
 
+  # FIXME: update with fields from Dynamic Registration
+
   ## Field naming
   The following fields have standardised meaning:
   - `"client_id"`: the client identifier (as in OAuth2) (`String.t()`)
@@ -43,7 +45,7 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_ropc_access_token_signing_key"`: the
   `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the ROPC flow
   - `"__asteroid_oauth2_flow_ropc_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the ROPC flow
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the ROPC flow
   - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_init"`: a `boolean()` set to
   `true` if a refresh token is to be issued at the first request of the client credentials flow
   - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_refresh"`: a `boolean()` set
@@ -58,7 +60,8 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_client_credentials_access_token_signing_key"`: the
   `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the client credentials flow
   - `"__asteroid_oauth2_flow_client_credentials_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the client credentials flow
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the client credentials
+  flow
   - `"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"`: a
   `non_neg_integer()` set to the lifetime duration of an authorization in the code flow
   - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
@@ -74,18 +77,21 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_authorization_code_access_token_signing_key"`: the
   `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the authorization code flow
   - `"__asteroid_oauth2_flow_authorization_code_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the authorization code flow
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the authorization code
+  flow
   - `"__asteroid_oauth2_flow_authorization_code_refresh_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of a refresh token in the authorization code flow
   - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an access token in the implicit flow
   - `"__asteroid_oauth2_flow_implicit_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the implicit flow
+  - `"__asteroid_oauth2_flow_implicit_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the implicit flow
   - `"__asteroid_oauth2_flow_implicit_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the implicit flow
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
-  - `"__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use"`: a `boolean()` indicating
+  - `"__asteroid_oauth2_mandatory_pkce_use"`: a `boolean()` indicating
   whether the client shall use PKCE or not (defaults to not being forced to use PKCE)
   - `"__asteroid_oauth2_endpoint_register_allowed_token_endpoint_auth_method"`: a list of
   `t:Asteroid.OAuth2.Endpoint.auth_method_str/0` that restricts the token endpoint auth methods
@@ -139,8 +145,67 @@ defmodule Asteroid.Client do
   `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the device authorization
   flow
   - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.alg/0` signing algorithm for access tokens in the device authorization
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the device
+  authorization flow
+  - `"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime"`: a
+  `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
+  true if a refresh token is to be issued in the OIDC authorization code flow when presenting the
+  authorization code
+  - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_refresh"`: a `boolean()` set
+  to true if a refresh token is to be issued when refreshing tokens in the OIDC authorization
+  code flow
+  - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_init"`: a `boolean()` set to
+  true if a refresh token is to be issued in the OIDC hybrid flow when presenting the
+  authorization code
+  - `"__asteroid_oidc_flow_hybrid_issue_refresh_token_refresh"`: a `boolean()` set
+  to true if a refresh token is to be issued when refreshing tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_hybrid_refresh_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of a refresh token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_implicit_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an access token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC authorization code flow
+  - `"__asteroid_oidc_flow_implicit_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_id_token_lifetime"`: a `non_neg_integer()`
+  set to the lifetime duration of an ID token in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_authorization_code_issue_id_token_refresh"`: a `boolean()` set
+  to true if an ID token is to be issued when refreshing tokens in the OIDC authorization code
   flow
+  - `"__asteroid_oidc_flow_hybrid_issue_id_token_refresh"`: a `boolean()` set
+  to true if an ID token is to be issued when refreshing tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_hybrid_authorization_code_lifetime"`: a
+  `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
+  - `"__asteroid_oidc_flow_implicit_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_serialization_format"`: the
+  `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_implicit_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_signing_key"`: the
+  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_implicit_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC implicit flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_signing_alg"`: the
+  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC hybrid flow
 
   ## Configuration
 
@@ -153,4 +218,30 @@ defmodule Asteroid.Client do
   - You **SHOULD NOT** issue client secrets to public clients
   [RFC6749 - 10.1.  Client Authentication](https://tools.ietf.org/html/rfc6749#section-10.1)
   """
+
+  @doc """
+  Returns the JWKs of a client
+
+  Note that the `"jwks_uri"` field takes precedence over the `"jwks"` field. If `"jwks"` is
+  somehow unreachable, it does **not** fallback to the `"jwks"` field but returns an error
+  instead.
+  """
+
+  @spec get_jwks(t()) :: {:ok, [Asteroid.Crypto.Key.t()]} | {:error, any()}
+
+  def get_jwks(client) do
+    client = fetch_attributes(client, ["jwks", "jwks_uri"])
+
+    if client.attrs["jwks_uri"] do
+      case JWKSURIUpdater.get_keys(client.attrs["jwks_uri"]) do
+        {:ok, keys} ->
+          keys
+
+        {:error, _} = error ->
+          error
+      end
+    else
+      {:ok, client.attrs["jwks"] || []}
+    end
+  end
 end

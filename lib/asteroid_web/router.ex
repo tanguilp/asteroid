@@ -41,6 +41,24 @@ defmodule AsteroidWeb.Router do
     plug Plug.Parsers, parsers: [:json], json_decoder: Jason
   end
 
+  pipeline :request_object do
+    for {plug_module, plug_options} <- astrenv(:api_request_object_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :oidc do
+    for {plug_module, plug_options} <- astrenv(:api_oidc_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
+  pipeline :oidc_endpoint_userinfo do
+    for {plug_module, plug_options} <- astrenv(:api_oidc_endpoint_userinfo_plugs, []) do
+      plug plug_module, plug_options
+    end
+  end
+
   pipeline :oauth2 do
     for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
       plug plug_module, plug_options
@@ -95,6 +113,27 @@ defmodule AsteroidWeb.Router do
     post "/authorize_scopes", AuthorizeScopesController, :validate
   end
 
+  scope "/api", AsteroidWeb.API do
+    scope "/request_object" do
+      pipe_through :request_object
+
+      get "/:id", RequestObjectController, :show
+      post "/", RequestObjectController, :create
+    end
+  end
+
+  scope "/api/oidc", AsteroidWeb.API.OIDC do
+    pipe_through :oidc
+
+    scope "/userinfo" do
+      pipe_through :api_urlencoded
+      pipe_through :oidc_endpoint_userinfo
+
+      get "/", UserinfoController, :show
+      post "/", UserinfoController, :show
+    end
+  end
+
   scope "/api/oauth2", AsteroidWeb.API.OAuth2 do
     pipe_through :oauth2
 
@@ -102,49 +141,49 @@ defmodule AsteroidWeb.Router do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_token
 
-      post "/", TokenEndpoint, :handle
+      post "/", TokenController, :handle
     end
 
     scope "/introspect" do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_introspect
 
-      post "/", IntrospectEndpoint, :handle
+      post "/", IntrospectController, :handle
     end
 
     scope "/revoke" do
       pipe_through :api_urlencoded
       pipe_through :oauth2_endpoint_revoke
 
-      post "/", RevokeEndpoint, :handle
+      post "/", RevokeController, :handle
     end
 
     scope "/register" do
       pipe_through :api_json
       pipe_through :oauth2_endpoint_register
 
-      post "/", RegisterEndpoint, :handle
+      post "/", RegisterController, :handle
     end
 
     scope "/device_authorization" do
       pipe_through :api_json
       pipe_through :oauth2_endpoint_device_authorization
 
-      post "/", DeviceAuthorizationEndpoint, :handle
+      post "/", DeviceAuthorizationController, :handle
     end
   end
 
   scope "/.well-known", AsteroidWeb.WellKnown do
     pipe_through :well_known
 
-    get "/oauth-authorization-server", OauthAuthorizationServerEndpoint, :handle
-    get "/openid-configuration", OauthAuthorizationServerEndpoint, :handle
+    get "/oauth-authorization-server", OauthAuthorizationServerController, :handle
+    get "/openid-configuration", OauthAuthorizationServerController, :handle
   end
 
   scope "/discovery", AsteroidWeb.Discovery do
     pipe_through :discovery
 
-    get "/keys", KeysEndpoint, :handle
+    get "/keys", KeysController, :handle
   end
 
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: stack}) do

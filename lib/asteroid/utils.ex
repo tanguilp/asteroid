@@ -50,6 +50,11 @@ defmodule Asteroid.Utils do
   def put_if_not_empty_string(map, _, ""), do: map
   def put_if_not_empty_string(map, key, value), do: Map.put(map, key, value)
 
+  @spec put_if_not_empty(map(), Map.key(), [any()]) :: map()
+
+  def put_if_not_empty(map, _, []), do: map
+  def put_if_not_empty(map, key, list), do: Map.put(map, key, list)
+
   @doc """
   Returns the parameter unchanged
   """
@@ -77,4 +82,57 @@ defmodule Asteroid.Utils do
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
 
   def conn_not_authenticated?(conn), do: not APIac.authenticated?(conn)
+
+  @doc """
+  Returns `true` if a list of headers contains, `false` otherwise
+
+  ## Example
+
+  ```elixir
+  iex> headers
+  [
+    {"Date", "Sun, 28 Jul 2019 21:07:14 GMT"},
+    {"Content-Type", "text/html;charset=utf-8"},
+    {"Transfer-Encoding", "chunked"},
+    {"Server", "Apache"},
+    {"X-Powered-By", "PHP/5.6"},
+    {"Vary", "Accept-Encoding"},
+    {"Set-Cookie", "SERVERID100401=1520152|XT4Oh|XT4Oh; path=/"},
+    {"Cache-control", "private"},
+    {"X-IPLB-Instance", "28305"}
+  ]
+  iex> Asteroid.Utils.headers_contain_content_type?(headers, "text", "html")                      
+  true
+  iex> Asteroid.Utils.headers_contain_content_type?(headers, "application", "xml")
+  false
+  ```
+  """
+
+  @spec headers_contain_content_type?(list(), String.t(), String.t()) :: boolean()
+
+  def headers_contain_content_type?(headers, type, subtype) do
+    case Enum.find_value(
+      headers,
+      fn
+        {header, value} ->
+          if String.downcase(header) == "content-type" do
+            value
+          else
+            false
+          end
+      end
+    ) do
+      nil ->
+        false
+
+      media_type ->
+        case ContentType.content_type(media_type) do
+          {:ok, ^type, ^subtype, _} ->
+            true
+
+          _ ->
+            false
+        end
+    end
+  end
 end

@@ -19,13 +19,13 @@ defmodule Asteroid.OAuth2.Request do
 
     @impl true
 
-    def message(%{reason: reason}) do
+    def message(%{reason: reason, parameter: parameter}) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          reason
+          "invalid parameter `#{parameter}`, reason: #{reason}"
 
         :normal ->
-          reason
+          "invalid parameter `#{parameter}`"
 
         :minimal ->
           ""

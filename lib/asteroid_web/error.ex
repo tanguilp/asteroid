@@ -7,9 +7,12 @@ defmodule AsteroidWeb.Error do
   import Phoenix.Controller
   import Plug.Conn
 
+  alias Asteroid.Client
   alias Asteroid.OAuth2
-  alias AsteroidWeb.API.OAuth2.TokenEndpoint
-  alias AsteroidWeb.API.OAuth2.RegisterEndpoint
+  alias Asteroid.OIDC
+  alias AsteroidWeb.AuthorizeController
+  alias AsteroidWeb.API.OAuth2.TokenController
+  alias AsteroidWeb.API.OAuth2.RegisterController
 
   @doc """
   Responds with the appropriate error codes, headers and text to an OAuth2 protocol flow
@@ -51,6 +54,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -58,6 +63,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -66,6 +73,8 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
@@ -74,24 +83,42 @@ defmodule AsteroidWeb.Error do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
     |> render("error_redirect_uri.html")
   end
 
   # function used when the connection is directly returned with an error. In such a case, params
   # are in the Conn
 
-  def respond_authorize(%Plug.Conn{query_params: %{"redirect_uri" => redirect_uri}} = conn, e) do
-    redirect_uri = OAuth2.RedirectUri.add_params(
-      redirect_uri,
-      %{
-        "error" => err_name(e),
-        "error_description" => Exception.message(e)
-      }
-      |> put_if_not_nil("state", conn.query_params["state"])
-    )
+  def respond_authorize(%Plug.Conn{query_params:
+    %{"redirect_uri" => redirect_uri, "client_id" => client_id}} = conn, e)
+  do
+    with :ok <- AuthorizeController.client_id_valid?(client_id),
+         :ok <- AuthorizeController.redirect_uri_valid?(redirect_uri),
+         {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
+         :ok <- AuthorizeController.redirect_uri_registered_for_client?(client,
+                                                                        redirect_uri)
+    do
+      redirect_uri = OAuth2.RedirectUri.add_params(
+        redirect_uri,
+        %{}
+        |> Map.put("error", err_name(e))
+        |> Map.put("error_description", Exception.message(e))
+        |> put_if_not_nil("state", conn.query_params["state"])
+      )
 
-    conn
-    |> redirect(external: redirect_uri)
+      conn
+      |> redirect(external: redirect_uri)
+    else
+      _ ->
+        conn
+        |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+        |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.AuthorizeView)
+        |> render("error_redirect_uri.html")
+    end
   end
 
   # function used when coming back from an authn / authz process. The authorization request must
@@ -109,6 +136,98 @@ defmodule AsteroidWeb.Error do
     |> redirect(external: redirect_uri)
   end
 
+  def respond_authorize(conn, %OAuth2.JAR.RequestNotSupportedError{} = e) do
+    respond_authorize_jar(conn, e)
+  end
+
+  def respond_authorize(conn, %OAuth2.JAR.InvalidRequestObjectError{} = e) do
+    respond_authorize_jar(conn, e)
+  end
+
+  # Here we certainly won't have a redirect URI since we couldn't didn/t resolve the request
+  # object in the first place
+
+  def respond_authorize(conn, %OAuth2.JAR.RequestURINotSupportedError{} = e) do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
+    |> render("error_redirect_uri.html")
+  end
+
+  def respond_authorize(conn, %OAuth2.JAR.InvalidRequestURIError{} = e) do
+    conn
+    |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+    |> put_status(400)
+    |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+    |> put_view(AsteroidWeb.AuthorizeView)
+    |> render("error_redirect_uri.html")
+  end
+
+  # JAR request which do not have duplicate query params for client_id or redirect_uri
+  # (if they do, another respond_authorize/2 clause will have caught it)
+  #
+  # We then try to read the request object anyway (obvisouly won't work for JWEs) to pick
+  # client_id / redirect_uri, then validate them and if correct, redirect to the client.
+  # Otherwise we show a local Asteroid error page
+
+  @spec respond_authorize_jar(Plug.Conn.t(), Exception.t()) :: Plug.Conn.t()
+
+  defp respond_authorize_jar(conn, e) do
+    try do
+      invalid_request_object =
+        e.request_object
+        |> JOSE.JWS.peek_payload()
+        |> Jason.decode!()
+
+      case invalid_request_object do
+        %{"redirect_uri" => redirect_uri, "client_id" => client_id} ->
+          with :ok <- AuthorizeController.client_id_valid?(client_id),
+               :ok <- AuthorizeController.redirect_uri_valid?(redirect_uri),
+               {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
+               :ok <- AuthorizeController.redirect_uri_registered_for_client?(client,
+                                                                              redirect_uri)
+          do
+            redirect_uri = OAuth2.RedirectUri.add_params(
+              redirect_uri,
+              %{}
+              |> Map.put("error", err_name(e))
+              |> Map.put("error_description", Exception.message(e))
+              |> put_if_not_nil("state", conn.query_params["state"])
+            )
+
+            conn
+            |> redirect(external: redirect_uri)
+          else
+            _ ->
+              conn
+              |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+              |> put_status(400)
+              |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+              |> put_view(AsteroidWeb.AuthorizeView)
+              |> render("error_redirect_uri.html")
+          end
+
+        _ ->
+          conn
+          |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+          |> put_status(400)
+          |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+          |> put_view(AsteroidWeb.AuthorizeView)
+          |> render("error_redirect_uri.html")
+      end
+    rescue
+      _ ->
+        conn
+        |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
+        |> put_status(400)
+        |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
+        |> put_view(AsteroidWeb.AuthorizeView)
+        |> render("error_redirect_uri.html")
+    end
+  end
+
   @spec err_name(Exception.t()) :: String.t()
 
   defp err_name(%OAuth2.UnsupportedGrantTypeError{}), do: "unsupported_grant_type"
@@ -117,6 +236,10 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.AccessDeniedError{}), do: "access_denied"
   defp err_name(%OAuth2.ServerError{}), do: "server_error"
   defp err_name(%OAuth2.TemporarilyUnavailableError{}), do: "temporarily_unavailable"
+  defp err_name(%OIDC.InteractionRequiredError{}), do: "interaction_required"
+  defp err_name(%OIDC.LoginRequiredError{}), do: "login_required"
+  defp err_name(%OIDC.AccountSelectionRequiredError{}), do: "account_selection_required"
+  defp err_name(%OIDC.ConsentRequiredError{}), do: "consent_required"
   defp err_name(%OAuth2.Client.AuthenticationError{}), do: "invalid_client"
   defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}), do: "invalid_scope"
   defp err_name(%OAuth2.Client.AuthorizationError{}), do: "unauthorized_client"
@@ -127,19 +250,40 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.DeviceAuthorization.ExpiredTokenError{}), do: "expired_token"
   defp err_name(%OAuth2.DeviceAuthorization.AuthorizationPendingError{}), do: "authorization_pending"
   defp err_name(%OAuth2.DeviceAuthorization.RateLimitedError{}), do: "slow_down"
-  defp err_name(%TokenEndpoint.ExceedingScopeError{}), do: "invalid_scope"
-  defp err_name(%RegisterEndpoint.InvalidClientMetadataFieldError{}), do: "invalid_client_metadata"
-  defp err_name(%RegisterEndpoint.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
-  defp err_name(%RegisterEndpoint.UnauthorizedRequestedScopesError{}), do: "invalid_client_metadata"
+  defp err_name(%OAuth2.JAR.RequestNotSupportedError{}), do: "request_not_supported"
+  defp err_name(%OAuth2.JAR.RequestURINotSupportedError{}), do: "request_uri_not_supported"
+  defp err_name(%OAuth2.JAR.InvalidRequestURIError{}), do: "invalid_request_uri"
+  defp err_name(%OAuth2.JAR.InvalidRequestObjectError{}), do: "invalid_request_object"
+  defp err_name(%TokenController.ExceedingScopeError{}), do: "invalid_scope"
+  defp err_name(%RegisterController.InvalidClientMetadataFieldError{}), do: "invalid_client_metadata"
+  defp err_name(%RegisterController.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
+  defp err_name(%RegisterController.UnauthorizedRequestedScopesError{}), do: "invalid_client_metadata"
 
   @spec err_status(Exception.t()) :: non_neg_integer()
 
   defp err_status(%OAuth2.Client.AuthenticationError{}), do: 401
   defp err_status(_), do: 400
 
+  @doc """
+  Set the authentication error headers in accordance to RFC6749
+
+  This function set the `"www-authenticate"` header in the following way:
+  - if an authentication was attempted, sets the header for this authentication attempt only
+  - otherwise, advertise all the authentication methods available
+
+  As per the RFC:
+
+  > If the
+  > client attempted to authenticate via the "Authorization"
+  > request header field, the authorization server MUST
+  > respond with an HTTP 401 (Unauthorized) status code and
+  > include the "WWW-Authenticate" response header field
+  > matching the authentication scheme used by the client.
+  """
+
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
 
-  defp set_www_authenticate_header(conn) do
+  def set_www_authenticate_header(conn) do
     apisex_errors = APIac.AuthFailureResponseData.get(conn)
 
     failed_auth = Enum.find(
@@ -151,13 +295,6 @@ defmodule AsteroidWeb.Error do
     )
 
     case failed_auth do
-      # client tried to authenticate, as per RFC:
-      #   If the
-      #   client attempted to authenticate via the "Authorization"
-      #   request header field, the authorization server MUST
-      #   respond with an HTTP 401 (Unauthorized) status code and
-      #   include the "WWW-Authenticate" response header field
-      #   matching the authentication scheme used by the client.
       %APIac.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->
         APIac.set_WWWauthenticate_challenge(conn, scheme, params)
 

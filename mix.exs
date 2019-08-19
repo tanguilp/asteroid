@@ -49,6 +49,7 @@ defmodule Asteroid.MixProject do
       # {:attribute_repository_ldap, github: "tanguilp/attribute_repository_ldap"},
       {:attribute_repository_mnesia, github: "tanguilp/attribute_repository_mnesia"},
       # {:attribute_repository_riak, github: "tanguilp/attribute_repository_riak"},
+      {:content_type, github: "marcelotto/content_type", tag: "master"},
       {:corsica, "~> 1.0"},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
@@ -57,10 +58,13 @@ defmodule Asteroid.MixProject do
       {:httpoison, "~> 1.0", override: true},
       {:jason, "~> 1.0"},
       {:jose, "~> 1.9"},
+      {:jwks_uri_updater, github: "tanguilp/jwks_uri_updater"},
+      {:oauth2_metadata_updater, github: "tanguilp/oauth2_metadata_updater", override: true},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_html, "~> 2.11"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:plug_cowboy, "~> 2.0"},
+      {:poison, "~> 4.0", override: true},
       {:riak, github: "tanguilp/riak-elixir-client"},
       {:singleton, "~> 1.2.0"},
       {:wax, github: "tanguilp/wax", tag: "0.1.2"}
@@ -90,15 +94,33 @@ defmodule Asteroid.MixProject do
           Asteroid.Token,
           Asteroid.Token.AccessToken,
           Asteroid.Token.RefreshToken,
-          Asteroid.Token.AuthorizationCode],
+          Asteroid.Token.AuthorizationCode,
+          Asteroid.Token.DeviceCode,
+          Asteroid.Token.IDToken
+        ],
         "Token stores": [
-          Asteroid.TokenStore,
-          Asteroid.TokenStore.AccessToken,
-          Asteroid.TokenStore.AccessToken.Mnesia,
-          Asteroid.TokenStore.AccessToken.Riak,
-          Asteroid.TokenStore.RefreshToken,
-          Asteroid.TokenStore.RefreshToken.Mnesia,
-          Asteroid.TokenStore.RefreshToken.Riak
+          Asteroid.Store,
+          Asteroid.Store.AccessToken,
+          Asteroid.Store.AccessToken.Mnesia,
+          Asteroid.Store.AccessToken.Riak,
+          Asteroid.Store.AuthorizationCode,
+          Asteroid.Store.AuthorizationCode.Mnesia,
+          Asteroid.Store.AuthorizationCode.Riak,
+          Asteroid.Store.AuthenticatedSession,
+          Asteroid.Store.AuthenticatedSession.Mnesia,
+          Asteroid.Store.AuthenticatedSession.Riak,
+          Asteroid.Store.AuthenticationEvent,
+          Asteroid.Store.AuthenticationEvent.Mnesia,
+          Asteroid.Store.AuthenticationEvent.Riak,
+          Asteroid.Store.RefreshToken,
+          Asteroid.Store.RefreshToken.Mnesia,
+          Asteroid.Store.RefreshToken.Riak,
+          Asteroid.Store.DeviceCode,
+          Asteroid.Store.DeviceCode.Mnesia,
+          Asteroid.Store.DeviceCode.Riak,
+          Asteroid.Store.GenericKV,
+          Asteroid.Store.GenericKV.Mnesia,
+          Asteroid.Store.GenericKV.Riak
         ]
       ],
       extras: [
@@ -115,7 +137,6 @@ defmodule Asteroid.MixProject do
         "guides/customizing.md",
         "guides/running-demo-app.md",
         "guides/oauth2/terminology-conventions.md",
-        "guides/oauth2/basic-configuration.md",
         "guides/oauth2/managing-scopes.md",
         "guides/oauth2/oauth2-core.md",
         "guides/oauth2/token-introspection.md",
@@ -124,13 +145,18 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/pkce.md",
         "guides/oauth2/dynamic-client-registration.md",
         "guides/oauth2/device-flow.md",
-        "guides/oauth2/server-metadata.md"
+        "guides/oauth2/server-metadata.md",
+        "guides/oauth2/jar.md",
+        "guides/openid-connect/sessions-loas.md",
+        "guides/openid-connect/openid-connect-core.md",
+        "guides/openid-connect/oidc-dynamic-client-registration.md",
+        "guides/openid-connect/response-mode.md",
+        "guides/openid-connect/openid-connect-discovery.md",
       ],
       groups_for_extras:
       [
         "OAuth2": [
           "guides/oauth2/terminology-conventions.md",
-          "guides/oauth2/basic-configuration.md",
           "guides/oauth2/managing-scopes.md",
           "guides/oauth2/oauth2-core.md",
           "guides/oauth2/token-introspection.md",
@@ -139,8 +165,16 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/pkce.md",
           "guides/oauth2/dynamic-client-registration.md",
           "guides/oauth2/device-flow.md",
-          "guides/oauth2/server-metadata.md"
-        ]
+          "guides/oauth2/server-metadata.md",
+          "guides/oauth2/jar.md"
+        ],
+      "OpenID Connect": [
+        "guides/openid-connect/sessions-loas.md",
+        "guides/openid-connect/openid-connect-core.md",
+        "guides/openid-connect/oidc-dynamic-client-registration.md",
+        "guides/openid-connect/response-mode.md",
+        "guides/openid-connect/openid-connect-discovery.md",
+      ]
       ]
     ]
   end
