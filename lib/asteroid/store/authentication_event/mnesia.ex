@@ -10,7 +10,7 @@ defmodule Asteroid.Store.AuthenticationEvent.Mnesia do
   not be erased. One can use it to add additional indexes for clients or devices, e.g.:
   `tab_def: [index: :refresh_token, :authenticated_session_id, :client_id]`
   - `:purge_interval`: the `integer()` interval in seconds the purge process will be triggered,
-  or `:no_purge` to disable purge. Defaults to `300` (5 minutes)
+  or `:no_purge` to disable purge. Defaults to `60` (1 minutes)
 
   ## Default Mnesia table definition
   ```elixir
@@ -74,7 +74,7 @@ defmodule Asteroid.Store.AuthenticationEvent.Mnesia do
   def start_link(opts) do
     case :mnesia.start() do
       :ok ->
-        opts = Keyword.merge([purge_interval: 300], opts)
+        opts = Keyword.merge([purge_interval: 60], opts)
 
         # we launch the process anyway because we need to return a process
         # but the singleton will do nothing if the value is `:no_purge`

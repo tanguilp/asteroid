@@ -18,7 +18,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Riak do
   Riak. No defaults, **mandatory**
   - `bucket_name`: a `String.t()` for the bucket name. Defaults to `"authenticated_session"`
   - `:purge_interval`: the `integer()` interval in seconds the purge process will be triggered,
-  or `:no_purge` to disable purge. Defaults to `300` (5 minutes)
+  or `:no_purge` to disable purge. Defaults to `1800` (30 minutes)
 
   ## Installation function
 
@@ -81,7 +81,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Riak do
   @impl true
 
   def start_link(opts) do
-    opts = Keyword.merge([purge_interval: 300], opts)
+    opts = Keyword.merge([purge_interval: 1800], opts)
 
     # we launch the process anyway because we need to return a process
     # but the singleton will do nothing if the value is `:no_purge`
