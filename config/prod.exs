@@ -282,7 +282,8 @@ config :asteroid, :oauth2_grant_types_enabled, [
 
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
-  #:token
+  :token,
+  :id_token
 ]
 
 config :asteroid, :api_error_response_verbosity, :normal
@@ -556,7 +557,10 @@ config :asteroid, :scope_config, [
         "fr" => "Réaliser des virements",
         "ru" => "Делать банковские переводы"
       }
-    ]
+    ],
+    "openid" => [],
+    "email" => [label: %{"en" => "Access your email address"}],
+    "profile" => [label: %{"en" => "Access your profile information"}]
   }
 ]
 
@@ -576,6 +580,18 @@ config :asteroid, :oauth2_flow_device_authorization_scope_config, []
 
 config :asteroid, :oidc_id_token_lifetime_callback,
   &Asteroid.Token.IDToken.lifetime/1
+
+config :asteroid, :oidc_acr_config, [
+  "2-factor": [
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password", "otp"]]
+  ],
+  "1-factor": [
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password"], ["otp"]],
+    default: true
+  ]
+]
 
 config :asteroid, :token_id_token_before_serialize_callback,
   &Asteroid.Utils.id_first_param/2

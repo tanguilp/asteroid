@@ -1,0 +1,29 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <%= if Enum.empty?(@scopes) do %>
+  <p style="text-align:left">The application <i><%= @client.attrs["client_name"] %></i>
+  requests access to your data.</p>
+  <% else %>
+  <p style="text-align:left">The application <i><%= @client.attrs["client_name"] %></i>
+  requests the following permissions:</p>
+  <% end %>
+
+  <p style="margin-top:1em">
+  <%= form_for @conn, Routes.oidc_authorize_scopes_path(@conn, :index),
+  [style: "text-align:left"], fn f -> %>
+    <%= for scope <- @scopes, scope[:display] != false do %>
+      <%= checkbox f, "scopes[#{scope[:name]}]",
+        onclick: "return #{scope[:optional] and !scope[:already_authorized]};",
+        checked: true, readonly: !scope[:optional] || scope[:already_authorized] %>
+      <%= scope[:label] %> <br/>
+    <% end %>
+    <%= for scope <- @scopes, scope[:display] == false do %>
+      <%= checkbox f, "scopes[#{scope[:name]}]", checked: true, style: "display:none" %>
+    <% end %>
+    <br/>
+    <%= submit "Deny", name: "submit_deny",
+      style: "background-color:darkred;border-color:darkred" %>
+    <%= submit "Grant", name: "submit_grant", style: "float:right" %>
+  <% end %>
+  </p>
+</section>

@@ -49,6 +49,7 @@ defmodule Asteroid.MixProject do
       # {:attribute_repository_ldap, github: "tanguilp/attribute_repository_ldap"},
       {:attribute_repository_mnesia, github: "tanguilp/attribute_repository_mnesia"},
       # {:attribute_repository_riak, github: "tanguilp/attribute_repository_riak"},
+      {:bamboo, "~> 1.3"},
       {:content_type, github: "marcelotto/content_type", tag: "master"},
       {:corsica, "~> 1.0"},
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},

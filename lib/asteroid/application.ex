@@ -52,12 +52,14 @@ defmodule Asteroid.Application do
       "client_credentials",
       "refresh_token",
     ])
-    |> Client.add("response_types", ["code"])
+    |> Client.add("response_types", ["code", "id_token"])
     |> Client.add("scope", [
       "read_balance",
       "read_account_information",
       "interbank_transfer",
-      "asteroid.introspect"
+      "asteroid.introspect",
+      "openid",
+      "email"
     ])
     |> Client.add("redirect_uris", ["http://www.example.com/oauth2_redirect"])
     |> Client.store()

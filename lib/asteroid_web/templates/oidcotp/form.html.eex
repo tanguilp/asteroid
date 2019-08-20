@@ -1,0 +1,11 @@
+<section class="phx-hero">
+  <h1>Asteroid demo authentication workflow</h1>
+  <p>Please enter the authentication code you have received by mail:</p>
+
+  <p style="margin-top:1em">
+  <%= form_for @conn, Routes.oidcotp_path(@conn, :put), fn f -> %>
+    <%= password_input f, :otp %>
+    <%= submit "Verify code" %>
+  <% end %>
+  </p>
+</section>

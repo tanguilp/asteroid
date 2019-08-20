@@ -302,7 +302,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
      data: %{"amr" => "phr", "name" => "webauthn", "time" => 300000},
      id: "N_V4i9lz5obd-3C0XZagZGtOFuDMZo0ywXSBjoum0KY"
    }}
-  iex> AS.info(as.id)            
+  iex> AS.info(as.id)
   %{acr: "3-factor", amr: ["otp", "phr", "pwd"], auth_time: 300000}
   iex> AS.info(as.id, "1-factor")
   %{acr: "1-factor", amr: ["pwd"], auth_time: 100000}

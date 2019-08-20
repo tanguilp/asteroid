@@ -111,6 +111,12 @@ defmodule AsteroidWeb.Router do
     post "/webauthn_login", WebauthnLoginController, :validate
     get "/authorize_scopes", AuthorizeScopesController, :index
     post "/authorize_scopes", AuthorizeScopesController, :validate
+    get "/oidc_email_password", OIDCEmailPasswordController, :index
+    post "/oidc_email_password", OIDCEmailPasswordController, :put
+    get "/oidc_otp", OIDCOTPController, :index
+    post "/oidc_otp", OIDCOTPController, :put
+    get "/oidc_authorize_scopes", OIDCAuthorizeScopesController, :index
+    post "/oidc_authorize_scopes", OIDCAuthorizeScopesController, :validate
   end
 
   scope "/api", AsteroidWeb.API do
@@ -190,5 +196,9 @@ defmodule AsteroidWeb.Router do
     conn
     |> AsteroidWeb.Error.respond_api(OAuth2.ServerError.exception(reason: inspect(reason),
                                                                   stacktrace: stack))
+  end
+
+  if Mix.env == :dev do
+    forward "/sent_emails", Bamboo.SentEmailViewerPlug
   end
 end

@@ -1,0 +1,3 @@
+<p>Your authentication code is:</p>
+
+<p style="text-align:center; font-size: 1.2em"><%= @otp %></p>

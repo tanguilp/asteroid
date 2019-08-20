@@ -23,6 +23,6 @@ p.username_card > a {
   text-indent: 0.5em;
 }
 
-input[type="text"], input[type="password"], intput[type="checkbox"] {
+input[type="text"], input[type="password"], input[type="checkbox"], input[type="email"] {
   background-color: white;
 }

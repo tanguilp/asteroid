@@ -52,9 +52,6 @@ defmodule Asteroid.OAuth2.Scope do
   when this was requested by the client. When not present, shall be treated as `false`
   - `:label`: a map of internationalised labels of the scope, that will be displayed to the
   end-user. The map keys are ISO639 tags, and the values the internationalised text of the label
-  - `:acceptable_loas`: a list of LOAs for use in OIDC flows. When present, a scope shall be
-  released only when the authorization process has an LOA present in this option. As a
-  consequence, a scope will never be released when this option is set to an empty list
   - `:max_refresh_token_lifetime`: *when present*, restricts the lifetime of a refresh token
   released when that scope is granted. This *supersedes global*, flow or client refresh token
   lifetime configuration

@@ -295,7 +295,8 @@ config :asteroid, :oauth2_grant_types_enabled, [
 
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
-  :token
+  :token,
+  :id_token
 ]
 
 config :asteroid, :api_error_response_verbosity, :normal
@@ -540,9 +541,7 @@ config :asteroid, :oauth2_must_use_pkce_callback, &Asteroid.OAuth2.Client.must_u
 
 ####################### Scope configuration ##########################
 
-config :asteroid, :scope_config, [scopes: %{"openid" => []}]
-
-config :asteroid, :oauth2_scope_config, [
+config :asteroid, :scope_config, [
   scopes: %{
     "read_balance" => [
       label: %{
@@ -567,9 +566,14 @@ config :asteroid, :oauth2_scope_config, [
         "fr" => "Réaliser des virements",
         "ru" => "Делать банковские переводы"
       }
-    ]
+    ],
+    "openid" => [display: false],
+    "email" => [label: %{"en" => "Access your email address"}],
+    "profile" => [label: %{"en" => "Access your profile information"}]
   }
 ]
+
+config :asteroid, :oauth2_scope_config, []
 
 config :asteroid, :oauth2_flow_authorization_code_scope_config, []
 
@@ -613,17 +617,13 @@ config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
 
 config :asteroid, :oidc_acr_config, [
-  "3-factor": [
-    callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
-    auth_event_set: [["password", "otp", "webauthn"]]
-  ],
   "2-factor": [
-    callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-    auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password", "emailotp"]]
   ],
   "1-factor": [
-    callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-    auth_event_set: [["password"], ["webauthn"]],
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password"], ["emailotp"]],
     default: true
   ]
 ]
@@ -648,3 +648,8 @@ config :asteroid, :oidc_endpoint_userinfo_encryption_alg_values_supported, ["RSA
 config :asteroid, :oidc_endpoint_userinfo_encryption_enc_values_supported, ["A128GCM", "A192GCM"]
 
 config :asteroid, :oidc_claims_supported, ["email", "phone_number", "gender"]
+
+# others
+
+config :asteroid, Asteroid.Mailer,
+  adapter: Bamboo.LocalAdapter
