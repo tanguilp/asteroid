@@ -55,12 +55,12 @@ defmodule Asteroid.Application do
     ])
     |> Client.add("response_types", [
       "code",
-      "token"
+      "token",
       "id_token",
       "id_token token",
       "code id_token",
       "code token",
-      "code id_token token",
+      "code id_token token"
     ])
     |> Client.add("scope", [
       "read_balance",
