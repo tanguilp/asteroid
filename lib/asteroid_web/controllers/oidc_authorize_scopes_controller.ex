@@ -95,7 +95,8 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
         %{
           authz_request: get_session(conn, :authz_request),
           subject: get_session(conn, :subject),
-          granted_scopes: Scope.Set.new(granted_scopes)
+          granted_scopes: Scope.Set.new(granted_scopes),
+          authenticated_session_id: get_session(conn, :authenticated_session_id)
         }
       )
     else
