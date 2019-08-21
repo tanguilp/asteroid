@@ -298,7 +298,8 @@ defmodule Asteroid.Token.AccessToken do
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_access_token_lifetime)}
-  - Otherwise returns `0`
+  - Otherwise returns
+  #{Asteroid.Config.link_to_option(:oauth2_access_token_lifetime)}, or `0` if not set
 
   In any case, the returned value is capped by the scope configuration.
   """
@@ -386,7 +387,7 @@ defmodule Asteroid.Token.AccessToken do
               :oidc_flow_hybrid_access_token_lifetime
           end
 
-        astrenv(conf_opt, 0)
+        astrenv(conf_opt, astrenv(:oauth2_access_token_lifetime, 0))
     end
   end
 
@@ -399,6 +400,9 @@ defmodule Asteroid.Token.AccessToken do
   this value
   - otherwise, if the `:oauth2_flow_<FLOW>_access_token_serialization_format` is set, returns
   this value
+  - otherwise, returns the value of the
+  #{Asteroid.Config.link_to_option(:oauth2_access_token_serialization_format)} configuration
+  option
   - otherwise, returns `:opaque`
   """
 
@@ -464,7 +468,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_serialization_format
         end
 
-      astrenv(conf_opt, :opaque)
+      astrenv(conf_opt, astrenv(:oauth2_access_token_serialization_format, :opaque))
     end
   end
 
@@ -476,6 +480,9 @@ defmodule Asteroid.Token.AccessToken do
   this value
   - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_key` is set, returns
   this value
+  - otherwise, returns the value of the
+  #{Asteroid.Config.link_to_option(:oauth2_access_token_signing_key)} configuration
+  option
   - otherwise, returns `nil`
   """
 
@@ -541,7 +548,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_signing_key
         end
 
-      astrenv(conf_opt, nil)
+      astrenv(conf_opt, astrenv(:oauth2_access_token_signing_key))
     end
   end
 
@@ -553,6 +560,9 @@ defmodule Asteroid.Token.AccessToken do
   this value
   - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_alg` is set, returns
   this value
+  - otherwise, returns the value of the
+  #{Asteroid.Config.link_to_option(:oauth2_access_token_signing_alg)} configuration
+  option
   - otherwise, returns `nil`
   """
 
@@ -618,7 +628,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_signing_alg
         end
 
-      astrenv(conf_opt, nil)
+      astrenv(conf_opt, astrenv(:oauth2_access_token_signing_alg))
     end
   end
 end
