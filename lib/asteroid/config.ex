@@ -6,6 +6,9 @@ defmodule Asteroid.Config do
   require Asteroid.Config.Builder
 
   alias Asteroid.Client
+  alias Asteroid.Crypto
+  alias Asteroid.OIDC
+  alias Asteroid.Subject
 
   @typedoc """
   A map describing scope configuration
@@ -46,7 +49,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_access_token, [
-      module: Asteroid.TokenStore.AccessToken.Riak,
+      module: Asteroid.Store.AccessToken.Riak,
       opts: [bucket_type: "ephemeral_token", purge_interval: 10]
     ]
     ```
@@ -74,7 +77,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_refresh_token, [
-      module: Asteroid.TokenStore.RefreshToken.Mnesia
+      module: Asteroid.Store.RefreshToken.Mnesia
     ]
     ```
     """
@@ -101,7 +104,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_authorization_code, [
-      module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+      module: Asteroid.Store.AuthorizationCode.Mnesia
     ]
     ```
     """
@@ -128,7 +131,7 @@ defmodule Asteroid.Config do
 
     ```elixir
     config :asteroid, :token_store_device_code, [
-      module: Asteroid.TokenStore.DeviceCode.Mnesia
+      module: Asteroid.Store.DeviceCode.Mnesia
     ]
     ```
     """
@@ -136,6 +139,87 @@ defmodule Asteroid.Config do
     @type token_store_device_code :: Keyword.t()
 
     field :token_store_device_code,
+      config_time: :runtime
+
+    @doc """
+    Request object store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the token's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all token's implementation functions. Refer to
+    the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_request_object, [
+      module: Asteroid.Store.GenericKV.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_request_object :: Keyword.t()
+
+    field :token_store_request_object,
+      config_time: :runtime
+
+    @doc """
+    Authenticated session store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the object's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all object's implementation functions. Refer
+    to the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_authenticated_session, [
+      module: Asteroid.Store.AuthenticatedSession.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_authenticated_session :: Keyword.t()
+
+    field :token_store_authenticated_session,
+      config_time: :runtime
+
+    @doc """
+    Authentication event store configuration
+
+    #### Options
+    - `:module`: the name of the module implementing the object's behaviours. No default,
+    **mandatory**
+    - `:opts`: options that will be passed to the all object's implementation functions. Refer
+    to the implementation documentation. Defaults to `[]`
+    - `:auto_install`: `boolean()` indicating whether the `install/1` callback of the
+    impementation should be called at Asteroid startup. Defaults to `true`
+    - `:auto_start`: `boolean()` indicating whether the `start_link/1` or `start/1` callback of
+    the Implementation should be called at Asteroid startup. Defaults to `true`
+
+    #### Example
+
+    ```elixir
+    config :asteroid, :token_store_authenticated_session, [
+      module: Asteroid.Store.AuthenticationEvent.Mnesia
+    ]
+    ```
+    """
+
+    @type token_store_authentication_event :: Keyword.t()
+
+    field :token_store_authentication_event,
       config_time: :runtime
 
     @doc """
@@ -178,6 +262,28 @@ defmodule Asteroid.Config do
       Asteroid.Token.DeviceCode.t())
 
     field :token_store_device_code_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing authenticated session
+    """
+
+    @type token_store_authenticated_session_before_store_callback ::
+    (Asteroid.OIDC.AuthenticatedSession.t(), Asteroid.Context.t() ->
+      Asteroid.OIDC.AuthenticatedSession.t())
+
+    field :token_store_authenticated_session_before_store_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before storing authentication event
+    """
+
+    @type token_store_authentication_event_before_store_callback ::
+    (Asteroid.OIDC.AuthenticationEvent.t(), Asteroid.Context.t() ->
+      Asteroid.OIDC.AuthenticationEvent.t())
+
+    field :token_store_authentication_event_before_store_callback,
     config_time: :runtime
 
     @doc """
@@ -355,7 +461,10 @@ defmodule Asteroid.Config do
       uses: [
         :oauth2_flow_ropc_scope_config,
         :oauth2_flow_client_credentials_scope_config,
-        :oauth2_flow_device_authorization_scope_config
+        :oauth2_flow_device_authorization_scope_config,
+        :oidc_flow_authorization_code_scope_config,
+        :oidc_flow_implicit_scope_config,
+        :oidc_flow_hybrid_scope_config
       ]
 
     @doc """
@@ -397,7 +506,11 @@ defmodule Asteroid.Config do
       :oauth2_flow_authorization_code_issue_refresh_token_init,
       :oauth2_flow_authorization_code_issue_refresh_token_refresh,
       :oauth2_flow_device_authorization_issue_refresh_token_init,
-      :oauth2_flow_device_authorization_issue_refresh_token_refresh
+      :oauth2_flow_device_authorization_issue_refresh_token_refresh,
+      :oidc_flow_authorization_code_issue_refresh_token_init,
+      :oidc_flow_authorization_code_issue_refresh_token_refresh,
+      :oidc_flow_hybrid_issue_refresh_token_init,
+      :oidc_flow_hybrid_issue_refresh_token_refresh,
     ]
 
     @doc """
@@ -426,7 +539,9 @@ defmodule Asteroid.Config do
       :oauth2_flow_ropc_refresh_token_lifetime,
       :oauth2_flow_client_credentials_refresh_token_lifetime,
       :oauth2_flow_authorization_code_refresh_token_lifetime,
-      :oauth2_flow_device_authorization_refresh_token_lifetime
+      :oauth2_flow_device_authorization_refresh_token_lifetime,
+      :oidc_flow_authorization_code_refresh_token_lifetime,
+      :oidc_flow_hybrid_refresh_token_lifetime
     ]
 
     @doc """
@@ -455,8 +570,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the ROPC flow
     """
 
-    @type oauth2_flow_ropc_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_ropc_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_ropc_access_token_signing_key,
     config_time: :runtime,
@@ -466,7 +580,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the ROPC flow
     """
 
-    @type oauth2_flow_ropc_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_ropc_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_ropc_access_token_signing_alg,
     config_time: :runtime,
@@ -488,7 +602,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_lifetime,
       :oauth2_flow_authorization_code_access_token_lifetime,
       :oauth2_flow_implicit_access_token_lifetime,
-      :oauth2_flow_device_authorization_access_token_lifetime
+      :oauth2_flow_device_authorization_access_token_lifetime,
+      :oidc_flow_authorization_code_access_token_lifetime,
+      :oidc_flow_implicit_access_token_lifetime,
+      :oidc_flow_hybrid_access_token_lifetime
     ]
 
     @doc """
@@ -508,7 +625,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_serialization_format,
       :oauth2_flow_authorization_code_access_token_serialization_format,
       :oauth2_flow_implicit_access_token_serialization_format,
-      :oauth2_flow_device_authorization_access_token_serialization_format
+      :oauth2_flow_device_authorization_access_token_serialization_format,
+      :oidc_flow_authorization_code_access_token_serialization_format,
+      :oidc_flow_implicit_access_token_serialization_format,
+      :oidc_flow_hybrid_access_token_serialization_format
     ]
 
     @doc """
@@ -519,7 +639,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_access_token_signing_key_callback ::
-    (Asteroid.Context.t() -> Asteroid.Crypto.Key.name())
+    (Asteroid.Context.t() -> Crypto.Key.name())
 
     field :oauth2_access_token_signing_key_callback,
     config_time: :runtime,
@@ -528,7 +648,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_signing_key,
       :oauth2_flow_authorization_code_access_token_signing_key,
       :oauth2_flow_implicit_access_token_signing_key,
-      :oauth2_flow_device_authorization_access_token_signing_key
+      :oauth2_flow_device_authorization_access_token_signing_key,
+      :oidc_flow_authorization_code_access_token_signing_key,
+      :oidc_flow_implicit_access_token_signing_key,
+      :oidc_flow_hybrid_access_token_signing_key
     ]
 
     @doc """
@@ -539,7 +662,7 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_access_token_signing_alg_callback ::
-    (Asteroid.Context.t() -> Asteroid.Crypto.Key.alg())
+    (Asteroid.Context.t() -> Crypto.Key.jws_alg())
 
     field :oauth2_access_token_signing_alg_callback,
     config_time: :runtime,
@@ -548,7 +671,10 @@ defmodule Asteroid.Config do
       :oauth2_flow_client_credentials_access_token_signing_alg,
       :oauth2_flow_authorization_code_access_token_signing_alg,
       :oauth2_flow_implicit_access_token_signing_alg,
-      :oauth2_flow_device_authorization_access_token_signing_alg
+      :oauth2_flow_device_authorization_access_token_signing_alg,
+      :oidc_flow_authorization_code_access_token_signing_alg,
+      :oidc_flow_implicit_access_token_signing_alg,
+      :oidc_flow_hybrid_access_token_signing_alg
     ]
 
     @doc """
@@ -564,7 +690,9 @@ defmodule Asteroid.Config do
     field :oauth2_authorization_code_lifetime_callback,
     config_time: :runtime,
     uses: [
-      :oauth2_flow_authorization_code_authorization_code_lifetime
+      :oauth2_flow_authorization_code_authorization_code_lifetime,
+      :oidc_flow_authorization_code_authorization_code_lifetime,
+      :oidc_flow_hybrid_authorization_code_lifetime
     ]
 
     @doc """
@@ -743,8 +871,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the client credentials flow
     """
 
-    @type oauth2_flow_client_credentials_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_client_credentials_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_client_credentials_access_token_signing_key,
     config_time: :runtime,
@@ -754,7 +881,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the client credentials flow
     """
 
-    @type oauth2_flow_client_credentials_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_client_credentials_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_client_credentials_access_token_signing_alg,
     config_time: :runtime,
@@ -782,8 +909,8 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
-    for the OAuth2 authorization code flow
+    Default callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OAuth2 authorization code flow
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -794,33 +921,33 @@ defmodule Asteroid.Config do
     """
 
     @type oauth2_flow_authorization_code_web_authorization_callback ::
-    (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
 
     field :oauth2_flow_authorization_code_web_authorization_callback,
-    config_time: :runtime
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
 
     @doc """
-    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
-    `"code"` on the `/authorize` endpoint
+    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response on the `/authorize`
+    endpoint
     """
 
-    @type oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback ::
+    @type oauth2_endpoint_authorize_before_send_redirect_uri_callback ::
     (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
 
-    field :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+    field :oauth2_endpoint_authorize_before_send_redirect_uri_callback,
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"code"` on
-    the `/authorize` endpoint
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `/authorize` endpoint
 
     The connection is redirected immediatly after this callback returns.
     """
 
-    @type oauth2_endpoint_authorize_response_type_code_before_send_conn_callback ::
+    @type oauth2_endpoint_authorize_before_send_conn_callback ::
     (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
-    field :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+    field :oauth2_endpoint_authorize_before_send_conn_callback,
     config_time: :runtime
 
     @doc """
@@ -882,8 +1009,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the authorization code flow
     """
 
-    @type oauth2_flow_authorization_code_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_authorization_code_access_token_signing_key,
     config_time: :runtime,
@@ -893,7 +1019,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the authorization code flow
     """
 
-    @type oauth2_flow_authorization_code_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_authorization_code_access_token_signing_alg,
     config_time: :runtime,
@@ -931,8 +1057,8 @@ defmodule Asteroid.Config do
     config_time: :runtime
 
     @doc """
-    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
-    for the OAuth2 implicit flow
+    Default callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OAuth2 implicit flow
 
     This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
     to the request. It will typically involve several step, i.e. display of web pages. It does
@@ -946,7 +1072,10 @@ defmodule Asteroid.Config do
     (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
 
     field :oauth2_flow_implicit_web_authorization_callback,
-    config_time: :runtime
+    config_time: :runtime,
+    used_by: [
+      :web_authorization_callback
+    ]
 
     @doc """
     Defines the lifetime of an access token in the implicit flow
@@ -974,8 +1103,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the implicit flow
     """
 
-    @type oauth2_flow_implicit_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_implicit_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_implicit_access_token_signing_key,
     config_time: :runtime,
@@ -985,35 +1113,11 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the implicit flow
     """
 
-    @type oauth2_flow_implicit_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_implicit_access_token_signing_alg,
     config_time: :runtime,
     used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Callback invoked on the `t:Asteroid.OAuth2.RedirectUri.t/0` response when response type is
-    `"token"` on the `/authorize` endpoint
-    """
-
-    @type oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback ::
-    (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() -> Asteroid.OAuth2.RedirectUri.t())
-
-    field :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
-    config_time: :runtime
-
-    @doc """
-    Callback invoked on the `t:Plug.Conn.t/0` response when response type is `"token"` on
-    the `/authorize` endpoint
-
-    The connection is redirected immediatly after this callback returns.
-    """
-
-    @type oauth2_endpoint_authorize_response_type_token_before_send_conn_callback ::
-    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
-
-    field :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
-    config_time: :runtime
 
     @doc """
     The PKCE policy
@@ -1024,9 +1128,9 @@ defmodule Asteroid.Config do
     - `:optional`: use of PKCE is optional, except for clients marked as forced to use it
     """
 
-    @type oauth2_flow_authorization_code_pkce_policy :: :disabled | :optional | :mandatory
+    @type oauth2_pkce_policy :: :disabled | :optional | :mandatory
 
-    field :oauth2_flow_authorization_code_pkce_policy,
+    field :oauth2_pkce_policy,
     config_time: :runtime
 
     @doc """
@@ -1037,22 +1141,21 @@ defmodule Asteroid.Config do
     - `:S256`
     """
 
-    @type oauth2_flow_authorization_code_pkce_allowed_methods :: [atom()]
+    @type oauth2_pkce_allowed_methods :: [atom()]
 
-    field :oauth2_flow_authorization_code_pkce_allowed_methods,
+    field :oauth2_pkce_allowed_methods,
     config_time: :runtime
 
     @doc """
     Returns `true` if the client has to use PKCE, `false` otherwise
 
-    Used only when the `:oauth2_flow_authorization_code_pkce_policy` configuration option is
-    set to `:optional`
+    Used only when the `:oauth2_pkce_policy` configuration option is set to `:optional`
     """
 
-    @type oauth2_flow_authorization_code_pkce_client_callback ::
+    @type oauth2_pkce_must_use_callback ::
     (Client.t() -> boolean())
 
-    field :oauth2_flow_authorization_code_pkce_client_callback,
+    field :oauth2_must_use_pkce_callback,
     config_time: :runtime
 
     @doc """
@@ -1227,7 +1330,7 @@ defmodule Asteroid.Config do
     Key name for the signed metadata fields
     """
 
-    @type oauth2_endpoint_metadata_signing_key :: Asteroid.Crypto.Key.name()
+    @type oauth2_endpoint_metadata_signing_key :: Crypto.Key.name()
 
     field :oauth2_endpoint_metadata_signing_key,
     config_time: :runtime
@@ -1236,7 +1339,7 @@ defmodule Asteroid.Config do
     Key algorithm for the signed metadata fields
     """
 
-    @type oauth2_endpoint_metadata_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_endpoint_metadata_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_endpoint_metadata_signing_alg,
     config_time: :runtime
@@ -1293,7 +1396,7 @@ defmodule Asteroid.Config do
     (such as `secret.exs`).
     """
 
-    @type crypto_keys :: Asteroid.Crypto.Key.key_config()
+    @type crypto_keys :: Crypto.Key.key_config()
 
     field :crypto_keys,
     config_time: :runtime
@@ -1305,9 +1408,21 @@ defmodule Asteroid.Config do
     the second element are the module's options.
     """
 
-    @type crypto_keys_cache :: {module(), Asteroid.Crypto.Key.Cache.opts()}
+    @type crypto_keys_cache :: {module(), Crypto.Key.Cache.opts()}
 
     field :crypto_keys_cache,
+    config_time: :runtime
+
+    @doc """
+    Determines whether the `"none"` JWS algorithm is supported
+
+    It is set using the `JOSE.JWA.unsecured_signing/1` function on Asteroid startup. Defaults
+    to `false`.
+    """
+
+    @type crypto_jws_none_alg_enabled :: boolean()
+
+    field :crypto_jws_none_alg_enabled,
     config_time: :runtime
 
     @doc """
@@ -1430,8 +1545,7 @@ defmodule Asteroid.Config do
     Defines the signing key name of an access token in the device authorization flow
     """
 
-    @type oauth2_flow_device_authorization_access_token_signing_key ::
-    Asteroid.Crypto.Key.name()
+    @type oauth2_flow_device_authorization_access_token_signing_key :: Crypto.Key.name()
 
     field :oauth2_flow_device_authorization_access_token_signing_key,
     config_time: :runtime,
@@ -1441,7 +1555,7 @@ defmodule Asteroid.Config do
     Defines the signing algorithm of an access token in the device authorization flow
     """
 
-    @type oauth2_flow_device_authorization_access_token_signing_alg :: Asteroid.Crypto.Key.alg()
+    @type oauth2_flow_device_authorization_access_token_signing_alg :: Crypto.Key.jws_alg()
 
     field :oauth2_flow_device_authorization_access_token_signing_alg,
     config_time: :runtime,
@@ -1503,6 +1617,712 @@ defmodule Asteroid.Config do
     field :oauth2_flow_device_authorization_rate_limiter_interval,
     config_time: :runtime,
     unit: "seconds"
+
+    @doc """
+    JWT Secured Authorization Request (JAR) enabling flag
+
+    The possible values are:
+    - `:disabled`: JAR is disabled
+    - `:request_only`: on ly the `"request"` parameter is enabled
+    - `:request_uri_only`: only the `"request_uri"` is enabled
+    - `:enabled`: both the `"request"` and `"request_uri"` parameters are enabled
+    """
+
+    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
+
+    field :oauth2_jar_enabled,
+    config_time: :runtime
+
+    @doc """
+    Plugs installed on `"/api/request_object"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_request_object_plugs :: [{module(), Keyword.t()}]
+
+    field :api_request_object_plugs,
+      config_time: :compile
+
+    @doc """
+    Defines the lifetime of a request object stored internally
+    """
+
+    @type oauth2_jar_request_object_lifetime :: non_neg_integer()
+
+    field :oauth2_jar_request_object_lifetime,
+    config_time: :runtime,
+    unit: "seconds"
+
+    @doc """
+    Set the options of the HTTP request to retrieve external JAR request objects
+
+    The options are request options of `HTTPoison.Request`
+    """
+
+    @type oauth2_jar_request_uri_get_opts :: Keyword.t()
+
+    field :oauth2_jar_request_uri_get_opts,
+    config_time: :runtime
+
+    @doc """
+    List of supported signing algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
+
+    field :oauth2_jar_request_object_signing_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of supported encryption algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oauth2_jar_request_object_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of supported encryption encryption algorithms for JAR request objects
+    """
+
+    @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oauth2_jar_request_object_encryption_enc_values_supported,
+    config_time: :runtime
+
+    @doc """
+    Determines whether the audience should be checked when the request object is signed
+
+    Checks that the audience (one one of them) is the `"issuer"` of the server, using the
+    `Asteroid.OAuth2.issuer/0` function.
+
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not
+    signed.
+    """
+
+    @type oauth2_jar_request_object_verify_audience :: boolean()
+
+    field :oauth2_jar_request_object_verify_audience,
+    config_time: :runtime
+
+    @doc """
+    Determines whether the issuer should be checked when the request object is signed
+
+    Defaults to `true`. As per the specification, there's no checking when the JWT is not
+    signed.
+    """
+
+    @type oauth2_jar_request_object_verify_issuer :: boolean()
+
+    field :oauth2_jar_request_object_verify_issuer,
+    config_time: :runtime
+
+    @doc """
+    Configuration of ACRs
+    """
+
+    @type oidc_acr_config :: OIDC.ACR.config()
+
+    field :oidc_acr_config,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Scope configuration for the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_scope_config :: scope_config()
+
+    field :oidc_flow_authorization_code_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_scope_config :: scope_config()
+
+    field :oidc_flow_implicit_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_scope_config :: scope_config()
+
+    field :oidc_flow_hybrid_scope_config,
+    config_time: :runtime,
+    used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization process flow
+    for the OAuth2 authorization code flow
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :web_authorization_callback,
+    config_time: :runtime,
+    uses: [
+      :oauth2_flow_authorization_code_web_authorization_callback,
+      :oauth2_flow_implicit_web_authorization_callback,
+      :oidc_acr_config,
+      :oidc_flow_authorization_code_web_authorization_callback,
+      :oidc_flow_implicit_web_authorization_callback,
+      :oidc_flow_hybrid_web_authorization_callback
+    ]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect authorization code flow, if the
+    `:oidc_acr_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_authorization_code_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_authorization_code_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect implicit flow, if the
+    `:oidc_acr_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_implicit_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_implicit_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Callback invoked on the `/authorize` endpoint to trigger the web authorization
+    process flow for the OpenID Connect hybrid flow, if the
+    `:oidc_acr_config` configuration option is not used.
+
+    This workflow is in charge of authenticating and authorizing (scopes...) the user in regards
+    to the request. It will typically involve several step, i.e. display of web pages. It does
+    returns a `Plug.Conn.t()` to Phoenix but not to Asteroid directly. At the end of the process,
+    one of these callback shall be called:
+    - `AsteroidWeb.AuthorizeController.authorization_granted/2`
+    - `AsteroidWeb.AuthorizeController.authorization_denied/2`
+    """
+
+    @type oidc_flow_hybrid_web_authorization_callback ::
+    AsteroidWeb.AuthorizeController.web_authorization_callback()
+
+    field :oidc_flow_hybrid_web_authorization_callback,
+    config_time: :runtime,
+    used_by: [:web_authorization_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when submitting an authorization code
+    in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_refresh_token_init :: boolean()
+
+    field :oidc_flow_authorization_code_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the OIDC
+    authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_refresh_token_refresh :: boolean()
+
+    field :oidc_flow_authorization_code_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when submitting an authorization code
+    in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_refresh_token_init :: boolean()
+
+    field :oidc_flow_hybrid_issue_refresh_token_init,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens in the OIDC
+    hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_refresh_token_refresh :: boolean()
+
+    field :oidc_flow_hybrid_issue_refresh_token_refresh,
+    config_time: :runtime,
+    used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_refresh_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of a refresh token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_refresh_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_implicit_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Callback called to determine the lifetime of an ID token
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_id_token_lifetime_callback :: (Asteroid.Context.t() -> non_neg_integer())
+
+    field :oauth2_access_token_lifetime_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_id_token_lifetime,
+      :oidc_flow_implicit_id_token_lifetime,
+      :oidc_flow_hybrid_id_token_lifetime
+    ]
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_implicit_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an ID token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    List of acceptable signature `alg` algorithms to sign ID tokens
+    """
+
+    @type oidc_id_token_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
+
+    field :oidc_id_token_signing_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `alg` algorithms to encrypt ID tokens
+    """
+
+    @type oidc_id_token_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oidc_id_token_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `enc` algorithms to encrypt ID tokens
+    """
+
+    @type oidc_id_token_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oidc_id_token_encryption_enc_values_supported,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked before serializing an ID token
+    """
+
+    @type token_id_token_before_serialize_callback ::
+    (Asteroid.Token.IDToken.t(), Asteroid.Context.t() -> Asteroid.Token.IDToken.t())
+
+    field :token_id_token_before_serialize_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback called to determine whether a new ID token should be issued when renewing
+    tokens on `/token` with a refresh token grant type
+
+    Note that client configuration takes precedence over configuration options. See
+    `Asteroid.Client` fields.
+    """
+
+    @type oidc_issue_id_token_on_refresh_callback :: (Asteroid.Context.t() -> boolean())
+
+    field :oidc_issue_id_token_on_refresh_callback,
+    config_time: :runtime,
+    uses: [
+      :oidc_flow_authorization_code_issue_id_token_refresh,
+      :oidc_flow_hybrid_issue_id_token_refresh
+    ]
+
+    @doc """
+      Defines whether an ID token should be issued when refreshing tokens in the OIDC
+      authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_issue_id_token_refresh :: boolean()
+
+    field :oidc_flow_authorization_code_issue_id_token_refresh,
+      config_time: :runtime,
+      used_by: [:oidc_issue_id_token_on_refresh_callback]
+
+    @doc """
+      Defines whether an ID token should be issued when refreshing tokens in the OIDC
+      hybrid flow
+    """
+
+    @type oidc_flow_hybrid_issue_id_token_refresh :: boolean()
+
+    field :oidc_flow_hybrid_issue_id_token_refresh,
+      config_time: :runtime,
+      used_by: [:oidc_issue_id_token_on_refresh_callback]
+
+    @doc """
+    Defines the lifetime of an authorization code in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_authorization_code_lifetime :: non_neg_integer()
+
+    field :oidc_flow_authorization_code_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an authorization code in the OIDC hybrid code flow
+    """
+
+    @type oidc_flow_hybrid_authorization_code_lifetime :: non_neg_integer()
+
+    field :oidc_flow_hybrid_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_authorization_code_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_implicit_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the serialization format of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oidc_flow_hybrid_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_authorization_code_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_implicit_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing key name of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_signing_key :: Crypto.Key.name()
+
+    field :oidc_flow_hybrid_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC authorization code flow
+    """
+
+    @type oidc_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_authorization_code_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC implicit flow
+    """
+
+    @type oidc_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_implicit_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token in the OIDC hybrid flow
+    """
+
+    @type oidc_flow_hybrid_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oidc_flow_hybrid_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Plugs installed on `"/api/ooidc"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oidc_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oidc_plugs,
+      config_time: :compile
+
+    @doc """
+    Plugs installed on `"/api/oidc/userinfo"`
+
+    See also [protecting APIs](protecting-apis.html)
+    """
+
+    @type api_oidc_endpoint_userinfo_plugs :: [{module(), Keyword.t()}]
+
+    field :api_oidc_endpoint_userinfo_plugs,
+      config_time: :compile
+
+    @doc """
+    Callback invoked on the json response on the `/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_before_send_resp_callback ::
+    (map(), Asteroid.Context.t() -> map())
+
+    field :oidc_endpoint_userinfo_before_send_resp_callback,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked on the `t:Plug.Conn.t/0` response on the `/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_before_send_conn_callback ::
+    (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
+
+    field :oidc_endpoint_userinfo_before_send_conn_callback,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable signature `alg` algorithms for the signature response on the
+    `/api/oidc/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_signature_alg_values_supported :: [Crypto.Key.jws_alg()]
+
+    field :oidc_endpoint_userinfo_signature_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `alg` algorithms for the encrypted response on the
+    `/api/oidc/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
+
+    field :oidc_endpoint_userinfo_encryption_alg_values_supported,
+    config_time: :runtime
+
+    @doc """
+    List of acceptable encryption `enc` algorithms for the encrypted response on the
+    `/api/oidc/userinfo` endpoint
+    """
+
+    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+
+    field :oidc_endpoint_userinfo_encryption_enc_values_supported,
+    config_time: :runtime
+
+    @doc """
+    Claims supported (declarative)
+
+    This is only used for publishing it on the discovery endpoint.
+    """
+
+    @type oidc_claims_supported :: [OIDC.claim_name()]
+
+    field :oidc_claims_supported,
+    config_time: :runtime
+
+    @doc """
+    Policy for response mode selection
+
+    3 values are possible:
+    - `:disabled`: the `"response_mode"` param is not processed, and the default response
+    mode for the flow is choosen
+    - `:oidc_only`: the `"response_mode"` param is used for OIDC flows only
+    - `:enabled`: the `"response_mode"` param is used for all flows
+    """
+
+    @type oauth2_response_mode_policy :: :disabled | :oidc_only | :enabled
+
+    field :oauth2_response_mode_policy,
+    config_time: :runtime
+
+    @doc """
+    Callback invoked to calculate the `"sub"` returned in OpenID Connect ID tokens and
+    on the `/userinfo` endpoint
+    """
+
+    @type oidc_subject_identifier_callback ::
+    (Subject.t(), Client.t() -> String.t())
+
+    field :oidc_subject_identifier_callback,
+    config_time: :runtime
+
+    @doc """
+    Salt for the pairwise subject identifier type
+
+    By default, a random value set at compile time, which means that the pairwise `"subs"`
+    **will change** when compiling again, and **won't be stable**. To have stability, change
+    this configuration option with a random value (which doesn't need to be particularly
+    protected against theft), for example generating it with the following command:
+
+    ```elixir
+    $ mix phx.gen.secret
+    vpEKRs4qZesc+zhKWwc/S3rku3HTRFuQ2NC2wfFOAiL9IK17/DFv1j3EyTEUI3Ry
+    ```
+    """
+
+    @type oidc_subject_identifier_pairwise_salt :: String.t()
+
+    field :oidc_subject_identifier_pairwise_salt,
+    config_time: :runtime
+
+    @doc """
+    OIDC display values supported
+
+    Voluntary information to be published on the metadata endpoint. It is not used otherwise.
+    """
+
+    @type oidc_endpoint_metadata_display_values_supported :: [String.t()]
+
+    field :oidc_endpoint_metadata_display_values_supported,
+    config_time: :runtime
 
     ### end of configuration options
   end

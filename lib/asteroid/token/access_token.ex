@@ -22,6 +22,11 @@ defmodule Asteroid.Token.AccessToken do
   deleted). Optionally one of:
     - `"active"`: active token
     - `"revoked"`: revoked token
+  - `"__asteroid_oauth2_initial_flow"`: the initial `t:Asteroid.OAuth2.flow_str/0` that led to
+  the issuance of this token
+  - `"__asteroid_oidc_authenticated_session_id"`: the `t:Asteroid.OIDC.AuthenticatedSession.id/0`
+  , if any
+  - `"__asteroid_oidc_claims"`: the claims that were requested, if any
   """
 
   @enforce_keys [:id, :serialization_format, :data]
@@ -35,7 +40,7 @@ defmodule Asteroid.Token.AccessToken do
     refresh_token_id: binary() | nil,
     serialization_format: Asteroid.Token.serialization_format(),
     signing_key: Asteroid.Crypto.Key.name() | nil,
-    signing_alg: Asteroid.Crypto.Key.alg() | nil,
+    signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
     data: map()
   }
 
@@ -90,8 +95,8 @@ defmodule Asteroid.Token.AccessToken do
   @doc """
   Gets a access token from the access token store
 
-  Unlike the `c:Asteroid.TokenStore.AccessToken.get/2`, this function returns
-  `{:error, :nonexistent_access_token}` if the access token is not found in the token
+  Unlike the `c:Asteroid.Store.AccessToken.get/2`, this function returns
+  `{:error, Exception.t()}` if the access token is not found in the token
   store.
 
   ## Options
@@ -280,6 +285,9 @@ defmodule Asteroid.Token.AccessToken do
     - `"__asteroid_oauth2_flow_authorization_code_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`
     - `"__asteroid_oauth2_flow_device_authorization_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_authorization_code_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_implicit_access_token_lifetime"`
+    - `"__asteroid_oidc_flow_hybrid_access_token_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_access_token_lifetime)}
@@ -287,6 +295,9 @@ defmodule Asteroid.Token.AccessToken do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_access_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_access_token_lifetime)}
+    - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_access_token_lifetime)}
   - Otherwise returns `0`
 
   In any case, the returned value is capped by the scope configuration.
@@ -313,8 +324,33 @@ defmodule Asteroid.Token.AccessToken do
 
   @spec lifetime_for_client(Context.t()) :: non_neg_integer()
 
-  def lifetime_for_client(%{flow: :ropc, client: client}) do
-    attr = "__asteroid_oauth2_flow_ropc_access_token_lifetime"
+  def lifetime_for_client(%{flow: flow, client: client}) do
+    attr =
+      case flow do
+        :ropc ->
+          "__asteroid_oauth2_flow_ropc_access_token_lifetime"
+
+        :client_credentials ->
+          "__asteroid_oauth2_flow_client_credentials_access_token_lifetime"
+
+        :authorization_code ->
+          "__asteroid_oauth2_flow_authorization_code_access_token_lifetime"
+
+        :implicit ->
+          "__asteroid_oauth2_flow_implicit_access_token_lifetime"
+
+        :device_authorization ->
+          "__asteroid_oauth2_flow_device_authorization_access_token_lifetime"
+
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_access_token_lifetime"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_access_token_lifetime"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_access_token_lifetime"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
@@ -323,68 +359,35 @@ defmodule Asteroid.Token.AccessToken do
         lifetime
 
       _ ->
-        astrenv(:oauth2_flow_ropc_access_token_lifetime, 0)
+        conf_opt =
+          case flow do
+            :ropc ->
+              :oauth2_flow_ropc_access_token_lifetime
+
+            :client_credentials ->
+              :oauth2_flow_client_credentials_access_token_lifetime
+
+            :authorization_code ->
+              :oauth2_flow_authorization_code_access_token_lifetime
+
+            :implicit ->
+              :oauth2_flow_implicit_access_token_lifetime
+
+            :device_authorization ->
+              :oauth2_flow_device_authorization_access_token_lifetime
+
+            :oidc_authorization_code ->
+              :oidc_flow_authorization_code_access_token_lifetime
+
+            :oidc_implicit ->
+              :oidc_flow_implicit_access_token_lifetime
+
+            :oidc_hybrid ->
+              :oidc_flow_hybrid_access_token_lifetime
+          end
+
+        astrenv(conf_opt, 0)
     end
-  end
-
-  def lifetime_for_client(%{flow: :client_credentials, client: client}) do
-    attr = "__asteroid_oauth2_flow_client_credentials_access_token_lifetime"
-
-    client = Client.fetch_attributes(client, [attr])
-
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oauth2_flow_client_credentials_access_token_lifetime, 0)
-    end
-  end
-
-  def lifetime_for_client(%{flow: :authorization_code, client: client}) do
-    attr = "__asteroid_oauth2_flow_authorization_code_access_token_lifetime"
-
-    client = Client.fetch_attributes(client, [attr])
-
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oauth2_flow_authorization_code_access_token_lifetime, 0)
-    end
-  end
-
-  def lifetime_for_client(%{flow: :implicit, client: client}) do
-    attr = "__asteroid_oauth2_flow_implicit_access_token_lifetime"
-
-    client = Client.fetch_attributes(client, [attr])
-
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oauth2_flow_implicit_access_token_lifetime, 0)
-    end
-  end
-
-  def lifetime_for_client(%{flow: :device_authorization, client: client}) do
-    attr = "__asteroid_oauth2_flow_device_authorization_access_token_lifetime"
-
-    client = Client.fetch_attributes(client, [attr])
-
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oauth2_flow_device_authorization_access_token_lifetime, 0)
-    end
-  end
-
-  def lifetime_for_client(_) do
-    0
   end
 
   @doc """
@@ -403,23 +406,66 @@ defmodule Asteroid.Token.AccessToken do
 
   def serialization_format(%{flow: flow, client: client}) do
     attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_serialization_format"
+      case flow do
+        :ropc ->
+          "__asteroid_oauth2_flow_ropc_access_token_serialization_format"
+
+        :client_credentials ->
+          "__asteroid_oauth2_flow_client_credentials_access_token_serialization_format"
+
+        :authorization_code ->
+          "__asteroid_oauth2_flow_authorization_code_access_token_serialization_format"
+
+        :implicit ->
+          "__asteroid_oauth2_flow_implicit_access_token_serialization_format"
+
+        :device_authorization ->
+          "__asteroid_oauth2_flow_device_authorization_access_token_serialization_format"
+
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_access_token_serialization_format"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_access_token_serialization_format"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_access_token_serialization_format"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] == "jws" do
       :jws
     else
-      conf_opt = String.to_atom(
-        "oauth2_flow_" <>
-        Atom.to_string(flow) <>
-        "_access_token_serialization_format")
+      conf_opt =
+        case flow do
+          :ropc ->
+            :oauth2_flow_ropc_access_token_serialization_format
+
+          :client_credentials ->
+            :oauth2_flow_client_credentials_access_token_serialization_format
+
+          :authorization_code ->
+            :oauth2_flow_authorization_code_access_token_serialization_format
+
+          :implicit ->
+            :oauth2_flow_implicit_access_token_serialization_format
+
+          :device_authorization ->
+            :oauth2_flow_device_authorization_access_token_serialization_format
+
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_access_token_serialization_format
+
+          :oidc_implicit ->
+            :oidc_flow_implicit_access_token_serialization_format
+
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_access_token_serialization_format
+        end
 
       astrenv(conf_opt, :opaque)
     end
-  end
-
-  def serialization_format(_) do
-    :opaque
   end
 
   @doc """
@@ -436,24 +482,67 @@ defmodule Asteroid.Token.AccessToken do
   @spec signing_key(Context.t()) :: Asteroid.Crypto.Key.name()
 
   def signing_key(%{flow: flow, client: client}) do
-    attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_signing_key"
+    attr =
+      case flow do
+        :ropc ->
+          "__asteroid_oauth2_flow_ropc_access_token_signing_key"
+
+        :client_credentials ->
+          "__asteroid_oauth2_flow_client_credentials_access_token_signing_key"
+
+        :authorization_code ->
+          "__asteroid_oauth2_flow_authorization_code_access_token_signing_key"
+
+        :implicit ->
+          "__asteroid_oauth2_flow_implicit_access_token_signing_key"
+
+        :device_authorization ->
+          "__asteroid_oauth2_flow_device_authorization_access_token_signing_key"
+
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_access_token_signing_key"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_access_token_signing_key"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_access_token_signing_key"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] != nil do
       client.attrs[attr]
     else
-      conf_opt = String.to_atom(
-        "oauth2_flow_" <>
-        Atom.to_string(flow) <>
-        "_access_token_signing_key")
+      conf_opt =
+        case flow do
+          :ropc ->
+            :oauth2_flow_ropc_access_token_signing_key
+
+          :client_credentials ->
+            :oauth2_flow_client_credentials_access_token_signing_key
+
+          :authorization_code ->
+            :oauth2_flow_authorization_code_access_token_signing_key
+
+          :implicit ->
+            :oauth2_flow_implicit_access_token_signing_key
+
+          :device_authorization ->
+            :oauth2_flow_device_authorization_access_token_signing_key
+
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_access_token_signing_key
+
+          :oidc_implicit ->
+            :oidc_flow_implicit_access_token_signing_key
+
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_access_token_signing_key
+        end
 
       astrenv(conf_opt, nil)
     end
-  end
-
-  def signing_key(_) do
-    nil
   end
 
   @doc """
@@ -467,26 +556,69 @@ defmodule Asteroid.Token.AccessToken do
   - otherwise, returns `nil`
   """
 
-  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.alg()
+  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.jws_alg()
 
   def signing_alg(%{flow: flow, client: client}) do
-    attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_signing_alg"
+    attr =
+      case flow do
+        :ropc ->
+          "__asteroid_oauth2_flow_ropc_access_token_signing_alg"
+
+        :client_credentials ->
+          "__asteroid_oauth2_flow_client_credentials_access_token_signing_alg"
+
+        :authorization_code ->
+          "__asteroid_oauth2_flow_authorization_code_access_token_signing_alg"
+
+        :implicit ->
+          "__asteroid_oauth2_flow_implicit_access_token_signing_alg"
+
+        :device_authorization ->
+          "__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"
+
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_access_token_signing_alg"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_access_token_signing_alg"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_access_token_signing_alg"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] != nil do
       client.attrs[attr]
     else
-      conf_opt = String.to_atom(
-        "oauth2_flow_" <>
-        Atom.to_string(flow) <>
-        "_access_token_signing_alg")
+      conf_opt =
+        case flow do
+          :ropc ->
+            :oauth2_flow_ropc_access_token_signing_alg
+
+          :client_credentials ->
+            :oauth2_flow_client_credentials_access_token_signing_alg
+
+          :authorization_code ->
+            :oauth2_flow_authorization_code_access_token_signing_alg
+
+          :implicit ->
+            :oauth2_flow_implicit_access_token_signing_alg
+
+          :device_authorization ->
+            :oauth2_flow_device_authorization_access_token_signing_alg
+
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_access_token_signing_alg
+
+          :oidc_implicit ->
+            :oidc_flow_implicit_access_token_signing_alg
+
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_access_token_signing_alg
+        end
 
       astrenv(conf_opt, nil)
     end
-  end
-
-  def signing_alg(_) do
-    nil
   end
 end

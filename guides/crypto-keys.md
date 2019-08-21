@@ -96,3 +96,12 @@ The previous configuration example will output the following JWKs:
    }
 ]
 ```
+
+## JWS "none" algorithm
+
+Asteroid relies on the JOSE library to deal with JWS' and JWEs. This library by default disables
+the use of the "none" JWS algorithm.
+
+To activate it, refer to the
+[`:crypto_jws_none_alg_enabled`](Asteroid.Config.html#module-crypto_jws_none_alg_enabled)
+configuration option. **Assess carefully** when activating such a feature.

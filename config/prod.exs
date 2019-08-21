@@ -100,21 +100,29 @@ config :hammer,
 ####################### Token stores #################################
 
 config :asteroid, :token_store_access_token, [
-  module: Asteroid.TokenStore.AccessToken.Mnesia
+  module: Asteroid.Store.AccessToken.Mnesia
 ]
 
 config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.TokenStore.RefreshToken.Mnesia
+  module: Asteroid.Store.RefreshToken.Mnesia
 ]
 
 config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.TokenStore.AuthorizationCode.Mnesia
+  module: Asteroid.Store.AuthorizationCode.Mnesia
+]
+
+config :asteroid, :token_store_authenticated_session, [
+  module: Asteroid.Store.AuthenticatedSession.Mnesia
+]
+
+config :asteroid, :token_store_authentication_event, [
+  module: Asteroid.Store.AuthenticationEvent.Mnesia
 ]
 
 # uncomment to enable the device authorization flow
 
 #config :asteroid, :token_store_device_code, [
-#  module: Asteroid.TokenStore.DeviceCode.Mnesia
+#  module: Asteroid.Store.DeviceCode.Mnesia
 #]
 
 config :asteroid, :token_store_refresh_token_before_store_callback,
@@ -124,6 +132,12 @@ config :asteroid, :token_store_access_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :token_store_authorization_code_before_store_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :token_store_authenticated_session_before_store_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :token_store_authentication_event_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 ####################### Attribute repositories #######################
@@ -168,8 +182,7 @@ config :asteroid, :api_oauth2_plugs,
     {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.OAuth2.Client.get_client_secret/2,
-      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
-      error_response_verbosity: :debug}#,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the above `#` and the following lines to enable client_secret_post client
     # authentication for all OAuth2 endpoints
     #{APIacAuthClientSecretPost,
@@ -181,6 +194,10 @@ config :asteroid, :api_oauth2_plugs,
 
 config :asteroid, :api_oauth2_endpoint_token_plugs,
   [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
     {Corsica, [origins: "*"]},
     # uncomment the following line to enable throttling for public clients on the
@@ -196,10 +213,18 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
 config :asteroid, :api_oauth2_endpoint_introspect_plugs,
   [
     {Corsica, [origins: "*"]},
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
   ]
 
 config :asteroid, :api_oauth2_endpoint_revoke_plugs,
   [
+    {APIacAuthBasic,
+      realm: "Asteroid",
+      callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
     # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
     {Corsica, [origins: "*"]}
   ]
@@ -209,6 +234,26 @@ config :asteroid, :api_oauth2_endpoint_register_plugs,
   ]
 
 config :asteroid, :api_oauth2_endpoint_device_authorization_plugs,
+  [
+  ]
+
+config :asteroid, :api_oidc_plugs,
+  [
+  ]
+
+config :asteroid, :api_oidc_endpoint_userinfo_plugs,
+  [
+    {Corsica, [origins: "*"]},
+    {APIacAuthBearer,
+      realm: "Asteroid",
+      bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+      bearer_extract_methods: [:header, :body],
+      forward_bearer: true,
+      error_response_verbosity: :normal
+    }
+  ]
+
+config :asteroid, :api_request_object_plugs,
   [
   ]
 
@@ -243,7 +288,8 @@ config :asteroid, :oauth2_grant_types_enabled, [
 
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
-  #:token
+  :token,
+  :id_token
 ]
 
 config :asteroid, :api_error_response_verbosity, :normal
@@ -295,17 +341,14 @@ config :asteroid, :oauth2_endpoint_token_grant_type_refresh_token_before_send_co
 
 # authorize
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_redirect_uri_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_redirect_uri_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_code_before_send_conn_callback,
+config :asteroid, :oauth2_endpoint_authorize_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_redirect_uri_callback,
-  &Asteroid.Utils.id_first_param/2
-
-config :asteroid, :oauth2_endpoint_authorize_response_type_token_before_send_conn_callback,
-  &Asteroid.Utils.id_first_param/2
+config :asteroid, :web_authorization_callback,
+  &AsteroidWeb.AuthorizeController.select_web_authorization_callback/2
 
 # token
 
@@ -485,6 +528,14 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter,
 
 config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
 
+# pkce
+
+config :asteroid, :oauth2_pkce_policy, :optional
+
+config :asteroid, :oauth2_pkce_allowed_methods, [:S256]
+
+config :asteroid, :oauth2_must_use_pkce_callback, &Asteroid.OAuth2.Client.must_use_pkce?/1
+
 ####################### Scope configuration ##########################
 
 config :asteroid, :scope_config, [
@@ -512,7 +563,10 @@ config :asteroid, :scope_config, [
         "fr" => "Réaliser des virements",
         "ru" => "Делать банковские переводы"
       }
-    ]
+    ],
+    "openid" => [display: false],
+    "email" => [label: %{"en" => "Access your email address"}],
+    "profile" => [label: %{"en" => "Access your profile information"}]
   }
 ]
 
@@ -527,3 +581,52 @@ config :asteroid, :oauth2_flow_client_credentials_scope_config, []
 config :asteroid, :oauth2_flow_ropc_scope_config, []
 
 config :asteroid, :oauth2_flow_device_authorization_scope_config, []
+
+####################### OIDC general configuration ################
+
+config :asteroid, :oidc_id_token_lifetime_callback,
+  &Asteroid.Token.IDToken.lifetime/1
+
+config :asteroid, :oidc_acr_config, [
+  "2-factor": [
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password", "emailotp"]]
+  ],
+  "1-factor": [
+    callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
+    auth_event_set: [["password"], ["emailotp"]],
+    default: true
+  ]
+]
+
+config :asteroid, :token_id_token_before_serialize_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_issue_id_token_on_refresh_callback,
+  &Asteroid.Token.IDToken.issue_id_token?/1
+
+config :asteroid, :oidc_subject_identifier_callback, &Asteroid.OIDC.subject_identifier/2
+
+config :asteroid, :oidc_subject_identifier_pairwise_salt,
+  Base.encode64(:crypto.strong_rand_bytes(24))
+
+# userinfo
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_resp_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_before_send_conn_callback,
+  &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_endpoint_userinfo_signature_alg_values_supported, ["RS256"]
+
+config :asteroid, :oidc_endpoint_userinfo_encryption_alg_values_supported, []
+
+config :asteroid, :oidc_endpoint_userinfo_encryption_enc_values_supported, []
+
+config :asteroid, :oidc_claims_supported, ["email", "phone_number", "gender"]
+# others
+
+config :asteroid, Asteroid.Mailer,
+  adapter: Bamboo.SendGridAdapter,
+  api_key: {:system, "SENDGRID_API_KEY"}

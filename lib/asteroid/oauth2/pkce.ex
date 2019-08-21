@@ -45,7 +45,7 @@ defmodule Asteroid.OAuth2.PKCE do
     Exception returned when a code challenge method is not supported
 
     Supported methods are those of `t:code_challenge_method/0` and are activated with the
-    #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_pkce_allowed_methods)}
+    #{Asteroid.Config.link_to_option(:oauth2_pkce_allowed_methods)}
     configuration option.
     """
 

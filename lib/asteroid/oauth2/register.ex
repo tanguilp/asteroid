@@ -82,48 +82,54 @@ defmodule Asteroid.OAuth2.Register do
   The following table is used for consistency check:
 
 
-  | grant_types value includes:                   | response_types    |
-  |-----------------------------------------------|-------------------|
-  | authorization_code                            | code              |
-  | implicit                                      | token             |
-  | password                                      | (none)            |
-  | client_credentials                            | (none)            |
-  | refresh_token                                 | (none)            |
-  | urn:ietf:params:oauth:grant-type:jwt-bearer   | (none)            |
-  | urn:ietf:params:oauth:grant-type:saml2-bearer | (none)            |
+  | grant_types value includes:                   | response_types      |
+  |-----------------------------------------------|---------------------|
+  | authorization_code                            | code                |
+  | implicit                                      | token               |
+  | implicit                                      | id_token            |
+  | implicit                                      | token id_token      |
+  | authorization_code, implicit                  | code id_token       |
+  | authorization_code, implicit                  | code token          |
+  | authorization_code, implicit                  | code id_token token |
+  | password                                      | (none)              |
+  | client_credentials                            | (none)              |
+  | refresh_token                                 | (none)              |
+  | urn:ietf:params:oauth:grant-type:jwt-bearer   | (none)              |
+  | urn:ietf:params:oauth:grant-type:saml2-bearer | (none)              |
 
   """
 
   @spec grant_response_types_consistent?([OAuth2.grant_type_str()],
                                          [OAuth2.response_type_str()]) ::
   :ok
-  | {:error, {:grant_type | :response_type, String.t()}}
+  | {:error, String.t()}
 
   def grant_response_types_consistent?(grant_types, response_types) do
-    cond do
-      "authorization_code" in grant_types and "code" not in response_types ->
-        {:error,
-          {
-            :response_type,
-            "The response type `code` must be registered along with the grant type `authorization_code`"}}
+    mapping = %{
+      "code" => ["authorization_code"],
+      "token" => ["implicit"],
+      "id_token" => ["implicit"],
+      "token id_token" => ["implicit"],
+      "code id_token" => ["authorization_code", "implicit"],
+      "code token" => ["authorization_code", "implicit"],
+      "code id_token token" => ["authorization_code", "implicit"]
+    }
 
-      "authorization_code" not in grant_types and "code" in response_types ->
-        {:error,
-          {:grant_type,
-            "The grant type `authorization_code` must be registered along with the response type `code`"}}
+    Enum.reduce_while(
+      response_types,
+      :ok,
+      fn
+        response_type, _acc ->
+          mandatory_grant_types = mapping[response_type]
 
-      "implicit" in grant_types and "token" not in response_types ->
-        {:error,
-          {:response_type,
-            "The response type `token` must be registered along with the grant type `implicit`"}}
-
-      "implicit" not in grant_types and "token" in response_types ->
-        {:error,
-          {:grant_type,
-            "The grant type `implicit` must be registered along with the response type `token`"}}
-
-      true -> :ok
-    end
+          if Enum.all?(mandatory_grant_types, &(&1 in grant_types)) do
+            {:cont, :ok}
+          else
+            {:halt,
+              {:error, "response_type `#{response_type}` have missing mandatory grant type"}}
+          end
+      end
+    )
   end
 
   @doc """

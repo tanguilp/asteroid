@@ -156,7 +156,7 @@ iex> Client.gen_new(id: "client1") |> Client.add("client_id", "client1") |> Clie
 Then let's request a new access token:
 
 ```bash
-$ curl -u client1:password1 -d "grant_type=client_credentials" http://localhost:4001/api/oauth2/token | jq
+$ curl -u client1:password1 -d "grant_type=client_credentials" http://localhost:4000/api/oauth2/token | jq
 {
   "access_token": "328ToeX47XqKKyTAep-sZPYWek8",
   "expires_in": 599,
@@ -168,7 +168,7 @@ $ curl -u client1:password1 -d "grant_type=client_credentials" http://localhost:
 and introspect it:
 
 ```bash
-$ curl -u client1:password1 -d "token=328ToeX47XqKKyTAep-sZPYWek8" http://localhost:4001/api/oauth2/introspect | jq
+$ curl -u client1:password1 -d "token=328ToeX47XqKKyTAep-sZPYWek8" http://localhost:4000/api/oauth2/introspect | jq
 {
   "active": true,
   "client_id": "client1",
@@ -248,7 +248,7 @@ iex> Subject.gen_new(id: "sub1") |> Subject.add("sub", "sub1") |> Subject.add("p
 Request new credentials using the ROPC flow:
 
 ```bash
-$ curl -u client1:password1 -d "grant_type=password&username=sub1&password=password1" http://localhost:4001/api/oauth2/token | jq
+$ curl -u client1:password1 -d "grant_type=password&username=sub1&password=password1" http://localhost:4000/api/oauth2/token | jq
 {
   "access_token": "Q4b0Ofi-qP9MM11GPezs2cnR51g",
   "expires_in": 600,
@@ -261,7 +261,7 @@ $ curl -u client1:password1 -d "grant_type=password&username=sub1&password=passw
 and introspect it:
 
 ```bash
-$ curl -u client1:password1 -d "token=Q4b0Ofi-qP9MM11GPezs2cnR51g" http://localhost:4001/api/oauth2/introspect | jq
+$ curl -u client1:password1 -d "token=Q4b0Ofi-qP9MM11GPezs2cnR51g" http://localhost:4000/api/oauth2/introspect | jq
 {
   "active": true,
   "client_id": "client1",
@@ -287,3 +287,65 @@ Since callbacks are called last (after other functions that help with forming th
 [`:oauth2_endpoint_introspect_claims_resp`](Asteroid.Config.html#module-oauth2_endpoint_introspect_claims_resp)
 configuration option has already been applied, which is why there is no need to modify it to
 include the `"email_address"` and `"permissions"` attributes.
+
+### Example 3: adding current session information to `/introspect` response
+
+In this example, we want to return information on the current web authenticated session, when
+available, on the `/introspect` endpoint. Session information can be retrieved from an
+authenticated session (or authenticated session id) using the
+`Asteroid.OIDC.AuthenticatedSession.info/2` function.
+
+We still need, however, to retrieve the authenticated session id from the access or refresh
+token being introspected. This id, when set (i.e. in the OpenID Connect flows) is set as an
+attribute of these tokens in the `__asteroid_oidc_authenticated_session_id` flow.
+
+We will use the
+[`:oauth2_endpoint_introspect_before_send_resp_callback`](Asteroid.Config.html#module-oauth2_endpoint_introspect_before_send_resp_callback)
+as in the previous example.
+
+First, we create a custom callback function in `/custom_example/callback.ex`:
+
+```elixir
+def introspect_add_authenticated_session_info(response, %{token: token}) do
+  case token.data["__asteroid_oidc_authenticated_session_id"] do
+    session_id when is_binary(session_id) ->
+      session_info = OIDC.AuthenticatedSession.info(session_id) || %{}
+
+      response
+      |> put_if_not_nil("current_acr", session_info[:acr])
+      |> put_if_not_nil("current_amr", session_info[:amr])
+      |> put_if_not_nil("current_auth_time", session_info[:auth_time])
+
+    nil ->
+      response
+  end
+end
+```
+
+and then we set the callback in the configuration file:
+```elixir
+config :asteroid, :oauth2_endpoint_introspect_before_send_resp_callback,
+  &CustomExample.Callback.introspect_add_authenticated_session_info/2
+```
+
+and introspect a token granted after using an OpenID Connect flow (using the client and subject
+used in example 2):
+
+```bash
+$ curl -u client1:password1 -d "token=Q4b0Ofi-qP9MM11GPezs2cnR51g" http://localhost:4000/api/oauth2/introspect | jq
+{
+  "active": true,
+  "client_id": "client1",
+  "current_acr": "3-factor",
+  "current_amr": [
+    "otp",
+    "phr",
+    "pwd"
+  ],
+  "current_auth_time": 1561649841,
+  "exp": 1561651175,
+  "iat": 1561650575,
+  "iss": "http://localhost:4000",
+  "sub": "sub1"
+}
+```

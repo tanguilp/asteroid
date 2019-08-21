@@ -1,8 +1,7 @@
-# Device Authorization Grant (draft RFC)
+# Device Authorization Grant (RFC8628)
 
-Asteroid implements the OAuth 2.0 Device Authorization Grant which is still a draft RFC
-as of 06.19 (
-[https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15](https://tools.ietf.org/html/draft-ietf-oauth-device-flow-15)).
+Asteroid implements the OAuth 2.0 Device Authorization Grant
+([RFC8628](https://www.rfc-editor.org/rfc/rfc8628.html)).
 
 This RFC is designed to allow IOT devices with low input capabilities (eg a connected toothbrush)
 to move the authentication and authorization process to a smartphone or a computer.

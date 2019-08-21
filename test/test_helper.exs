@@ -15,11 +15,20 @@ Client.gen_new(id: "client_confidential_1")
   "refresh_token",
   "urn:ietf:params:oauth:grant-type:device_code"
 ])
-|> Client.add("response_types", ["code"])
+|> Client.add("response_types", [
+  "code",
+  "token",
+  "id_token",
+  "id_token token",
+  "code id_token",
+  "code token",
+  "code id_token token"
+])
 |> Client.add("scope", [
   "scp1", "scp2", "scp3", "scp4", "scp5", "scp6",
   "asteroid.introspect",
-  "asteroid.register"
+  "asteroid.register",
+  "openid"
 ])
 |> Client.add("redirect_uris", ["https://www.example.com", "https://example.org/auth/web/"])
 |> Client.add("resource_server_name", "https://client1.api")
@@ -43,7 +52,7 @@ Client.gen_new(id: "client_confidential_3")
 |> Client.add("grant_types", ["authorization_code"])
 |> Client.add("response_types", ["code"])
 |> Client.add("redirect_uris", ["https://www.example.com"])
-|> Client.add("__asteroid_oauth2_flow_authorization_code_mandatory_pkce_use", true)
+|> Client.add("__asteroid_oauth2_mandatory_pkce_use", true)
 |> Client.add("__asteroid_oauth2_endpoint_register_allowed_scopes", ["scp11", "scp12", "scp13"])
 |> Client.add("__asteroid_oauth2_endpoint_register_auto_scopes", ["scp17", "scp18", "scp19"])
 |> Client.add("__asteroid_oauth2_endpoint_register_default_token_endpoint_auth_method",
@@ -70,4 +79,8 @@ Client.gen_new(id: "client_public_2")
 Subject.gen_new(id: "user_1")
 |> Subject.add("sub", "user_1")
 |> Subject.add("password", "asteroidftw")
+|> Subject.add("nickname", "UsEr OnE")
+|> Subject.add("email", "user1@example.com")
+|> Subject.add("phone_number", "+3942390027")
+|> Subject.add("non_standard_claim_1", "some value")
 |> Subject.store()

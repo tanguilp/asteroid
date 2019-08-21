@@ -2,6 +2,7 @@ defmodule Asteroid.Test.Callbacks do
   @moduledoc false
 
   alias Asteroid.Subject
+  alias OAuth2Utils.Scope
 
   @doc false
 
@@ -25,4 +26,22 @@ defmodule Asteroid.Test.Callbacks do
         {:error, reason}
     end
   end
+
+  @spec authorize_print_successful_request(Plug.Conn.t(),
+                                           %AsteroidWeb.AuthorizeController.Request{})
+  :: Plug.Conn.t()
+
+  def authorize_print_successful_request(conn, request) do
+    request_map =
+      Map.from_struct(%{request |
+        client_id: request.client_id,
+        requested_scopes: Scope.Set.to_list(request.requested_scopes)
+      })
+
+    conn
+    |> Plug.Conn.put_status(200)
+    |> Phoenix.Controller.json(request_map)
+  end
+
+  
 end
