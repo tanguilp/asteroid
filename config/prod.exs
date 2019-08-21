@@ -558,7 +558,7 @@ config :asteroid, :scope_config, [
         "ru" => "Делать банковские переводы"
       }
     ],
-    "openid" => [],
+    "openid" => [display: false],
     "email" => [label: %{"en" => "Access your email address"}],
     "profile" => [label: %{"en" => "Access your profile information"}]
   }
@@ -584,11 +584,11 @@ config :asteroid, :oidc_id_token_lifetime_callback,
 config :asteroid, :oidc_acr_config, [
   "2-factor": [
     callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
-    auth_event_set: [["password", "otp"]]
+    auth_event_set: [["password", "emailotp"]]
   ],
   "1-factor": [
     callback: &AsteroidWeb.OIDCEmailPasswordController.start_webflow/2,
-    auth_event_set: [["password"], ["otp"]],
+    auth_event_set: [["password"], ["emailotp"]],
     default: true
   ]
 ]
@@ -619,3 +619,7 @@ config :asteroid, :oidc_endpoint_userinfo_encryption_alg_values_supported, []
 config :asteroid, :oidc_endpoint_userinfo_encryption_enc_values_supported, []
 
 config :asteroid, :oidc_claims_supported, ["email", "phone_number", "gender"]
+# others
+
+config :asteroid, Asteroid.Mailer,
+  adapter: Bamboo.LocalAdapter
