@@ -59,7 +59,10 @@ defmodule Asteroid.Application do
       "interbank_transfer",
       "asteroid.introspect",
       "openid",
-      "email"
+      "email",
+      "address",
+      "profile",
+      "phone"
     ])
     |> Client.add("redirect_uris", ["http://www.example.com/oauth2_redirect"])
     |> Client.store()
