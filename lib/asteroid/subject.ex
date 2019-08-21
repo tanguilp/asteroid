@@ -10,6 +10,10 @@ defmodule Asteroid.Subject do
   ## Field naming
   The following fields have standardised meaning:
   - `"sub"`: the subject identifier (`"sub"` in OAuth2) (`String.t()`)
+  - `"consented_scopes"`: a map whose keys are the `client_id`s and the values the string
+  representation of the already consented scopes (such as `"email profile address"`). Note that
+  although this is the format used in the demo application, other ways to store consented scopes
+  are also possible (but it still has to remain per client)
 
   ## Configuration
 
