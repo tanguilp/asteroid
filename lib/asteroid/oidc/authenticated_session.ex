@@ -242,6 +242,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   @doc """
   Returns the authentication time and the AMRs of an authenticated session for a given ACR
 
+  If no ACR is given as the second argument, returns the current state of the session.
+
   It returns:
   - `:acr`: the acr
   - `:auth_time`: the timestamp of the most recent authentication event
