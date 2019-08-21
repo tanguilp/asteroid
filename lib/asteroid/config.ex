@@ -1155,7 +1155,7 @@ defmodule Asteroid.Config do
     @type oauth2_pkce_must_use_callback ::
     (Client.t() -> boolean())
 
-    field :oauth2_must_use_pkce_callback,
+    field :oauth2_pkce_must_use_callback,
     config_time: :runtime
 
     @doc """
