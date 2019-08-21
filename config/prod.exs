@@ -629,4 +629,4 @@ config :asteroid, :oidc_claims_supported, ["email", "phone_number", "gender"]
 
 config :asteroid, Asteroid.Mailer,
   adapter: Bamboo.SendGridAdapter,
-  api_key: {:system, "SENDGRID_API_KEY"}
+  api_key: Map.fetch!(System.get_env(), "SENDGRID_API_KEY")
