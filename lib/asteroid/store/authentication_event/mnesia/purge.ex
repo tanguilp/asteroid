@@ -38,7 +38,7 @@ defmodule Asteroid.Store.AuthenticationEvent.Mnesia.Purge do
     ]
 
     for authentication_event_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.AuthenticationEvent.Mnesia.delete(authentication_event_id, opts)
+      Asteroid.OIDC.AuthenticationEvent.delete(authentication_event_id)
     end
   end
 end

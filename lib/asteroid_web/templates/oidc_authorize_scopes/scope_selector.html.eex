@@ -1,6 +1,6 @@
 <section class="phx-hero">
   <h1>Asteroid demo authentication workflow</h1>
-  <%= if Enum.empty?(@scopes) do %>
+  <%= if Enum.empty?(MapSet.delete(@scopes, "openid")) do %>
   <p style="text-align:left">The application <i><%= @client.attrs["client_name"] %></i>
   requests access to your data.</p>
   <% else %>
