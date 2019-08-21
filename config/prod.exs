@@ -277,7 +277,7 @@ config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
 
 config :asteroid, :oauth2_grant_types_enabled, [
   :authorization_code,
-  #:implicit,
+  :implicit,
   :password,
   :client_credentials,
   :refresh_token,
@@ -287,7 +287,11 @@ config :asteroid, :oauth2_grant_types_enabled, [
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
   :token,
-  :id_token
+  :id_token,
+  :"id_token token",
+  :"code id_token",
+  :"code token",
+  :"code id_token token"
 ]
 
 config :asteroid, :api_error_response_verbosity, :normal
