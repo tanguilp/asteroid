@@ -132,17 +132,14 @@ defmodule AsteroidWeb.AuthorizeController do
 
     protocol = if "openid" in requested_scopes, do: :oidc, else: :oauth2
 
-    IO.inspect(:toto1)
     with {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
          {:ok, response_type} <- Asteroid.OAuth2.to_response_type(response_type_str),
          :ok <- Asteroid.OAuth2.response_type_enabled?(response_type),
-    a <- IO.inspect(:toto2),
          :ok <- client_id_valid?(client_id),
          :ok <- redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
          :ok <- redirect_uri_registered_for_client?(client, redirect_uri),
          :ok <- OAuth2.Client.response_type_authorized?(client, response_type_str),
-    a <- IO.inspect(:toto3),
          :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, flow),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <-

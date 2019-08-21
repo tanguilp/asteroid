@@ -454,6 +454,8 @@ defmodule Asteroid.OAuth2 do
   | {:error, %UnsupportedResponseTypeError{}}
 
   def response_type_enabled?(response_type) do
+    IO.inspect(response_type)
+    IO.inspect(astrenv(:oauth2_response_types_enabled, []))
     if response_type in astrenv(:oauth2_response_types_enabled, []) do
       :ok
     else
