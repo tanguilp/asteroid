@@ -229,13 +229,25 @@ defmodule Asteroid.Token.IDToken do
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_id_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_id_token_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_id_token_lifetime)}
+  - Otherwise uses the
+  #{Asteroid.Config.link_to_option(:oidc_id_token_lifetime)} configuration option
   - Otherwise returns `0`
   """
 
   @spec lifetime(Context.t()) :: non_neg_integer()
 
-  def lifetime(%{flow: :oidc_authorization_code, client: client}) do
-    attr = "__asteroid_oidc_flow_authorization_code_id_token_lifetime"
+  def lifetime(%{flow: flow, client: client}) do
+    attr =
+      case flow do
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_id_token_lifetime"
+
+        :oidc_implicit ->
+          "__asteroid_oidc_flow_implicit_id_token_lifetime"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_id_token_lifetime"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
@@ -244,35 +256,19 @@ defmodule Asteroid.Token.IDToken do
         lifetime
 
       _ ->
-        astrenv(:oidc_flow_authorization_code_id_token_lifetime, 0)
-    end
-  end
+        conf_opt =
+          case flow do
+            :oidc_authorization_code ->
+              :oidc_flow_authorization_code_id_token_lifetime
 
-  def lifetime(%{flow: :oidc_implicit, client: client}) do
-    attr = "__asteroid_oidc_flow_implicit_id_token_lifetime"
+            :oidc_implicit ->
+              :oidc_flow_implicit_id_token_lifetime
 
-    client = Client.fetch_attributes(client, [attr])
+            :oidc_hybrid ->
+              :oidc_flow_hybrid_id_token_lifetime
+          end
 
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oidc_flow_implicit_id_token_lifetime, 0)
-    end
-  end
-
-  def lifetime(%{flow: :oidc_hybrid, client: client}) do
-    attr = "__asteroid_oidc_flow_hybrid_id_token_lifetime"
-
-    client = Client.fetch_attributes(client, [attr])
-
-    case client.attrs[attr] do
-      lifetime when is_integer(lifetime) ->
-        lifetime
-
-      _ ->
-        astrenv(:oidc_flow_hybrid_id_token_lifetime, 0)
+        astrenv(conf_opt, astrenv(:oidc_id_token_lifetime, 0))
     end
   end
 
@@ -290,40 +286,42 @@ defmodule Asteroid.Token.IDToken do
   and grant type, returns `true`:
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_issue_id_token_refresh)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_issue_id_token_refresh)}
+  - Otherwise uses the
+  #{Asteroid.Config.link_to_option(:oidc_issue_id_token_refresh)} configuration option
   - Otherwise returns `false`
   """
 
   @spec issue_id_token?(Context.t()) :: boolean()
 
   def issue_id_token?(%{
-    flow: :oidc_authorization_code,
+    flow: flow,
     grant_type: :refresh_token,
     client: client})
   do
-    attr = "__asteroid_oidc_flow_authorization_code_issue_id_token_refresh"
+    attr =
+      case flow do
+        :oidc_authorization_code ->
+          "__asteroid_oidc_flow_authorization_code_issue_id_token_refresh"
+
+        :oidc_hybrid ->
+          "__asteroid_oidc_flow_hybrid_issue_id_token_refresh"
+      end
 
     client = Client.fetch_attributes(client, [attr])
 
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oidc_flow_authorization_code_issue_id_token_refresh, false)
-    end
-  end
+      conf_opt =
+        case flow do
+          :oidc_authorization_code ->
+            :oidc_flow_authorization_code_issue_id_token_refresh
 
-  def issue_id_token?(%{
-    flow: :oidc_hybrid,
-    grant_type: :refresh_token,
-    client: client})
-  do
-    attr = "__asteroid_oidc_flow_hybrid_issue_id_token_refresh"
+          :oidc_hybrid ->
+            :oidc_flow_hybrid_issue_id_token_refresh
+        end
 
-    client = Client.fetch_attributes(client, [attr])
-
-    if client.attrs[attr] == true do
-      true
-    else
-      astrenv(:oidc_flow_hybrid_issue_id_token_refresh, false)
+      astrenv(conf_opt, astrenv(:oidc_issue_id_token_refresh, false))
     end
   end
 

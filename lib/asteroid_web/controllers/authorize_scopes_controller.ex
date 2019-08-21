@@ -15,7 +15,7 @@ defmodule AsteroidWeb.AuthorizeScopesController do
                                                       authz_request.client_id,
                                                       attributes: ["client_name"])
 
-    requested_scopes_config = requested_scopes_config(conn)
+    requested_scopes_config = requested_scopes_config(conn, authz_request.client_id)
 
     conn
     |> put_status(200)
@@ -25,7 +25,9 @@ defmodule AsteroidWeb.AuthorizeScopesController do
   def validate(conn, %{"submit_grant" => _, "scopes" => submitted_scopes}) do
     check_authenticated(conn)
 
-    requested_scopes_config = requested_scopes_config(conn)
+    authz_request = get_session(conn, :authz_request)
+
+    requested_scopes_config = requested_scopes_config(conn, authz_request.client_id)
 
     valid_submitted_scopes =
       Enum.all?(
@@ -47,18 +49,27 @@ defmodule AsteroidWeb.AuthorizeScopesController do
       granted_scopes =
         Enum.reduce(
           submitted_scopes,
-          [],
+          Scope.Set.new(),
           fn
             {scope, "true"}, acc ->
-              [scope | acc]
+              Scope.Set.put(acc, scope)
 
             {_scope, _}, acc ->
               acc
           end
         )
 
-      get_session(conn, :subject)
-      |> Subject.add("authorized_scopes", granted_scopes)
+      subject =
+        conn
+        |> get_session(:subject)
+        |> Subject.fetch_attributes(["consented_scopes"])
+
+      consented_scopes =
+        (subject.attrs["consented_scopes"] || %{})
+        |> Map.put(authz_request.client_id, Scope.Set.to_scope_param(granted_scopes))
+
+      subject
+      |> Subject.add("consented_scopes", consented_scopes)
       |> Subject.store()
 
       AsteroidWeb.AuthorizeController.authorization_granted(
@@ -110,10 +121,10 @@ defmodule AsteroidWeb.AuthorizeScopesController do
     end
   end
 
-  defp requested_scopes_config(conn) do
-    subject =
-      get_session(conn, :subject)
-      |> Subject.fetch_attributes(["authorized_scopes"])
+  defp requested_scopes_config(conn, client_id) do
+    subject = get_session(conn, :subject)
+
+    consented_scopes = consented_scopes(subject, client_id)
 
     scope_config = OAuth2.Scope.configuration_for_flow(:authorization_code)
 
@@ -129,7 +140,7 @@ defmodule AsteroidWeb.AuthorizeScopesController do
               name: k,
               label: v[:label]["en"],
               optional: v[:optional] || false,
-              already_authorized: k in (subject.attrs["authorized_scopes"] || [])
+              already_authorized: k in consented_scopes
             }
 
           [scope | acc]
@@ -138,5 +149,22 @@ defmodule AsteroidWeb.AuthorizeScopesController do
         end
       end
     )
+  end
+
+  @spec consented_scopes(Subject.t(), String.t()) :: Scope.Set.t()
+
+  defp consented_scopes(subject, client_id) do
+    subject = Subject.fetch_attributes(subject, ["consented_scopes"])
+
+    Enum.find_value(
+      subject.attrs["consented_scopes"] || %{},
+      fn
+        {^client_id, scope} ->
+          Scope.Set.from_scope_param!(scope)
+
+        _ ->
+          false
+      end
+    ) || Scope.Set.new()
   end
 end

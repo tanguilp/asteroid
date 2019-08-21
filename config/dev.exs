@@ -304,14 +304,24 @@ config :asteroid, :api_error_response_verbosity, :normal
 config :asteroid, :oauth2_scope_callback,
   &Asteroid.OAuth2.Scope.grant_for_flow/2
 
+config :asteroid, :oauth2_access_token_lifetime, 60 * 10
+
 config :asteroid, :oauth2_access_token_lifetime_callback,
   &Asteroid.Token.AccessToken.lifetime/1
+
+config :asteroid, :oauth2_refresh_token_lifetime, 60 * 60
 
 config :asteroid, :oauth2_refresh_token_lifetime_callback,
   &Asteroid.Token.RefreshToken.lifetime/1
 
+config :asteroid, :oauth2_authorization_code_lifetime, 60
+
 config :asteroid, :oauth2_authorization_code_lifetime_callback,
   &Asteroid.Token.AuthorizationCode.lifetime/1
+
+config :asteroid, :oauth2_issue_refresh_token_init, true
+
+config :asteroid, :oauth2_issue_refresh_token_init, false
 
 config :asteroid, :oauth2_issue_refresh_token_callback,
   &Asteroid.Token.RefreshToken.issue_refresh_token?/1
@@ -454,29 +464,13 @@ config :asteroid, :oauth2_endpoint_discovery_keys_before_send_conn_callback,
 
 # ROPC
 
-config :asteroid, :oauth2_flow_ropc_issue_refresh_token_init, true
-
-config :asteroid, :oauth2_flow_ropc_issue_refresh_token_refresh, false
-
 config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1 week
-
-config :asteroid, :oauth2_flow_ropc_access_token_lifetime, 60 * 10
 
 # client credentials
 
 config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_init, false
 
-config :asteroid, :oauth2_flow_client_credentials_issue_refresh_token_refresh, false
-
-config :asteroid, :oauth2_flow_client_credentials_access_token_lifetime, 60 * 10
-
 # authorization code
-
-config :asteroid, :oauth2_flow_authorization_code_issue_refresh_token_init, true
-
-config :asteroid, :oauth2_flow_authorization_code_issue_refresh_token_refresh, false
-
-config :asteroid, :oauth2_flow_authorization_code_authorization_code_lifetime, 60
 
 config :asteroid, :oauth2_flow_authorization_code_refresh_token_lifetime, 3600 * 24 * 7 # 1 week
 
@@ -512,13 +506,7 @@ config :asteroid, :oauth2_flow_device_authorization_device_code_lifetime, 60 * 1
 config :asteroid, :oauth2_flow_device_authorization_user_code_callback,
   &Asteroid.OAuth2.DeviceAuthorization.user_code/1
 
-config :asteroid, :oauth2_flow_device_authorization_issue_refresh_token_init, true
-
-config :asteroid, :oauth2_flow_device_authorization_issue_refresh_token_refresh, false
-
 config :asteroid, :oauth2_flow_device_authorization_refresh_token_lifetime, 10 * 365 * 24 * 3600
-
-config :asteroid, :oauth2_flow_device_authorization_access_token_lifetime, 60 * 10
 
 config :asteroid, :oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback,
   &Asteroid.Utils.id_first_param/2
@@ -601,6 +589,8 @@ config :asteroid, :oauth2_jar_request_uri_get_opts, [
 
 ####################### OIDC general configuration ################
 
+config :asteroid, :oidc_id_token_lifetime, 60
+
 config :asteroid, :oidc_id_token_lifetime_callback,
   &Asteroid.Token.IDToken.lifetime/1
 
@@ -612,6 +602,8 @@ config :asteroid, :oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A
 
 config :asteroid, :token_id_token_before_serialize_callback,
   &Asteroid.Utils.id_first_param/2
+
+config :asteroid, :oidc_issue_id_token_on_refresh_callback, false
 
 config :asteroid, :oidc_issue_id_token_on_refresh_callback,
   &Asteroid.Token.IDToken.issue_id_token?/1
