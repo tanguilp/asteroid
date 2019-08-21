@@ -197,8 +197,7 @@ config :asteroid, :api_oauth2_endpoint_token_plugs,
     {APIacAuthBasic,
       realm: "Asteroid",
       callback: &Asteroid.OAuth2.Client.get_client_secret/2,
-      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3}
-    # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
+      set_error_response: &APIacAuthBasic.save_authentication_failure_response/3},
     {Corsica, [origins: "*"]},
     # uncomment the following line to enable throttling for public clients on the
     # /api/oauth2/token endpoint
