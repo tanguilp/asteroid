@@ -56,7 +56,7 @@ defmodule AsteroidWeb.OIDCOTPController do
       |> redirect(to: "/oidc_authorize_scopes")
     else
       conn
-      |> put_flash(:error, "Invalid authentication code")
+      |> put_flash(:error, "Invalid authentication code, a new one was sent")
       |> index(%{})
     end
   end

@@ -4,7 +4,7 @@ defmodule AsteroidWeb.OTPEmail do
   def otp_email(email, otp) do
     base_email()
     |> to(email)
-    |> subject("Your authorization code")
+    |> subject("Your authentication code")
     |> assign(:otp, otp)
     |> render(:email)
   end
