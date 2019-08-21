@@ -93,7 +93,7 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
         case AuthenticatedSession.get(authenticated_session_id) do
           {:ok, authenticated_session} ->
             session_info =
-              AuthenticatedSession.info(authenticated_session, authz_request.preferred_acr)
+              AuthenticatedSession.info(authenticated_session)
 
               "pwd" not in (session_info[:amr] || []) or
               (
@@ -102,7 +102,7 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
               )
 
           {:error, _} ->
-            false
+            true
         end
         
       _ ->

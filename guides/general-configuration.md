@@ -39,7 +39,8 @@ Note that changing configuration at runtime is possible, nut will *not* be persi
 Some configuration values (but not all) follow a inheritance pattern consisting in
 - using the client configuration value, if present
 - using a flow-specific configuration value, if set
-- fall backing to a default value
+- using a general configuration value, if set
+- fallback to a default value
 
 Indeed, in addition to the configuration options that can be configured in the Elixir
 configuration files, many of them can be configured at the client level. It allows, for example,
@@ -52,7 +53,9 @@ For instance, the refresh token lifetime in the device authorization flow will b
 - using the `"__asteroid_oauth2_flow_device_authorization_refresh_token_lifetime"` attribute
 of the requesting client, if any
 - using the [`:oauth2_flow_device_authorization_refresh_token_lifetime`](Asteroid.Config.html#module-oauth2_flow_device_authorization_refresh_token_lifetime)
-configuration, if set
+configuration option, if set
+- using the [`:oauth2_refresh_token_lifetime`](Asteroid.Config.html#module-oauth2_refresh_token_lifetime)
+configuration option, if set
 - to `0` otherwise (which will make the token immediately invalid)
 
 ## Callbacks

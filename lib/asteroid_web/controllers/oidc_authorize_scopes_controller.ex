@@ -147,22 +147,23 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
 
     Enum.reduce(
       scope_config[:scopes],
-      [],
-      fn {k, v}, acc ->
-        if k in authz_request.requested_scopes do
-          scope =
-            %{
-              name: k,
-              label: v[:label]["en"],
-              optional: v[:optional] || false,
-              already_authorized: k in consented_scopes,
-              display: (if v[:display] == false, do: false, else: true)
-            }
+      Scope.Set.new(),
+      fn
+        {k, v}, acc ->
+          if k in authz_request.requested_scopes do
+            scope =
+              %{
+                name: k,
+                label: v[:label]["en"],
+                optional: v[:optional] || false,
+                already_authorized: k in consented_scopes,
+                display: (if v[:display] == false, do: false, else: true)
+              }
 
-          [scope | acc]
-        else
-          acc
-        end
+            Scope.Set.put(acc, scope)
+          else
+            acc
+          end
       end
     )
   end

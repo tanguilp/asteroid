@@ -478,7 +478,7 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_issue_refresh_token_callback]
 
     @doc """
-    Defines whether a refresh token should be issued when refreshing tokens
+    Defines whether a refresh token should be issued when refreshing tokens in the ROPC flow
     """
 
     @type oauth2_flow_ropc_issue_refresh_token_refresh :: boolean()
@@ -499,6 +499,8 @@ defmodule Asteroid.Config do
     field :oauth2_issue_refresh_token_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_issue_refresh_token_init,
+      :oauth2_issue_refresh_token_refresh,
       :oauth2_flow_ropc_issue_refresh_token_init,
       :oauth2_flow_ropc_issue_refresh_token_refresh,
       :oauth2_flow_client_credentials_issue_refresh_token_init,
@@ -536,6 +538,7 @@ defmodule Asteroid.Config do
     field :oauth2_refresh_token_lifetime_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_refresh_token_lifetime,
       :oauth2_flow_ropc_refresh_token_lifetime,
       :oauth2_flow_client_credentials_refresh_token_lifetime,
       :oauth2_flow_authorization_code_refresh_token_lifetime,
@@ -598,6 +601,7 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_lifetime_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_access_token_lifetime,
       :oauth2_flow_ropc_access_token_lifetime,
       :oauth2_flow_client_credentials_access_token_lifetime,
       :oauth2_flow_authorization_code_access_token_lifetime,
@@ -621,6 +625,7 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_serialization_format_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_access_token_serialization_format,
       :oauth2_flow_ropc_access_token_serialization_format,
       :oauth2_flow_client_credentials_access_token_serialization_format,
       :oauth2_flow_authorization_code_access_token_serialization_format,
@@ -644,6 +649,7 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_signing_key_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_access_token_signing_key,
       :oauth2_flow_ropc_access_token_signing_key,
       :oauth2_flow_client_credentials_access_token_signing_key,
       :oauth2_flow_authorization_code_access_token_signing_key,
@@ -667,6 +673,7 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_signing_alg_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_access_token_signing_alg,
       :oauth2_flow_ropc_access_token_signing_alg,
       :oauth2_flow_client_credentials_access_token_signing_alg,
       :oauth2_flow_authorization_code_access_token_signing_alg,
@@ -690,6 +697,7 @@ defmodule Asteroid.Config do
     field :oauth2_authorization_code_lifetime_callback,
     config_time: :runtime,
     uses: [
+      :oauth2_authorization_code_lifetime,
       :oauth2_flow_authorization_code_authorization_code_lifetime,
       :oidc_flow_authorization_code_authorization_code_lifetime,
       :oidc_flow_hybrid_authorization_code_lifetime
@@ -1956,6 +1964,7 @@ defmodule Asteroid.Config do
     field :oauth2_access_token_lifetime_callback,
     config_time: :runtime,
     uses: [
+      :oidc_id_token_lifetime,
       :oidc_flow_authorization_code_id_token_lifetime,
       :oidc_flow_implicit_id_token_lifetime,
       :oidc_flow_hybrid_id_token_lifetime
@@ -2044,6 +2053,7 @@ defmodule Asteroid.Config do
     field :oidc_issue_id_token_on_refresh_callback,
     config_time: :runtime,
     uses: [
+      :oidc_issue_id_token_refresh,
       :oidc_flow_authorization_code_issue_id_token_refresh,
       :oidc_flow_hybrid_issue_id_token_refresh
     ]
@@ -2323,6 +2333,111 @@ defmodule Asteroid.Config do
 
     field :oidc_endpoint_metadata_display_values_supported,
     config_time: :runtime
+
+    @doc """
+    Defines the lifetime of an access token
+    """
+
+    @type oauth2_access_token_lifetime :: non_neg_integer()
+
+    field :oauth2_access_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the serialization format of an access token
+    """
+
+    @type oauth2_access_token_serialization_format ::
+    Asteroid.Token.serialization_format()
+
+    field :oauth2_access_token_serialization_format,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_serialization_format_callback]
+
+    @doc """
+    Defines the signing algorithm of an access token
+    """
+
+    @type oauth2_access_token_signing_alg :: Crypto.Key.jws_alg()
+
+    field :oauth2_access_token_signing_alg,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_alg_callback]
+
+    @doc """
+    Defines the signing key name of an access token
+    """
+
+    @type oauth2_access_token_signing_key :: Crypto.Key.name()
+
+    field :oauth2_access_token_signing_key,
+    config_time: :runtime,
+    used_by: [:oauth2_access_token_signing_key_callback]
+
+    @doc """
+    Defines the lifetime of an authorization code
+    """
+
+    @type oauth2_authorization_code_lifetime :: non_neg_integer()
+
+    field :oauth2_authorization_code_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_authorization_code_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines whether a refresh token should be issued
+    """
+
+    @type oauth2_issue_refresh_token_init :: boolean()
+
+    field :oauth2_issue_refresh_token_init,
+      config_time: :runtime,
+      used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines whether a refresh token should be issued when refreshing tokens
+    """
+
+    @type oauth2_issue_refresh_token_refresh :: boolean()
+
+    field :oauth2_issue_refresh_token_refresh,
+      config_time: :runtime,
+      used_by: [:oauth2_issue_refresh_token_callback]
+
+    @doc """
+    Defines the lifetime of a refresh token
+    """
+
+    @type oauth2_refresh_token_lifetime :: non_neg_integer()
+
+    field :oauth2_refresh_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oauth2_refresh_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines the lifetime of an ID token
+    """
+
+    @type oidc_id_token_lifetime :: non_neg_integer()
+
+    field :oidc_id_token_lifetime,
+    config_time: :runtime,
+    used_by: [:oidc_id_token_lifetime_callback],
+    unit: "seconds"
+
+    @doc """
+    Defines whether an ID token should be issued when refreshing tokens
+    """
+
+    @type oidc_issue_id_token_refresh :: boolean()
+
+    field :oidc_issue_id_token_refresh,
+    config_time: :runtime,
+    used_by: [:oidc_issue_id_token_on_refresh_callback]
 
     ### end of configuration options
   end

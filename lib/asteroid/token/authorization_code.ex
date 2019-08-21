@@ -232,6 +232,8 @@ defmodule Asteroid.Token.AuthorizationCode do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_authorization_code_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_authorization_code_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_authorization_code_lifetime)}
+  - otherwise uses the value of the
+  #{Asteroid.Config.link_to_option(:oauth2_authorization_code_lifetime)} configuration option
   - Otherwise returns `0`
   """
 
@@ -258,7 +260,7 @@ defmodule Asteroid.Token.AuthorizationCode do
         lifetime
 
       _ ->
-        astrenv(conf_opt, 0)
+        astrenv(conf_opt, astrenv(:oauth2_authorization_code_lifetime, 0))
     end
   end
 

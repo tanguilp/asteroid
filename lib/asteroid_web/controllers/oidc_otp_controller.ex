@@ -69,7 +69,7 @@ defmodule AsteroidWeb.OIDCOTPController do
 
   @spec authenticate?(Plug.Conn.t(), Request.t()) :: boolean()
 
-  defp authenticate?(_conn, %Request{prompt: "login"}) do
+  defp authenticate?(_conn, %Request{prompt: "login", preferred_acr: "2-factor"}) do
     true
   end
 
@@ -79,7 +79,7 @@ defmodule AsteroidWeb.OIDCOTPController do
         case AuthenticatedSession.get(authenticated_session_id) do
           {:ok, authenticated_session} ->
             session_info =
-              AuthenticatedSession.info(authenticated_session, authz_request.preferred_acr)
+              AuthenticatedSession.info(authenticated_session)
 
               "otp" not in (session_info[:amr] || []) or
               (
@@ -88,7 +88,7 @@ defmodule AsteroidWeb.OIDCOTPController do
               )
 
           {:error, _} ->
-            false
+            true
         end
         
       _ ->
