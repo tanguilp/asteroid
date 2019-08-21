@@ -536,7 +536,7 @@ config :asteroid, :oauth2_pkce_policy, :optional
 
 config :asteroid, :oauth2_pkce_allowed_methods, [:S256]
 
-config :asteroid, :oauth2_must_use_pkce_callback, &Asteroid.OAuth2.Client.must_use_pkce?/1
+config :asteroid, :oauth2_pkce_must_use_callback, &Asteroid.OAuth2.Client.must_use_pkce?/1
 
 ####################### Scope configuration ##########################
 

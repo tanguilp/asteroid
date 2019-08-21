@@ -6,7 +6,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   its `:data` field:
   - `"current_acr"`: the current ACR, as calculated (`t:Asteroid.OIDC.acr/0`)
   - `"current_auth_time"`: the current authentication time, as calculated (`non_neg_integer`)
-  - `"exp"`: expiration time (`non_neg_integer()`)
+  - `"exp"`: expiration time (`non_neg_integer()`), to be optionally used if authentication
+  events are not
   """
 
   import Asteroid.Utils
