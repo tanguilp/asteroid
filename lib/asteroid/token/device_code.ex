@@ -98,10 +98,10 @@ defmodule Asteroid.Token.DeviceCode do
   | {:error, Exception.t()}
 
   def get(device_code_id, opts \\ [check_active: true]) do
-    token_store_module = astrenv(:token_store_device_code)[:module]
-    token_store_opts = astrenv(:token_store_device_code)[:opts] || []
+    code_store_module = astrenv(:object_store_device_code)[:module]
+    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
 
-    case token_store_module.get(device_code_id, token_store_opts) do
+    case code_store_module.get(device_code_id, code_store_opts) do
       {:ok, device_code} when not is_nil(device_code) ->
         if opts[:check_active] != true or active?(device_code) do
           {:ok, device_code}
@@ -136,10 +136,10 @@ defmodule Asteroid.Token.DeviceCode do
   | {:error, Exception.t()}
 
   def get_from_user_code(user_code, opts \\ [check_active: true]) do
-    token_store_module = astrenv(:token_store_device_code)[:module]
-    token_store_opts = astrenv(:token_store_device_code)[:opts] || []
+    code_store_module = astrenv(:object_store_device_code)[:module]
+    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
 
-    case token_store_module.get_from_user_code(user_code, token_store_opts) do
+    case code_store_module.get_from_user_code(user_code, code_store_opts) do
       {:ok, device_code} when not is_nil(device_code) ->
         if opts[:check_active] != true or active?(device_code) do
           {:ok, device_code}
@@ -168,12 +168,12 @@ defmodule Asteroid.Token.DeviceCode do
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(device_code, ctx) do
-    token_store_module = astrenv(:token_store_device_code)[:module]
-    token_store_opts = astrenv(:token_store_device_code)[:opts] || []
+    code_store_module = astrenv(:object_store_device_code)[:module]
+    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
 
-    device_code = astrenv(:token_store_device_code_before_store_callback).(device_code, ctx)
+    device_code = astrenv(:object_store_device_code_before_store_callback).(device_code, ctx)
 
-    case token_store_module.put(device_code, token_store_opts) do
+    case code_store_module.put(device_code, code_store_opts) do
       :ok ->
         {:ok, device_code}
 
@@ -193,10 +193,10 @@ defmodule Asteroid.Token.DeviceCode do
   end
 
   def delete(device_code_id) do
-    token_store_module = astrenv(:token_store_device_code)[:module]
-    token_store_opts = astrenv(:token_store_device_code)[:opts] || []
+    code_store_module = astrenv(:object_store_device_code)[:module]
+    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
 
-    token_store_module.delete(device_code_id, token_store_opts)
+    code_store_module.delete(device_code_id, code_store_opts)
   end
 
   @doc """

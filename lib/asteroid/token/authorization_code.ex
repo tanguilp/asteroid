@@ -87,7 +87,7 @@ defmodule Asteroid.Token.AuthorizationCode do
   @doc """
   Gets a authorization code from the authorization code store
 
-  Unlike the `c:Asteroid.Store.AuthorizationCode.get/2`, this function returns
+  Unlike the `c:Asteroid.ObjectStore.AuthorizationCode.get/2`, this function returns
   `{:error, %Asteroid.Token.InvalidTokenError{}}` if the authorization code is not found in
   the token store.
 
@@ -99,10 +99,10 @@ defmodule Asteroid.Token.AuthorizationCode do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authorization_code_id, opts \\ [check_active: true]) do
-    token_store_module = astrenv(:token_store_authorization_code)[:module]
-    token_store_opts = astrenv(:token_store_authorization_code)[:opts] || []
+    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
+    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
 
-    case token_store_module.get(authorization_code_id, token_store_opts) do
+    case azcode_store_module.get(authorization_code_id, azcode_store_opts) do
       {:ok, authorization_code} when not is_nil(authorization_code) ->
         if opts[:check_active] != true or active?(authorization_code) do
           {:ok, authorization_code}
@@ -131,13 +131,13 @@ defmodule Asteroid.Token.AuthorizationCode do
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(authorization_code, ctx \\ %{}) do
-    token_store_module = astrenv(:token_store_authorization_code)[:module]
-    token_store_opts = astrenv(:token_store_authorization_code)[:opts] || []
+    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
+    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
 
     authorization_code =
-      astrenv(:token_store_authorization_code_before_store_callback).(authorization_code, ctx)
+      astrenv(:object_store_authorization_code_before_store_callback).(authorization_code, ctx)
 
-    case token_store_module.put(authorization_code, token_store_opts) do
+    case azcode_store_module.put(authorization_code, azcode_store_opts) do
       :ok ->
         {:ok, authorization_code}
 
@@ -157,10 +157,10 @@ defmodule Asteroid.Token.AuthorizationCode do
   end
 
   def delete(authorization_code_id) do
-    authorization_code_store_module = astrenv(:token_store_authorization_code)[:module]
-    authorization_code_store_opts = astrenv(:token_store_authorization_code)[:opts] || []
+    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
+    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
 
-    authorization_code_store_module.delete(authorization_code_id, authorization_code_store_opts)
+    azcode_store_module.delete(authorization_code_id, azcode_store_opts)
   end
 
   @doc """

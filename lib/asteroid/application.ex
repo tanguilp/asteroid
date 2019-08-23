@@ -6,7 +6,7 @@ defmodule Asteroid.Application do
   import Asteroid.Utils
 
   alias Asteroid.AttributeRepository
-  alias Asteroid.Store
+  alias Asteroid.ObjectStore
   alias Asteroid.Crypto
 
   def start(_type, _args) do
@@ -16,8 +16,8 @@ defmodule Asteroid.Application do
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
-         :ok <- Store.auto_install_from_config(),
-         :ok <- Store.auto_start_from_config(),
+         :ok <- ObjectStore.auto_install_from_config(),
+         :ok <- ObjectStore.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
       if astrenv(:crypto_jws_none_alg_enabled, false) do

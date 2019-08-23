@@ -38,26 +38,26 @@ config :asteroid, Asteroid.Repo,
 ######################################################################
 ######################################################################
 
-config :asteroid, :token_store_access_token, [
-  module: Asteroid.Store.AccessToken.Mnesia,
+config :asteroid, :object_store_access_token, [
+  module: Asteroid.ObjectStore.AccessToken.Mnesia,
   opts: [tab_def: [disc_copies: []]]
 ]
 
-config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.Store.RefreshToken.Mnesia,
+config :asteroid, :object_store_refresh_token, [
+  module: Asteroid.ObjectStore.RefreshToken.Mnesia,
   opts: [tab_def: [disc_copies: []]]
 ]
 
-config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.Store.AuthorizationCode.Mnesia
+config :asteroid, :object_store_authorization_code, [
+  module: Asteroid.ObjectStore.AuthorizationCode.Mnesia
 ]
 
-config :asteroid, :token_store_device_code, [
-  module: Asteroid.Store.DeviceCode.Mnesia
+config :asteroid, :object_store_device_code, [
+  module: Asteroid.ObjectStore.DeviceCode.Mnesia
 ]
 
-config :asteroid, :token_store_request_object, [
-  module: Asteroid.Store.GenericKV.Mnesia,
+config :asteroid, :object_store_request_object, [
+  module: Asteroid.ObjectStore.GenericKV.Mnesia,
   opts: [table_name: :request_object]
 ]
 
@@ -270,7 +270,7 @@ config :asteroid, :oauth2_endpoint_token_grant_type_client_credentials_before_se
 
 # Refresh tokens
 
-config :asteroid, :token_store_refresh_token_before_store_callback,
+config :asteroid, :object_store_refresh_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_issue_refresh_token_callback,
@@ -287,7 +287,7 @@ config :asteroid, :oauth2_flow_ropc_refresh_token_lifetime, 60 * 60 * 24 * 7 # 1
 
 # access tokens
 
-config :asteroid, :token_store_access_token_before_store_callback,
+config :asteroid, :object_store_access_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_access_token_lifetime_callback,
@@ -302,7 +302,7 @@ config :asteroid, :client_credentials_scope_callback,
 
 # authorization codes
 
-config :asteroid, :token_store_authorization_code_before_store_callback,
+config :asteroid, :object_store_authorization_code_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_authorization_code_lifetime_callback,
@@ -439,7 +439,7 @@ config :asteroid, :oauth2_endpoint_device_authorization_before_send_resp_callbac
 config :asteroid, :oauth2_endpoint_device_authorization_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_device_code_before_store_callback,
+config :asteroid, :object_store_device_code_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oauth2_flow_device_authorization_device_code_lifetime, 60 * 15
@@ -500,18 +500,18 @@ config :asteroid, :oidc_subject_identifier_callback, &Asteroid.OIDC.subject_iden
 config :asteroid, :oidc_subject_identifier_pairwise_salt,
   Base.encode64(:crypto.strong_rand_bytes(24))
 
-config :asteroid, :token_store_authenticated_session, [
-  module: Asteroid.Store.AuthenticatedSession.Mnesia
+config :asteroid, :object_store_authenticated_session, [
+  module: Asteroid.ObjectStore.AuthenticatedSession.Mnesia
 ]
 
-config :asteroid, :token_store_authentication_event, [
-  module: Asteroid.Store.AuthenticationEvent.Mnesia
+config :asteroid, :object_store_authentication_event, [
+  module: Asteroid.ObjectStore.AuthenticationEvent.Mnesia
 ]
 
-config :asteroid, :token_store_authenticated_session_before_store_callback,
+config :asteroid, :object_store_authenticated_session_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_authentication_event_before_store_callback,
+config :asteroid, :object_store_authentication_event_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :oidc_acr_config, [
