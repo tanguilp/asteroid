@@ -52,10 +52,10 @@ rate-limiting *use* of device codes on the `/api/oauth2/token` endpoint) for ins
 a `APIacFilterThrottle` plug.
 
 This flow comes with its own token store, whose behaviour is described in
-`Asteroid.TokenStore.DeviceCode`. Note that there is no store for the user codes: a generated
+`Asteroid.Store.DeviceCode`. Note that there is no store for the user codes: a generated
 user code is attached to a generated device code. Two stores are implemented:
-- `Asteroid.TokenStore.DeviceCode.Mnesia`
-- `Asteroid.TokenStore.DeviceCode.Riak`
+- `Asteroid.Store.DeviceCode.Mnesia`
+- `Asteroid.Store.DeviceCode.Riak`
 
 This store is configured with the
 [`:token_store_device_code`](Asteroid.Config.html#module-token_store_device_code) configuration
@@ -64,7 +64,7 @@ option.
 Riak example:
 ```elixir
 config :asteroid, :token_store_device_code, [
-  module: Asteroid.TokenStore.DeviceCode.Riak,
+  module: Asteroid.Store.DeviceCode.Riak,
   opts: [bucket_type: "ephemeral_token"]
 ]
 ```
@@ -72,7 +72,7 @@ config :asteroid, :token_store_device_code, [
 Mnesia example:
 ```elixir
 config :asteroid, :token_store_device_code, [
-  module: Asteroid.TokenStore.DeviceCode.Mnesia
+  module: Asteroid.Store.DeviceCode.Mnesia
 ]
 ```
 
