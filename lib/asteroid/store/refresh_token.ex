@@ -85,10 +85,7 @@ defmodule Asteroid.Store.RefreshToken do
   the access tokens associated with the deleted refresh token.
   """
 
-  @callback delete(Asteroid.Token.RefreshToken.id(),
-                   opts(),
-                   {module(), Asteroid.Store.AccessToken.opts()}) ::
-  :ok | {:error, any()}
+  @callback delete(Asteroid.Token.RefreshToken.id(), opts()) :: :ok | {:error, any()}
 
   @optional_callbacks start: 1,
                       start_link: 1,

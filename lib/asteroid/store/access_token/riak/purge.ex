@@ -34,7 +34,7 @@ defmodule Asteroid.Store.AccessToken.Riak.Purge do
         for access_token_id <- access_token_ids do
           # this causes Riak connection exhaustion, to investigate further
           #Task.start(Asteroid.Store.AccessToken.Riak, :delete, [access_token_id, opts])
-          Asteroid.Store.AccessToken.Riak.delete(access_token_id, opts)
+          Asteroid.Token.AccessToken.delete(access_token_id)
         end
 
         :ok

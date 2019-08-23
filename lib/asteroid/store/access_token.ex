@@ -76,20 +76,8 @@ defmodule Asteroid.Store.AccessToken do
 
   @callback delete(Asteroid.Token.AccessToken.id(), opts()) :: :ok | {:error, any()}
 
-  @doc """
-  Deletes all access tokens associated to a refresh token
-
-  The OAuth2 standard requires that access tokens associated to a refresh token are deleted upon
-  deletion of the latter, hence this mandatory callback.
-  """
-
-  @callback delete_from_refresh_token_id(Asteroid.Token.RefreshToken.id(), opts()) ::
-  :ok
-  | {:error, any()}
-
   @optional_callbacks start: 1,
                       start_link: 1,
-                      get_from_refresh_token_id: 2,
                       get_from_subject_id: 2,
                       get_from_client_id: 2,
                       get_from_device_id: 2

@@ -38,7 +38,7 @@ defmodule Asteroid.Store.AccessToken.Mnesia.Purge do
     ]
 
     for access_token_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.AccessToken.Mnesia.delete(access_token_id, opts)
+      Asteroid.Token.AccessToken.delete(access_token_id)
     end
   end
 end

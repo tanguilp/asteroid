@@ -309,7 +309,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         maybe_new_refresh_token =
           if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
             :ok = RefreshToken.delete(refresh_token)
-            #
+
             # FIXME: handle {:error, reason} failure case?
             {:ok, new_refresh_token} =
               Enum.reduce(

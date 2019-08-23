@@ -38,7 +38,7 @@ defmodule Asteroid.Store.AuthorizationCode.Mnesia.Purge do
     ]
 
     for authorization_code_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.AuthorizationCode.Mnesia.delete(authorization_code_id, opts)
+      Asteroid.Token.AuthorizationCode.delete(authorization_code_id)
     end
   end
 end

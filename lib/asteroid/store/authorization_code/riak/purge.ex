@@ -36,7 +36,7 @@ defmodule Asteroid.Store.AuthorizationCode.Riak.Purge do
           #Task.start(Asteroid.Store.AuthorizationCode.Riak,
           #           :delete,
           #           [authorization_code_id, opts])
-          Asteroid.Store.AuthorizationCode.Riak.delete(authorization_code_id, opts)
+          Asteroid.Token.AuthorizationCode.delete(authorization_code_id)
         end
 
         :ok

@@ -252,36 +252,6 @@ defmodule Asteroid.Store.AccessToken.Riak do
       {:error, "#{inspect(e)}"}
   end
 
-  @impl true
-
-  def delete_from_refresh_token_id(refresh_token_id, opts) do
-    case get_from_refresh_token_id(refresh_token_id, opts) do
-      {:ok, access_token_ids} ->
-        res =
-          for access_token_id <- access_token_ids do
-            delete(access_token_id, opts)
-          end
-
-        if Enum.all?(
-             res,
-             fn
-               :ok ->
-                 true
-
-               {:error, _} ->
-                 false
-             end
-           ) do
-          :ok
-        else
-          {:error, "Not all tokens could be deleted in #{__MODULE__}"}
-        end
-
-      {:error, _} = error ->
-        error
-    end
-  end
-
   @doc """
   Searches in Riak-stored access tokens
 

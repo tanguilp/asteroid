@@ -34,7 +34,7 @@ defmodule Asteroid.Store.DeviceCode.Riak.Purge do
         for device_code_id <- device_code_ids do
           # this causes Riak connection exhaustion, to investigate further
           # Task.start(Asteroid.Store.DeviceCode.Riak, :delete, [device_code_id, opts])
-          Asteroid.Store.DeviceCode.Riak.delete(device_code_id, opts)
+          Asteroid.Token.DeviceCode.delete(device_code_id)
         end
 
         :ok

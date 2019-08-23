@@ -214,14 +214,14 @@ defmodule Asteroid.Store.RefreshToken.Mnesia do
 
   @impl true
 
-  def delete(refresh_token_id, opts, {access_token_store, access_token_store_opts}) do
+  def delete(refresh_token_id, opts) do
     table_name = opts[:table_name] || :asteroid_refresh_token
 
     :mnesia.dirty_delete(table_name, refresh_token_id)
 
     Logger.debug("#{__MODULE__}: deleted refresh token `#{refresh_token_id}`")
 
-    access_token_store.delete_from_refresh_token_id(refresh_token_id, access_token_store_opts)
+    :ok
   catch
     :exit, reason ->
       {:error, reason}

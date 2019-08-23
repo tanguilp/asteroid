@@ -3,7 +3,6 @@ defmodule Asteroid.Store.RefreshToken.Riak.Purge do
 
   use GenServer
   require Logger
-  import Asteroid.Utils
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -32,19 +31,12 @@ defmodule Asteroid.Store.RefreshToken.Riak.Purge do
 
     case Asteroid.Store.RefreshToken.Riak.search(request, opts) do
       {:ok, refresh_token_ids} ->
-        access_token_store_config = {
-          astrenv(:token_store_access_token)[:module],
-          astrenv(:token_store_access_token)[:opts] || []
-        }
-
         for refresh_token_id <- refresh_token_ids do
           # this causes Riak connection exhaustion, to investigate further
           #Task.start(Asteroid.Store.RefreshToken.Riak,
           #           :delete,
           #           [refresh_token_id, opts, access_token_store_config])
-          Asteroid.Store.RefreshToken.Riak.delete(refresh_token_id,
-                                                  opts,
-                                                  access_token_store_config)
+          Asteroid.Token.RefreshToken.delete(refresh_token_id)
         end
 
         :ok

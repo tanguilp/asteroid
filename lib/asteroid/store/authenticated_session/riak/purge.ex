@@ -34,7 +34,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Riak.Purge do
         for authenticated_session_id <- authenticated_session_ids do
           # this causes Riak connection exhaustion, to investigate further
           #Task.start(Asteroid.Store.AuthenticatedSession.Riak, :delete, [authenticated_session_id, opts])
-          Asteroid.Store.AuthenticatedSession.Riak.delete(authenticated_session_id, opts)
+          Asteroid.OIDC.AuthenticatedSession.delete(authenticated_session_id)
         end
 
         :ok

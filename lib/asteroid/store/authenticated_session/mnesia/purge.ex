@@ -38,7 +38,7 @@ defmodule Asteroid.Store.AuthenticatedSession.Mnesia.Purge do
     ]
 
     for authenticated_session_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.AuthenticatedSession.Mnesia.delete(authenticated_session_id, opts)
+      Asteroid.OIDC.AuthenticatedSession.delete(authenticated_session_id)
     end
   end
 end

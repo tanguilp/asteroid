@@ -114,21 +114,25 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     token_store_rt_module = astrenv(:token_store_refresh_token)[:module]
     token_store_rt_opts = astrenv(:token_store_refresh_token)[:opts] || []
 
-    {:ok, refresh_token_ids} =
-      token_store_rt_module.get_from_authenticated_session_id(authenticated_session_id,
-                                                              token_store_rt_opts)
+    case token_store_rt_module.get_from_authenticated_session_id(authenticated_session_id,
+                                                                 token_store_rt_opts)
+    do
+      {:ok, refresh_token_ids} ->
+        for refresh_token_id <- refresh_token_ids do
+          {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
 
-    for refresh_token_id <- refresh_token_ids do
-      {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
+          rt_scopes = refresh_token.data["scope"] || []
 
-      rt_scopes = refresh_token.data["scope"] || []
+          if "openid" in rt_scopes and "offline_access" not in rt_scopes do
+            RefreshToken.delete(refresh_token_id)
+          end
+        end
 
-      if "openid" in rt_scopes and "offline_access" not in rt_scopes do
-        RefreshToken.delete(refresh_token_id)
-      end
+      :ok
+
+      {:error, _} = error ->
+        error
     end
-
-    :ok
   end
 
   @doc """

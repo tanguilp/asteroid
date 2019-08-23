@@ -236,7 +236,7 @@ defmodule Asteroid.Store.RefreshToken.Riak do
 
   @impl true
 
-  def delete(refresh_token_id, opts, {access_token_store, access_token_store_opts}) do
+  def delete(refresh_token_id, opts) do
     bucket_type = opts[:bucket_type] || raise "Missing bucket type"
     bucket_name = opts[:bucket_name] || "refresh_token"
 
@@ -244,7 +244,7 @@ defmodule Asteroid.Store.RefreshToken.Riak do
 
     Logger.debug("#{__MODULE__}: deleted refresh token `#{refresh_token_id}`")
 
-    access_token_store.delete_from_refresh_token_id(refresh_token_id, access_token_store_opts)
+    :ok
   catch
     :exit, e ->
       {:error, "#{inspect(e)}"}

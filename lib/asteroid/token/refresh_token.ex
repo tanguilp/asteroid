@@ -160,12 +160,24 @@ defmodule Asteroid.Token.RefreshToken do
     refresh_token_store_module = astrenv(:token_store_refresh_token)[:module]
     refresh_token_store_opts = astrenv(:token_store_refresh_token)[:opts] || []
 
+    refresh_token_store_module.delete(refresh_token_id, refresh_token_store_opts)
+
     access_token_store_module = astrenv(:token_store_access_token)[:module]
     access_token_store_opts = astrenv(:token_store_access_token)[:opts] || []
 
-    refresh_token_store_module.delete(refresh_token_id,
-                                      refresh_token_store_opts,
-                                      {access_token_store_module, access_token_store_opts})
+    case access_token_store_module.get_from_refresh_token_id(refresh_token_id,
+                                                             refresh_token_store_opts)
+    do
+      {:ok, access_token_ids} -> 
+        for access_token_id <- access_token_ids do
+          access_token_store_module.delete(access_token_id, access_token_store_opts)
+        end
+
+      :ok
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   @doc """

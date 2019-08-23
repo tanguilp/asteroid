@@ -3,7 +3,6 @@ defmodule Asteroid.Store.RefreshToken.Mnesia.Purge do
 
   use GenServer
   require Logger
-  import Asteroid.Utils
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -38,15 +37,8 @@ defmodule Asteroid.Store.RefreshToken.Mnesia.Purge do
       }
     ]
 
-    access_token_store_config = {
-      astrenv(:token_store_access_token)[:module],
-      astrenv(:token_store_access_token)[:opts] || []
-    }
-
     for refresh_token_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.RefreshToken.Mnesia.delete(refresh_token_id,
-                                                     opts,
-                                                     access_token_store_config)
+      Asteroid.Token.RefreshToken.delete(refresh_token_id)
     end
   end
 end

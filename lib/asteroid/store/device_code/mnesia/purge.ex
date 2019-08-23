@@ -38,7 +38,7 @@ defmodule Asteroid.Store.DeviceCode.Mnesia.Purge do
     ]
 
     for device_code_id <- :mnesia.dirty_select(table_name, matchspec) do
-      Asteroid.Store.DeviceCode.Mnesia.delete(device_code_id, opts)
+      Asteroid.Token.DeviceCode.delete(device_code_id)
     end
   end
 end
