@@ -99,45 +99,45 @@ config :hammer,
 
 ####################### Token stores #################################
 
-config :asteroid, :token_store_access_token, [
-  module: Asteroid.Store.AccessToken.Mnesia
+config :asteroid, :object_store_access_token, [
+  module: Asteroid.ObjectStore.AccessToken.Mnesia
 ]
 
-config :asteroid, :token_store_refresh_token, [
-  module: Asteroid.Store.RefreshToken.Mnesia
+config :asteroid, :object_store_refresh_token, [
+  module: Asteroid.ObjectStore.RefreshToken.Mnesia
 ]
 
-config :asteroid, :token_store_authorization_code, [
-  module: Asteroid.Store.AuthorizationCode.Mnesia
+config :asteroid, :object_store_authorization_code, [
+  module: Asteroid.ObjectStore.AuthorizationCode.Mnesia
 ]
 
-config :asteroid, :token_store_authenticated_session, [
-  module: Asteroid.Store.AuthenticatedSession.Mnesia
+config :asteroid, :object_store_authenticated_session, [
+  module: Asteroid.ObjectStore.AuthenticatedSession.Mnesia
 ]
 
-config :asteroid, :token_store_authentication_event, [
-  module: Asteroid.Store.AuthenticationEvent.Mnesia
+config :asteroid, :object_store_authentication_event, [
+  module: Asteroid.ObjectStore.AuthenticationEvent.Mnesia
 ]
 
 # uncomment to enable the device authorization flow
 
-#config :asteroid, :token_store_device_code, [
-#  module: Asteroid.Store.DeviceCode.Mnesia
+#config :asteroid, :object_store_device_code, [
+#  module: Asteroid.ObjectStore.DeviceCode.Mnesia
 #]
 
-config :asteroid, :token_store_refresh_token_before_store_callback,
+config :asteroid, :object_store_refresh_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_access_token_before_store_callback,
+config :asteroid, :object_store_access_token_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_authorization_code_before_store_callback,
+config :asteroid, :object_store_authorization_code_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_authenticated_session_before_store_callback,
+config :asteroid, :object_store_authenticated_session_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
-config :asteroid, :token_store_authentication_event_before_store_callback,
+config :asteroid, :object_store_authentication_event_before_store_callback,
   &Asteroid.Utils.id_first_param/2
 
 ####################### Attribute repositories #######################

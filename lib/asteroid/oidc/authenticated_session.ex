@@ -52,10 +52,10 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authenticated_session_id, _opts \\ []) do
-    token_store_module = astrenv(:token_store_authenticated_session)[:module]
-    token_store_opts = astrenv(:token_store_authenticated_session)[:opts] || []
+    as_store_module = astrenv(:object_store_authenticated_session)[:module]
+    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
 
-    case token_store_module.get(authenticated_session_id, token_store_opts) do
+    case as_store_module.get(authenticated_session_id, as_store_opts) do
       {:ok, authenticated_session} when not is_nil(authenticated_session) ->
         {:ok, authenticated_session}
 
@@ -79,14 +79,14 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   def store(authenticated_session, ctx \\ %{})
 
   def store(authenticated_session, ctx) do
-    token_store_module = astrenv(:token_store_authenticated_session)[:module]
-    token_store_opts = astrenv(:token_store_authenticated_session)[:opts] || []
+    as_store_module = astrenv(:object_store_authenticated_session)[:module]
+    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
 
     authenticated_session =
-      astrenv(:token_store_authenticated_session_before_store_callback).(authenticated_session,
-                                                                         ctx)
+      astrenv(:object_store_authenticated_session_before_store_callback).(authenticated_session,
+                                                                          ctx)
 
-    case token_store_module.put(authenticated_session, token_store_opts) do
+    case as_store_module.put(authenticated_session, as_store_opts) do
       :ok ->
         {:ok, authenticated_session}
 
@@ -106,29 +106,33 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   end
 
   def delete(authenticated_session_id) do
-    token_store_module = astrenv(:token_store_authenticated_session)[:module]
-    token_store_opts = astrenv(:token_store_authenticated_session)[:opts] || []
+    as_store_module = astrenv(:object_store_authenticated_session)[:module]
+    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
 
-    token_store_module.delete(authenticated_session_id, token_store_opts)
+    as_store_module.delete(authenticated_session_id, as_store_opts)
 
-    token_store_rt_module = astrenv(:token_store_refresh_token)[:module]
-    token_store_rt_opts = astrenv(:token_store_refresh_token)[:opts] || []
+    rt_store_module = astrenv(:object_store_refresh_token)[:module]
+    rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
 
-    {:ok, refresh_token_ids} =
-      token_store_rt_module.get_from_authenticated_session_id(authenticated_session_id,
-                                                              token_store_rt_opts)
+    case rt_store_module.get_from_authenticated_session_id(authenticated_session_id,
+                                                           rt_store_opts)
+    do
+      {:ok, refresh_token_ids} ->
+        for refresh_token_id <- refresh_token_ids do
+          {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
 
-    for refresh_token_id <- refresh_token_ids do
-      {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
+          rt_scopes = refresh_token.data["scope"] || []
 
-      rt_scopes = refresh_token.data["scope"] || []
+          if "openid" in rt_scopes and "offline_access" not in rt_scopes do
+            RefreshToken.delete(refresh_token_id)
+          end
+        end
 
-      if "openid" in rt_scopes and "offline_access" not in rt_scopes do
-        RefreshToken.delete(refresh_token_id)
-      end
+      :ok
+
+      {:error, _} = error ->
+        error
     end
-
-    :ok
   end
 
   @doc """
@@ -168,8 +172,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   end
 
   def compute_current_acr(authenticated_session_id) when is_binary(authenticated_session_id) do
-    ae_store_module = astrenv(:token_store_authentication_event)[:module]
-    ae_store_opts = astrenv(:token_store_authentication_event)[:opts] || []
+    ae_store_module = astrenv(:object_store_authentication_event)[:module]
+    ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
 
     case ae_store_module.get_from_authenticated_session_id(authenticated_session_id,
                                                            ae_store_opts)
@@ -241,6 +245,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
   @doc """
   Returns the authentication time and the AMRs of an authenticated session for a given ACR
+
+  If no ACR is given as the second argument, returns the current state of the session.
 
   It returns:
   - `:acr`: the acr

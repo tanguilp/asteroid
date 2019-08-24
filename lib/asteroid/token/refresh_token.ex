@@ -87,7 +87,7 @@ defmodule Asteroid.Token.RefreshToken do
   @doc """
   Gets a refresh token from the refresh token store
 
-  Unlike the `c:Asteroid.Store.RefreshToken.get/2`, this function returns
+  Unlike the `c:Asteroid.ObjectStore.RefreshToken.get/2`, this function returns
   `{:error, :nonexistent_refresh_token}` if the refresh token is not found in the token
   store.
 
@@ -99,10 +99,10 @@ defmodule Asteroid.Token.RefreshToken do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(refresh_token_id, opts \\ [check_active: true]) do
-    token_store_module = astrenv(:token_store_refresh_token)[:module]
-    token_store_opts = astrenv(:token_store_refresh_token)[:opts] || []
+    rt_store_module = astrenv(:object_store_refresh_token)[:module]
+    rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
 
-    case token_store_module.get(refresh_token_id, token_store_opts) do
+    case rt_store_module.get(refresh_token_id, rt_store_opts) do
       {:ok, refresh_token} when not is_nil(refresh_token) ->
         if opts[:check_active] != true or active?(refresh_token) do
           {:ok, refresh_token}
@@ -131,13 +131,13 @@ defmodule Asteroid.Token.RefreshToken do
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(refresh_token, ctx \\ %{}) do
-    token_store_module = astrenv(:token_store_refresh_token)[:module]
-    token_store_opts = astrenv(:token_store_refresh_token)[:opts] || []
+    rt_store_module = astrenv(:object_store_refresh_token)[:module]
+    rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
 
     refresh_token =
-      astrenv(:token_store_refresh_token_before_store_callback).(refresh_token, ctx)
+      astrenv(:object_store_refresh_token_before_store_callback).(refresh_token, ctx)
 
-    case token_store_module.put(refresh_token, token_store_opts) do
+    case rt_store_module.put(refresh_token, rt_store_opts) do
       :ok ->
         {:ok, refresh_token}
 
@@ -157,15 +157,26 @@ defmodule Asteroid.Token.RefreshToken do
   end
 
   def delete(refresh_token_id) do
-    refresh_token_store_module = astrenv(:token_store_refresh_token)[:module]
-    refresh_token_store_opts = astrenv(:token_store_refresh_token)[:opts] || []
+    rt_store_module = astrenv(:object_store_refresh_token)[:module]
+    rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
 
-    access_token_store_module = astrenv(:token_store_access_token)[:module]
-    access_token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+    rt_store_module.delete(refresh_token_id, rt_store_opts)
 
-    refresh_token_store_module.delete(refresh_token_id,
-                                      refresh_token_store_opts,
-                                      {access_token_store_module, access_token_store_opts})
+    at_store_module = astrenv(:object_store_access_token)[:module]
+    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
+
+    case at_store_module.get_from_refresh_token_id(refresh_token_id, rt_store_opts)
+    do
+      {:ok, access_token_ids} -> 
+        for access_token_id <- access_token_ids do
+          at_store_module.delete(access_token_id, at_store_opts)
+        end
+
+      :ok
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   @doc """
