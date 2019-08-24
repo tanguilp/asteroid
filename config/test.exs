@@ -467,7 +467,7 @@ config :asteroid, :oauth2_flow_device_authorization_rate_limiter,
 config :asteroid, :oauth2_flow_device_authorization_rate_limiter_interval, 5
 
 config :asteroid, :web_authorization_callback,
-  &AsteroidWeb.AuthorizeController.select_web_authorization_callback/2
+  &Asteroid.WebFlow.web_authorization_callback/2
 
 config :asteroid, :oidc_id_token_lifetime_callback,
   &Asteroid.Token.IDToken.lifetime/1

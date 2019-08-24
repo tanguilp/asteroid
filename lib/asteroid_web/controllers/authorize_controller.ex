@@ -75,7 +75,9 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @type web_authorization_callback ::
-  (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
+  (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() ->
+  {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
+  | {:error, Exception.t()})
 
   @doc false
 
@@ -165,7 +167,13 @@ defmodule AsteroidWeb.AuthorizeController do
               params: params
             }
 
-            astrenv(:web_authorization_callback).(conn, req)
+            case astrenv(:web_authorization_callback).(conn, req) do
+              {:ok, callback} ->
+                callback.(conn, req)
+
+              {:error, e} ->
+                AsteroidWeb.Error.respond_authorize(conn, e)
+            end
 
         :oidc ->
           with :ok <- oidc_param_display_valid(params["display"]),
@@ -198,7 +206,13 @@ defmodule AsteroidWeb.AuthorizeController do
                 params: params
               }
 
-              astrenv(:web_authorization_callback).(conn, req)
+            case astrenv(:web_authorization_callback).(conn, req) do
+              {:ok, callback} ->
+                callback.(conn, req)
+
+              {:error, e} ->
+                AsteroidWeb.Error.respond_authorize(conn, e)
+            end
           else
             {:error, e} ->
               AsteroidWeb.Error.respond_authorize(conn, e)
@@ -516,91 +530,6 @@ defmodule AsteroidWeb.AuthorizeController do
     conn
     |> assign(:authz_request, authz_request)
     |> AsteroidWeb.Error.respond_authorize(opts[:error])
-  end
-
-  @doc """
-  Callback invoked to determine which callback function to call to continue the authorization
-  process after the parameters were successfully verified
-
-  If the protocol is OAuth2, it calls:
-  - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_web_authorization_callback)}
-  if the flow is authorization code
-  - #{Asteroid.Config.link_to_option(:oauth2_flow_implicit_web_authorization_callback)}
-  if the flow is implicit
-
-  If the protocol is OpenID Connect, it uses the
-  #{Asteroid.Config.link_to_option(:oidc_acr_config)} configuration option to determine which
-  callback to use:
-  - if a preferred acr was computed, it uses its associated callback
-  - otherwise, if one entry in the config is marked as `default: true`, it uses it
-
-  If this configuration option is not used, it fall backs to:
-  - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_web_authorization_callback)}
-  if the flow is authorization code
-  - #{Asteroid.Config.link_to_option(:oidc_flow_implicit_web_authorization_callback)}
-  if the flow is implicit
-  - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_web_authorization_callback)}
-  if the flow is hybrid
-  """
-
-  @spec select_web_authorization_callback(Plug.Conn.t(),
-                                          AsteroidWeb.AuthorizeController.Request.t())
-  :: Plug.Conn.t()
-
-  def select_web_authorization_callback(conn, %Request{flow: :authorization_code} = authz_req) do
-    astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_req)
-  end
-
-  def select_web_authorization_callback(conn, %Request{flow: :implicit} = authz_req) do
-    astrenv(:oauth2_flow_implicit_web_authorization_callback).(conn, authz_req)
-  end
-
-  def select_web_authorization_callback(conn, %Request{flow: flow} = authz_req) when flow in [
-    :oidc_authorization_code,
-    :oidc_implicit,
-    :oidc_hybrid
-  ] do
-    oidc_acr_config = astrenv(:oidc_acr_config, [])
-
-    maybe_preferred_acr =
-      try do
-        String.to_existing_atom(authz_req.preferred_acr)
-      rescue
-        _ ->
-          nil
-      end
-
-    if oidc_acr_config[maybe_preferred_acr][:callback] do
-      oidc_acr_config[maybe_preferred_acr][:callback].(conn, authz_req)
-    else
-      maybe_default_callback =
-        Enum.find_value(
-          oidc_acr_config,
-          fn
-            {_acr, acr_config} ->
-              if acr_config[:default] == true do
-                acr_config[:callback]
-              else
-                nil
-              end
-          end
-        )
-
-      if maybe_default_callback do
-        maybe_default_callback.(conn, authz_req)
-      else
-        case flow do
-          :oidc_authorization_code ->
-            astrenv(:oidc_flow_authorization_code_web_authorization_callback).(conn, authz_req)
-
-          :oidc_implicit ->
-            astrenv(:oidc_flow_implicit_web_authorization_callback).(conn, authz_req)
-
-          :oidc_hybrid ->
-            astrenv(:oidc_flow_hybrid_web_authorization_callback).(conn, authz_req)
-        end
-      end
-    end
   end
 
   @spec jar_pre_authorize_oauth2(Plug.Conn.t(), map()) :: Plug.Conn.t()

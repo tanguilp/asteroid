@@ -363,7 +363,7 @@ config :asteroid, :oauth2_endpoint_authorize_before_send_conn_callback,
   &Asteroid.Utils.id_first_param/2
 
 config :asteroid, :web_authorization_callback,
-  &AsteroidWeb.AuthorizeController.select_web_authorization_callback/2
+  &Asteroid.WebFlow.web_authorization_callback/2
 
 # token
 
