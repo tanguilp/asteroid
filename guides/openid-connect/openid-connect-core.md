@@ -178,7 +178,7 @@ correct (eg that the `"client_id"` is correct and the `"redirect_uri"` matches o
 registered redirect URIs), handles PKCE parameters (for the authorization code flow) and checks
 the OpenID Connect parameters. It also computes the preferred acr. Then it calls the
 [`:web_authorization_callback`](Asteroid.Config.html#module-web_authorization_callback) which
-defaults to `AsteroidWeb.AuthorizeController.select_web_authorization_callback/2` to
+defaults to `Asteroid.WebFlow.web_authorization_callback/2` to
 further determine the callback to call.
 
 The demo application (on the `demo_auth_workflow` git branch) offers an example of an
