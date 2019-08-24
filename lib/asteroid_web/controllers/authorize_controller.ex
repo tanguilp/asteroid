@@ -62,7 +62,7 @@ defmodule AsteroidWeb.AuthorizeController do
       pkce_code_challenge_method: OAuth2.PKCE.code_challenge_method() | nil,
       nonce: String.t() | nil,
       display: String.t() | nil,
-      prompt: String.t() | nil,
+      prompt: [String.t()],
       max_age: non_neg_integer() | nil,
       ui_locales: [String.t()] | nil,
       id_token_hint: String.t() | nil,
@@ -169,10 +169,10 @@ defmodule AsteroidWeb.AuthorizeController do
 
         :oidc ->
           with :ok <- oidc_param_display_valid(params["display"]),
-               :ok <- oidc_param_prompt_valid(params["prompt"]),
-               {:ok, max_age_int} <- oidc_param_max_age_valid(params["max_age"]),
-               {:ok, ui_locales_list} <- oidc_param_ui_locales_valid(params["ui_locales"]),
-               {:ok, acr_values_list} <- oidc_param_acr_values_valid(params["acr_values"]),
+               {:ok, prompt_values} <- oidc_param_prompt_parse(params["prompt"]),
+               {:ok, max_age_int} <- oidc_param_max_age_parse(params["max_age"]),
+               {:ok, ui_locales_list} <- oidc_param_ui_locales_parse(params["ui_locales"]),
+               {:ok, acr_values_list} <- oidc_param_acr_values_parse(params["acr_values"]),
                {:ok, preferred_acr} <- preferred_acr(claims_param, acr_values_list, client)
           do
             req =
@@ -187,7 +187,7 @@ defmodule AsteroidWeb.AuthorizeController do
                 pkce_code_challenge_method: maybe_code_challenge_method,
                 nonce: params["nonce"],
                 display: params["display"],
-                prompt: params["prompt"],
+                prompt: prompt_values,
                 max_age: max_age_int,
                 ui_locales: ui_locales_list,
                 id_token_hint: params["id_token_hint"],
@@ -799,27 +799,34 @@ defmodule AsteroidWeb.AuthorizeController do
   defp oidc_param_display_valid(val), do: OAuth2.Request.MalformedParamError.exception([
     name: "display", value: val])
 
-  @spec oidc_param_prompt_valid(String.t() | nil) ::
-  :ok 
+  @spec oidc_param_prompt_parse(String.t() | nil) ::
+  {:ok , [String.t()]}
   | {:error, %OAuth2.Request.MalformedParamError{}}
 
-  defp oidc_param_prompt_valid(nil), do: :ok
-  defp oidc_param_prompt_valid("none"), do: :ok
-  defp oidc_param_prompt_valid("login"), do: :ok
-  defp oidc_param_prompt_valid("consent"), do: :ok
-  defp oidc_param_prompt_valid("select_account"), do: :ok
-  defp oidc_param_prompt_valid(val), do: OAuth2.Request.MalformedParamError.exception([
-    name: "prompt", value: val])
+  defp oidc_param_prompt_parse(nil) do
+    {:ok, []}
+  end
 
-  @spec oidc_param_max_age_valid(String.t() | nil) ::
+  defp oidc_param_prompt_parse(prompt_param) do
+    prompt_values = String.split(prompt_param, " ")
+
+    if Enum.all?(prompt_values, &(&1 in ["none", "login", "consent", "select_account"])) do
+      {:ok, prompt_values}
+    else
+      {:error,
+        OAuth2.Request.MalformedParamError.exception([name: "prompt", value: prompt_param])}
+    end
+  end
+
+  @spec oidc_param_max_age_parse(String.t() | nil) ::
   {:ok, non_neg_integer() | nil}
   | {:error, %OAuth2.Request.MalformedParamError{}}
 
-  def oidc_param_max_age_valid(nil) do
+  def oidc_param_max_age_parse(nil) do
     {:ok, nil}
   end
 
-  def oidc_param_max_age_valid(maybe_integer_str) do
+  def oidc_param_max_age_parse(maybe_integer_str) do
     case Integer.parse(maybe_integer_str) do
       {max_age, _} ->
         {:ok, max_age}
@@ -829,15 +836,15 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
-  @spec oidc_param_ui_locales_valid(String.t() | nil) ::
+  @spec oidc_param_ui_locales_parse(String.t() | nil) ::
   {:ok, [String.t()] | nil}
   | {:error, %OAuth2.Request.MalformedParamError{}}
 
-  defp oidc_param_ui_locales_valid(nil) do
+  defp oidc_param_ui_locales_parse(nil) do
     {:ok, nil}
   end
 
-  defp oidc_param_ui_locales_valid(ui_locales_param) do
+  defp oidc_param_ui_locales_parse(ui_locales_param) do
     case String.split(ui_locales_param, " ") do
       [_ | _] = ui_locales_list ->
         {:ok, ui_locales_list}
@@ -847,15 +854,15 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
-  @spec oidc_param_acr_values_valid(String.t() | nil) ::
+  @spec oidc_param_acr_values_parse(String.t() | nil) ::
   {:ok, [OIDC.acr()] | nil}
   | {:error, %OAuth2.Request.MalformedParamError{}}
 
-  defp oidc_param_acr_values_valid(nil) do
+  defp oidc_param_acr_values_parse(nil) do
     {:ok, nil}
   end
 
-  defp oidc_param_acr_values_valid(acr_values_param) do
+  defp oidc_param_acr_values_parse(acr_values_param) do
     case String.split(acr_values_param, " ") do
       [_ | _] = acr_values_list ->
         {:ok, acr_values_list}
