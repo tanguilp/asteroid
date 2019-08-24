@@ -36,6 +36,8 @@ defmodule AsteroidWeb.OIDCOTPController do
         conn
         |> put_session(:otp, authentication_code)
         |> put_status(200)
+        |> put_secure_browser_headers()
+        |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
         |> render("form.html")
       end
     else

@@ -6,6 +6,8 @@ defmodule AsteroidWeb.UsernameController do
   def index(conn, _params) do
     conn
     |> put_status(200)
+    |> put_secure_browser_headers()
+    |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
     |> render("form.html")
   end
 
