@@ -48,16 +48,16 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_access_token, [
-      module: Asteroid.Store.AccessToken.Riak,
+    config :asteroid, :object_store_access_token, [
+      module: Asteroid.ObjectStore.AccessToken.Riak,
       opts: [bucket_type: "ephemeral_token", purge_interval: 10]
     ]
     ```
     """
 
-    @type token_store_access_token :: Keyword.t()
+    @type object_store_access_token :: Keyword.t()
 
-    field :token_store_access_token,
+    field :object_store_access_token,
       config_time: :runtime
 
     @doc """
@@ -76,15 +76,15 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_refresh_token, [
-      module: Asteroid.Store.RefreshToken.Mnesia
+    config :asteroid, :object_store_refresh_token, [
+      module: Asteroid.ObjectStore.RefreshToken.Mnesia
     ]
     ```
     """
 
-    @type token_store_refresh_token :: Keyword.t()
+    @type object_store_refresh_token :: Keyword.t()
 
-    field :token_store_refresh_token,
+    field :object_store_refresh_token,
       config_time: :runtime
 
     @doc """
@@ -103,15 +103,15 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_authorization_code, [
-      module: Asteroid.Store.AuthorizationCode.Mnesia
+    config :asteroid, :object_store_authorization_code, [
+      module: Asteroid.ObjectStore.AuthorizationCode.Mnesia
     ]
     ```
     """
 
-    @type token_store_authorization_code :: Keyword.t()
+    @type object_store_authorization_code :: Keyword.t()
 
-    field :token_store_authorization_code,
+    field :object_store_authorization_code,
       config_time: :runtime
 
     @doc """
@@ -130,15 +130,15 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_device_code, [
-      module: Asteroid.Store.DeviceCode.Mnesia
+    config :asteroid, :object_store_device_code, [
+      module: Asteroid.ObjectStore.DeviceCode.Mnesia
     ]
     ```
     """
 
-    @type token_store_device_code :: Keyword.t()
+    @type object_store_device_code :: Keyword.t()
 
-    field :token_store_device_code,
+    field :object_store_device_code,
       config_time: :runtime
 
     @doc """
@@ -157,15 +157,15 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_request_object, [
-      module: Asteroid.Store.GenericKV.Mnesia
+    config :asteroid, :object_store_request_object, [
+      module: Asteroid.ObjectStore.GenericKV.Mnesia
     ]
     ```
     """
 
-    @type token_store_request_object :: Keyword.t()
+    @type object_store_request_object :: Keyword.t()
 
-    field :token_store_request_object,
+    field :object_store_request_object,
       config_time: :runtime
 
     @doc """
@@ -184,15 +184,15 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_authenticated_session, [
-      module: Asteroid.Store.AuthenticatedSession.Mnesia
+    config :asteroid, :object_store_authenticated_session, [
+      module: Asteroid.ObjectStore.AuthenticatedSession.Mnesia
     ]
     ```
     """
 
-    @type token_store_authenticated_session :: Keyword.t()
+    @type object_store_authenticated_session :: Keyword.t()
 
-    field :token_store_authenticated_session,
+    field :object_store_authenticated_session,
       config_time: :runtime
 
     @doc """
@@ -211,79 +211,79 @@ defmodule Asteroid.Config do
     #### Example
 
     ```elixir
-    config :asteroid, :token_store_authenticated_session, [
-      module: Asteroid.Store.AuthenticationEvent.Mnesia
+    config :asteroid, :object_store_authenticated_session, [
+      module: Asteroid.ObjectStore.AuthenticationEvent.Mnesia
     ]
     ```
     """
 
-    @type token_store_authentication_event :: Keyword.t()
+    @type object_store_authentication_event :: Keyword.t()
 
-    field :token_store_authentication_event,
+    field :object_store_authentication_event,
       config_time: :runtime
 
     @doc """
     Callback invoked before storing a refresh token
     """
 
-    @type token_store_refresh_token_before_store_callback ::
+    @type object_store_refresh_token_before_store_callback ::
     (Asteroid.Token.RefreshToken.t(), Asteroid.Context.t() -> Asteroid.Token.RefreshToken.t())
 
-    field :token_store_refresh_token_before_store_callback,
+    field :object_store_refresh_token_before_store_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked before storing an access token
     """
 
-    @type token_store_access_token_before_store_callback ::
+    @type object_store_access_token_before_store_callback ::
     (Asteroid.Token.AccessToken.t(), Asteroid.Context.t() -> Asteroid.Token.RefreshToken.t())
 
-    field :token_store_access_token_before_store_callback,
+    field :object_store_access_token_before_store_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked before storing an authorization code
     """
 
-    @type token_store_authorization_code_before_store_callback ::
+    @type object_store_authorization_code_before_store_callback ::
     (Asteroid.Token.AuthorizationCode.t(), Asteroid.Context.t() ->
       Asteroid.Token.AuthorizationCode.t())
 
-    field :token_store_authorization_code_before_store_callback,
+    field :object_store_authorization_code_before_store_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked before storing a device code
     """
 
-    @type token_store_device_code_before_store_callback ::
+    @type object_store_device_code_before_store_callback ::
     (Asteroid.Token.DeviceCode.t(), Asteroid.Context.t() ->
       Asteroid.Token.DeviceCode.t())
 
-    field :token_store_device_code_before_store_callback,
+    field :object_store_device_code_before_store_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked before storing authenticated session
     """
 
-    @type token_store_authenticated_session_before_store_callback ::
+    @type object_store_authenticated_session_before_store_callback ::
     (Asteroid.OIDC.AuthenticatedSession.t(), Asteroid.Context.t() ->
       Asteroid.OIDC.AuthenticatedSession.t())
 
-    field :token_store_authenticated_session_before_store_callback,
+    field :object_store_authenticated_session_before_store_callback,
     config_time: :runtime
 
     @doc """
     Callback invoked before storing authentication event
     """
 
-    @type token_store_authentication_event_before_store_callback ::
+    @type object_store_authentication_event_before_store_callback ::
     (Asteroid.OIDC.AuthenticationEvent.t(), Asteroid.Context.t() ->
       Asteroid.OIDC.AuthenticationEvent.t())
 
-    field :token_store_authentication_event_before_store_callback,
+    field :object_store_authentication_event_before_store_callback,
     config_time: :runtime
 
     @doc """

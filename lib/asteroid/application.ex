@@ -8,7 +8,7 @@ defmodule Asteroid.Application do
   alias Asteroid.AttributeRepository
   alias Asteroid.Client
   alias Asteroid.Subject
-  alias Asteroid.Store
+  alias Asteroid.ObjectStore
   alias Asteroid.Crypto
 
   def start(_type, _args) do
@@ -18,8 +18,8 @@ defmodule Asteroid.Application do
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
-         :ok <- Store.auto_install_from_config(),
-         :ok <- Store.auto_start_from_config(),
+         :ok <- ObjectStore.auto_install_from_config(),
+         :ok <- ObjectStore.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
       # creating clients and subjects for the demo app

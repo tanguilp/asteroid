@@ -95,7 +95,7 @@ defmodule Asteroid.Token.AccessToken do
   @doc """
   Gets a access token from the access token store
 
-  Unlike the `c:Asteroid.Store.AccessToken.get/2`, this function returns
+  Unlike the `c:Asteroid.ObjectStore.AccessToken.get/2`, this function returns
   `{:error, Exception.t()}` if the access token is not found in the token
   store.
 
@@ -107,10 +107,10 @@ defmodule Asteroid.Token.AccessToken do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(access_token_id, opts \\ [check_active: true]) do
-    token_store_module = astrenv(:token_store_access_token)[:module]
-    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+    at_store_module = astrenv(:object_store_access_token)[:module]
+    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
 
-    case token_store_module.get(access_token_id, token_store_opts) do
+    case at_store_module.get(access_token_id, at_store_opts) do
       {:ok, access_token} when not is_nil(access_token) ->
         if opts[:check_active] != true or active?(access_token) do
           {:ok, access_token}
@@ -143,12 +143,12 @@ defmodule Asteroid.Token.AccessToken do
   def store(access_token, ctx \\ %{})
 
   def store(%__MODULE__{serialization_format: :opaque} = access_token, ctx) do
-    token_store_module = astrenv(:token_store_access_token)[:module]
-    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+    at_store_module = astrenv(:object_store_access_token)[:module]
+    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
 
-    access_token = astrenv(:token_store_access_token_before_store_callback).(access_token, ctx)
+    access_token = astrenv(:object_store_access_token_before_store_callback).(access_token, ctx)
 
-    case token_store_module.put(access_token, token_store_opts) do
+    case at_store_module.put(access_token, at_store_opts) do
       :ok ->
         {:ok, access_token}
 
@@ -172,10 +172,10 @@ defmodule Asteroid.Token.AccessToken do
   end
 
   def delete(access_token_id) do
-    token_store_module = astrenv(:token_store_access_token)[:module]
-    token_store_opts = astrenv(:token_store_access_token)[:opts] || []
+    at_store_module = astrenv(:object_store_access_token)[:module]
+    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
 
-    token_store_module.delete(access_token_id, token_store_opts)
+    at_store_module.delete(access_token_id, at_store_opts)
   end
 
   @doc """

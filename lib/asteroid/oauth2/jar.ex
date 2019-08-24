@@ -417,13 +417,13 @@ defmodule Asteroid.OAuth2.JAR do
   Retrieves an object from Asteroid's request object store
   """
 
-  @spec get_stored_request_object(Asteroid.Store.GenericKV.key()) ::
+  @spec get_stored_request_object(Asteroid.ObjectStore.GenericKV.key()) ::
   {:ok, String.t()}
   | {:error, Exception.t()}
 
   def get_stored_request_object(key) do
-    module = astrenv(:token_store_request_object)[:module]
-    opts = astrenv(:token_store_request_object)[:opts] || []
+    module = astrenv(:object_store_request_object)[:module]
+    opts = astrenv(:object_store_request_object)[:opts] || []
 
     req_obj_lifetime = astrenv(:oauth2_jar_request_object_lifetime, 0)
 
@@ -448,14 +448,14 @@ defmodule Asteroid.OAuth2.JAR do
   Saves an object to Asteroid's request object store
   """
 
-  @spec put_request_object(Asteroid.Store.GenericKV.key(),
-                           Asteroid.Store.GenericKV.value()) ::
+  @spec put_request_object(Asteroid.ObjectStore.GenericKV.key(),
+                           Asteroid.ObjectStore.GenericKV.value()) ::
   :ok
   | {:error, any()}
 
   def put_request_object(key, value) do
-    module = astrenv(:token_store_request_object)[:module]
-    opts = astrenv(:token_store_request_object)[:opts] || []
+    module = astrenv(:object_store_request_object)[:module]
+    opts = astrenv(:object_store_request_object)[:opts] || []
 
     module.put(key, value, opts)
   end
