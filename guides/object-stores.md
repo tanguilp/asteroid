@@ -75,7 +75,7 @@ Implementation should be called at Asteroid startup. Defaults to `true`
 ```elixir
 config :asteroid, :object_store_access_token, [
   module: Asteroid.ObjectStore.AccessToken.Riak,
-  opts: [bucket_type: "ephemeral_token", purge_interval: 10]
+  opts: [bucket_type: "ephemeral_token", purge_interval: 10 * 60]
 ]
 
 config :asteroid, :object_store_refresh_token, [
@@ -87,7 +87,6 @@ config :asteroid, :object_store_authorization_code, [
   module: Asteroid.ObjectStore.AuthorizationCode.Riak,
   opts: [bucket_type: "ephemeral_token"]
 ]
-
 ```
 
 ## Example (Riak and Mnesia)

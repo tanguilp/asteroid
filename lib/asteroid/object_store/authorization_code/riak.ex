@@ -19,6 +19,8 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Riak do
   - `bucket_name`: a `String.t()` for the bucket name. Defaults to `"authorization_code"`
   - `:purge_interval`: the `integer()` interval in seconds the purge process will be triggered,
   or `:no_purge` to disable purge. Defaults to `240` (3 minutes)
+  - `:rows`: the maximum number of results that a search will return. Defaults to `1_000_000`.
+  Search is used by the purge process.
 
   ## Installation function
 
@@ -200,8 +202,8 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Riak do
           {:ok, [Asteroid.Token.AuthorizationCode.id()]}
           | {:error, any()}
 
-  def search(search_query, _opts) do
-    case Riak.Search.query(index_name(), search_query) do
+  def search(search_query, opts) do
+    case Riak.Search.query(index_name(), search_query, rows: opts[:rows] || 1_000_000) do
       {:ok, {:search_results, result_list, _, _}} ->
         {:ok,
          for {_index_name, attribute_list} <- result_list do
