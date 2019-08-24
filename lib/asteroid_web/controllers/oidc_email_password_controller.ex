@@ -10,7 +10,7 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
 
   def start_webflow(conn, %AsteroidWeb.AuthorizeController.Request{} = authz_request) do
     if authenticate?(conn, authz_request) do
-      if authz_request.prompt == "none" do
+      if "none" in authz_request.prompt do
         AsteroidWeb.AuthorizeController.authorization_denied(
           conn,
           %{
@@ -83,30 +83,30 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
 
   @spec authenticate?(Plug.Conn.t(), Request.t()) :: boolean()
 
-  defp authenticate?(_conn, %Request{prompt: "login"}) do
-    true
-  end
-
   defp authenticate?(conn, authz_request) do
-    case get_session(conn, :authenticated_session_id) do
-      authenticated_session_id when is_binary(authenticated_session_id) ->
-        case AuthenticatedSession.get(authenticated_session_id) do
-          {:ok, authenticated_session} ->
-            session_info =
-              AuthenticatedSession.info(authenticated_session)
+    if "login" in authz_request.prompt do
+      true
+    else
+      case get_session(conn, :authenticated_session_id) do
+        authenticated_session_id when is_binary(authenticated_session_id) ->
+          case AuthenticatedSession.get(authenticated_session_id) do
+            {:ok, authenticated_session} ->
+              session_info =
+                AuthenticatedSession.info(authenticated_session)
 
-              "pwd" not in (session_info[:amr] || []) or
-              (
-                authz_request.max_age != nil and
-                authz_request.max_age < now() - session_info[:auth_time]
-              )
+                "pwd" not in (session_info[:amr] || []) or
+                (
+                  authz_request.max_age != nil and
+                  authz_request.max_age < now() - session_info[:auth_time]
+                )
 
-          {:error, _} ->
-            true
-        end
-        
-      _ ->
-        true
+            {:error, _} ->
+              true
+          end
+          
+        _ ->
+          true
+      end
     end
   end
 end

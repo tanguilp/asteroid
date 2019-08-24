@@ -12,7 +12,7 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
     authz_request = get_session(conn, :authz_request)
 
     if consent_scopes?(conn, authz_request) do
-      if authz_request.prompt == "none" do
+      if "none" in authz_request.prompt do
         AsteroidWeb.AuthorizeController.authorization_denied(
           conn,
           %{
@@ -118,19 +118,19 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
 
   @spec consent_scopes?(Plug.Conn.t(), Request.t()) :: boolean()
 
-  defp consent_scopes?(_conn, %Request{prompt: "consent"}) do
-    true
-  end
-
   defp consent_scopes?(conn, authz_request) do
-    subject = get_session(conn, :subject)
-
-    consented_scopes = consented_scopes(subject, authz_request.client_id)
-
-    if Scope.Set.subset?(authz_request.requested_scopes, consented_scopes) do
-      false
-    else
+    if "consent" in authz_request.prompt do
       true
+    else
+      subject = get_session(conn, :subject)
+
+      consented_scopes = consented_scopes(subject, authz_request.client_id)
+
+      if Scope.Set.subset?(authz_request.requested_scopes, consented_scopes) do
+        false
+      else
+        true
+      end
     end
   end
 
