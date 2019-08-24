@@ -13,6 +13,8 @@ benefits from the high performances and reliability of the Erlang Virtual Machin
 Asteroid supports the following specifications:
 - OAuth2:
   - The OAuth 2.0 Authorization Framework ([RFC6749](https://tools.ietf.org/html/rfc6749))
+  - The OAuth 2.0 Authorization Framework: Bearer Token Usage ([RFC6750](https://www.rfc-editor.org/rfc/rfc6750.html))
+  with [`APIacAuthBearer`](https://github.com/tanguilp/apiac_auth_bearer)
   - OAuth 2.0 Token Introspection ([RFC7662](https://tools.ietf.org/html/rfc7662))
   - OAuth 2.0 Token Revocation ([RFC7009](https://tools.ietf.org/html/rfc7009))
   - Proof Key for Code Exchange by OAuth Public Clients ([RFC7636](https://tools.ietf.org/html/rfc7636))

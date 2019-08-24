@@ -143,11 +143,12 @@ It then sets the `:preferred_acr` member of the request object
 (`AsteroidWeb.AuthorizeController.Request`) accordingly.
 
 It still up to the web flow to decide:
-- which acr to use
+- which acr to use, as except when requested as an essential claim the OpenID Connect
+specification does not make it mandatory to use the specified claim
 - to reauthenticate or not depending on the `"max_age"` parameter
 
-Back from the web flow and in the case the `"acr"` claim was requested as an essetnail claim,
-Asteroid checks that the returned ACR does indeed satisfy the requirement. If not, an error is
+Back from the web flow and in the case the `"acr"` claim was requested as an essential claim,
+Asteroid checks that the returned acr does indeed satisfy the requirement. If not, an error is
 returned.
 
 Note: example of an `"claims"` parameter where the `"acr"` is requested as an essential claim:
@@ -160,6 +161,39 @@ Note: example of an `"claims"` parameter where the `"acr"` is requested as an es
   }
 }
 ```
+
+## Web flows: implementing the authentication and authorization process
+
+Asteroid doesn't implement the authentication and authorization web flows, which is to be
+implemented by the Asteroid's developper. This process may include:
+- authentication of the user thanks to login / password form, Webauthn authentication, OTP
+verification, etc.
+- user approval of requested scopes (authorization page)
+- setting authentication cookie, for instance to make a session valid for 2 hours
+- user account selection
+- etc.
+
+When calling the `/authorize` endpoint, Asteroid checks that the parameters are
+correct (eg that the `"client_id"` is correct and the `"redirect_uri"` matches one of the
+registered redirect URIs), handles PKCE parameters (for the authorization code flow) and checks
+the OpenID Connect parameters. It also computes the preferred acr. Then it calls the
+[`:web_authorization_callback`](Asteroid.Config.html#module-web_authorization_callback) which
+defaults to `AsteroidWeb.AuthorizeController.select_web_authorization_callback/2` to
+further determine the callback to call.
+
+The demo application (on the `demo_auth_workflow` git branch) offers an example of an
+implementation of a web flow for OpenID Connect.
+
+**Beware**, it's up to the developer to make sure that the flow is securely implemented. This
+includes (but not limited to):
+- setting the authentication cookie with the required security flags
+- responding with the required security headers
+- [prevent caching](https://github.com/danschultzer/pow/issues/212)
+- etc.
+
+You can refer to the
+[OWASP Session Management Cheat Sheet](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Session_Management_Cheat_Sheet.md#web-content-caching)
+for more details about security issues to take into account.
 
 ## Userinfo endpoint
 
