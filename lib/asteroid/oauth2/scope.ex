@@ -52,6 +52,9 @@ defmodule Asteroid.OAuth2.Scope do
   when this was requested by the client. When not present, shall be treated as `false`
   - `:label`: a map of internationalised labels of the scope, that will be displayed to the
   end-user. The map keys are ISO639 tags, and the values the internationalised text of the label
+  - `:acceptable_acrs`: a list of ACRs for use in OIDC flows. When present, Asteroid will set
+  the preferred ACR in the `t:AsteroiWeb.AuthorizeController.Request.t/0` to a value that
+  satisfies this requirement if the scope is requested. It will return an error otherwise
   - `:max_refresh_token_lifetime`: *when present*, restricts the lifetime of a refresh token
   released when that scope is granted. This *supersedes global*, flow or client refresh token
   lifetime configuration
@@ -65,7 +68,7 @@ defmodule Asteroid.OAuth2.Scope do
   | {:display, boolean()}
   | {:optional, boolean()}
   | {:label, %{required(String.t()) => String.t()}}
-  | {:acceptable_loas, [Asteroid.OIDC.acr()]}
+  | {:acceptable_acrs, [Asteroid.OIDC.acr()]}
   | {:max_refresh_token_lifetime, non_neg_integer()}
   | {:max_access_token_lifetime, non_neg_integer()}
 
