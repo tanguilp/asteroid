@@ -12,7 +12,7 @@ defmodule AsteroidWeb.OIDCOTPController do
     authz_request = get_session(conn, :authz_request)
 
     if authenticate?(conn, authz_request) do
-      if authz_request.prompt == "none" do
+      if "none" in authz_request.prompt do
         AsteroidWeb.AuthorizeController.authorization_denied(
           conn,
           %{
@@ -23,6 +23,9 @@ defmodule AsteroidWeb.OIDCOTPController do
           get_session(conn, :subject)
           |> Subject.fetch_attributes(["email"])
 
+        # We use a PRNG which is not a *secure* PRNG
+        # To make it secure, we'd need to seed this PRNG with a secure PRNG, for example
+        # at application start
         authentication_code =
           :io_lib.format("~6..0B", [:rand.uniform(1000000) - 1])
           |> to_string()
@@ -69,30 +72,30 @@ defmodule AsteroidWeb.OIDCOTPController do
 
   @spec authenticate?(Plug.Conn.t(), Request.t()) :: boolean()
 
-  defp authenticate?(_conn, %Request{prompt: "login", preferred_acr: "2-factor"}) do
-    true
-  end
-
   defp authenticate?(conn, %Request{preferred_acr: "2-factor"} = authz_request) do
-    case get_session(conn, :authenticated_session_id) do
-      authenticated_session_id when is_binary(authenticated_session_id) ->
-        case AuthenticatedSession.get(authenticated_session_id) do
-          {:ok, authenticated_session} ->
-            session_info =
-              AuthenticatedSession.info(authenticated_session)
+    if "login" in authz_request.prompt do
+      true
+    else
+      case get_session(conn, :authenticated_session_id) do
+        authenticated_session_id when is_binary(authenticated_session_id) ->
+          case AuthenticatedSession.get(authenticated_session_id) do
+            {:ok, authenticated_session} ->
+              session_info =
+                AuthenticatedSession.info(authenticated_session)
 
-              "otp" not in (session_info[:amr] || []) or
-              (
-                authz_request.max_age != nil and
-                authz_request.max_age < now() - session_info[:auth_time]
-              )
+                "otp" not in (session_info[:amr] || []) or
+                (
+                  authz_request.max_age != nil and
+                  authz_request.max_age < now() - session_info[:auth_time]
+                )
 
-          {:error, _} ->
-            true
-        end
-        
-      _ ->
-        true
+            {:error, _} ->
+              true
+          end
+          
+        _ ->
+          true
+      end
     end
   end
 
