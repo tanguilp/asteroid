@@ -5,6 +5,7 @@ defmodule AsteroidWeb.AccountSelectController do
 
   def start_webflow(conn, %AsteroidWeb.AuthorizeController.Request{} = authz_request) do
     conn
+    |> clear_session()
     |> put_session(:authz_request, authz_request)
     |> redirect(to: "/account_select")
   end
