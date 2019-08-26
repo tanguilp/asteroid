@@ -230,7 +230,13 @@ config :asteroid, :api_oidc_endpoint_userinfo_plugs, [
    error_response_verbosity: :normal}
 ]
 
-config :asteroid, :api_request_object_plugs, []
+config :asteroid, :api_request_object_plugs, [
+  {APIacAuthBasic,
+   realm: "Asteroid",
+   callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+   set_error_response: &APIacAuthBasic.send_error_response/3,
+   error_response_verbosity: :debug}
+]
 
 config :asteroid, :discovery_plugs, []
 
@@ -248,7 +254,7 @@ config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
 
 config :asteroid, :oauth2_grant_types_enabled, [
   :authorization_code,
-  # :implicit,
+  :implicit,
   :password,
   :client_credentials,
   :refresh_token
@@ -258,7 +264,11 @@ config :asteroid, :oauth2_grant_types_enabled, [
 config :asteroid, :oauth2_response_types_enabled, [
   :code,
   :token,
-  :id_token
+  :id_token,
+  :"id_token token",
+  :"code id_token",
+  :"code token",
+  :"code id_token token"
 ]
 
 config :asteroid, :api_error_response_verbosity, :normal

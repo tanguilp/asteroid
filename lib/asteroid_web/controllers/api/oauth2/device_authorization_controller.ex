@@ -70,27 +70,14 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
       |> astrenv(:oauth2_endpoint_device_authorization_before_send_conn_callback).(ctx)
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      # OK
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %AttributeRepository.Read.NotFoundError{}} ->
         AsteroidWeb.Error.respond_api(
           conn,
           OAuth2.Client.AuthenticationError.exception(reason: :unknown_client)
         )
+
+      {:error, e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 

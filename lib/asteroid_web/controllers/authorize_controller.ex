@@ -227,24 +227,6 @@ defmodule AsteroidWeb.AuthorizeController do
           OAuth2.AccessDeniedError.exception(reason: Exception.message(e))
         )
 
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
-      {:error, %OAuth2.UnsupportedResponseTypeError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
-      {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
-      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
         AsteroidWeb.Error.respond_authorize(
           conn,
@@ -253,6 +235,9 @@ defmodule AsteroidWeb.AuthorizeController do
             parameter: "client_id"
           )
         )
+
+      {:error, e} ->
+        AsteroidWeb.Error.respond_authorize(conn, e)
     end
   rescue
     _ in Scope.Set.InvalidScopeParam ->
@@ -282,9 +267,6 @@ defmodule AsteroidWeb.AuthorizeController do
         )
       end
     else
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, e)
-
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
         AsteroidWeb.Error.respond_authorize(
           conn,
@@ -294,7 +276,7 @@ defmodule AsteroidWeb.AuthorizeController do
           )
         )
 
-      {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
+      {:error, e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
     end
   end

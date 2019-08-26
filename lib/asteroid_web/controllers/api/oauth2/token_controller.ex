@@ -137,18 +137,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_conn_callback).(ctx)
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
         AsteroidWeb.Error.respond_api(
           conn,
@@ -159,10 +147,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           )
         )
 
-      {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
+      {:error, e} ->
         AsteroidWeb.Error.respond_api(conn, e)
     end
   end
@@ -258,19 +243,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       )
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
+      {:error, e} ->
         AsteroidWeb.Error.respond_api(conn, e)
     end
   end
@@ -449,21 +422,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         )
       end
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %Token.InvalidTokenError{} = e} ->
         AsteroidWeb.Error.respond_api(
           conn,
@@ -473,6 +431,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
             debug_details: Exception.message(e)
           )
         )
+
+      {:error, e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
@@ -659,21 +620,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       )
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %Asteroid.OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %Asteroid.OAuth2.Request.InvalidRequestError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %Token.InvalidTokenError{} = e} ->
         AsteroidWeb.Error.respond_api(
           conn,
@@ -685,10 +631,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         )
 
       {:error, e} ->
-        AsteroidWeb.Error.respond_api(
-          conn,
-          OAuth2.ServerError.exception(reason: Exception.message(e))
-        )
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
@@ -795,18 +738,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       |> astrenv(:oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback).(ctx)
       |> json(resp)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Client.AuthorizationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.InvalidGrantError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %Token.InvalidTokenError{reason: "expired code"}} ->
         AsteroidWeb.Error.respond_api(
           conn,
@@ -823,15 +754,6 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           )
         )
 
-      {:error, %OAuth2.DeviceAuthorization.AuthorizationPendingError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.DeviceAuthorization.RateLimitedError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.AccessDeniedError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
         AsteroidWeb.Error.respond_api(
           conn,
@@ -839,6 +761,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
             reason: "could not read object in attribute repository: #{Exception.message(e)}"
           )
         )
+
+      {:error, e} ->
+        AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 

@@ -7,10 +7,38 @@ the authorization code flow and enables the ROPC and client credentials flows.
 
 ## Authentication workflow
 
-![Asteroid architecture](../guides/media/demo-auth-workflow.svg)
+Two authentication workflows are implemented:
+- one for OAuth2
+- one for OpenID Connect
+
+### OAuth2 demo
+
+The following flow is in action:
+
+![OAuth2 demo flow](../guides/media/demo-auth-workflow-oauth2.svg)
 
 Note that the usernames are stored in the browser's local storage. If Asteroid and the browser
 become inconsistent, one might want to reset the local storage for the demo app URL.
+
+In this example, the scope consent page is always shown.
+
+### OpenID Connect demo
+
+Thw following flow is in action:
+
+![OpenID Connect flow](../guides/media/demo-auth-workflow-oidc.svg)
+
+It uses 2 authentication events: one for password authentication, another for OTP authentication.
+
+The password authentication event lasts 10 minutes, and the OTP authentication event lasts 1
+minute. These values are choosen for demonstration purpose.
+
+The OTP is sent by email. On the `demo_auth_workflow` branch, the OTP is sent locally and
+one can access the Bamboo debugging interface on
+[http://localhost:4000/sent_emails/](http://localhost:4000/sent_emails/). On the
+`demo_auth_workflow_gigalixir`, an external email delivery service is used.
+
+In this example, the scope consent page is not shown if the scopes were already approved.
 
 ## Preconfigured clients and subjects
 
@@ -18,10 +46,13 @@ The following resources are preconfigured:
 - clients:
   - `"client1"` with the associated password `"clientpassword1"`
     - Enabled grant types: `"password"`, `"client_credentials"`, `"authorization_code"`,
-    `"refresh_token"`
+    `"refresh_token"`, `"implicit"`
+    - Enabled repsonse types: `"code"`, `"token"`, `"id_token"`, `"id_token token"`,
+    `"code id_token"`, `"code token"`, `"code id_token token"`
     - Access token serialization format: opaque
   - `"client2"` with the associated password `"clientpassword2"`
     - Enabled grant types: `"client_credentials"`
+    - Enabled response types: none
     - Access token serialization format: JWS
 - subjects:
   - `"user_demo"` with the password field set to `"asteroidftw"`
@@ -43,6 +74,8 @@ iex -S mix phx.server
 
 ### URL and curl commands
 
+#### OAuth2
+
 URLs to trigger the workflow (with `http://localhost:4000`):
 - [http://localhost:4000/authorize?response_type=code&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect](http://localhost:4000/authorize?response_type=code&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect)
 (no scopes requested)
@@ -60,6 +93,17 @@ curl -u client1:clientpassword1 -d "grant_type=client_credentials" http://localh
 
 curl -u client2:clientpassword2 -d "grant_type=client_credentials" http://localhost:4001/api/oauth2/token | jq
 ```
+
+#### OpenID Connect
+
+Some URLs to trigger the workflow:
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email%20read_balance&nonce=exgsx](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email%20read_balance&nonce=exgsx)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&prompt=login](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&prompt=login)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&max_age=1](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&max_age=1)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&acr_values=1-factor](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&acr_values=1-factor)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&acr_values=2-factor](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&acr_values=2-factor)
+- [http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&claims=%20%20%7B%0A%20%20%20%22id_token%22%3A%0A%20%20%20%20%7B%0A%20%20%20%20%20%22acr%22%3A%20%7B%22essential%22%3A%20true%7D%0A%20%20%20%20%7D%0A%20%20%7D](http://localhost:4000/authorize?response_type=id_token&client_id=client1&redirect_uri=http%3A%2F%2Fwww.example.com%2Foauth2_redirect&scope=openid%20email&nonce=exgsx&claims=%20%20%7B%0A%20%20%20%22id_token%22%3A%0A%20%20%20%20%7B%0A%20%20%20%20%20%22acr%22%3A%20%7B%22essential%22%3A%20true%7D%0A%20%20%20%20%7D%0A%20%20%7D)
 
 ## Run on Gigalixir
 
