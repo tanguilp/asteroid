@@ -13,7 +13,8 @@ defmodule AsteroidWeb.AccountSelectController do
   def index(conn, %{"selected" => username}) do
     case Subject.load_from_unique_attribute("sub", username) do
       {:ok, subject} ->
-        subject = Subject.fetch_attributes(subject, ["webauthn_keys"])
+        IO.inspect(subject)
+        subject = Subject.fetch_attributes(subject, ["webauthn_keys"]) |> IO.inspect()
 
         case subject.attrs["webauthn_keys"] do
           webauthn_keys when is_list(webauthn_keys) and webauthn_keys != [] ->
