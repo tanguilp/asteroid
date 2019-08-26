@@ -195,6 +195,11 @@ You can refer to the
 [OWASP Session Management Cheat Sheet](https://github.com/OWASP/CheatSheetSeries/blob/master/cheatsheets/Session_Management_Cheat_Sheet.md#web-content-caching)
 for more details about security issues to take into account.
 
+This is also up to the developper to manage:
+- the OpenID Connect parameters such as `"prompt"`, `"max_age"`
+- current state of authentication
+- the preferred ACR and which authentication schemes to use
+
 ## Userinfo endpoint
 
 The userinfo endpoint can be reached on the `/api/oidc/userinfo` API.
