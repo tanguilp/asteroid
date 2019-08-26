@@ -34,27 +34,31 @@ defmodule AsteroidWeb.UserinfoControllerTest do
       |> Subject.add("non_standard_claim_1", "some value")
       |> Subject.store()
 
-      rsa_enc_alg_all =
-        JOSE.JWK.generate_key({:rsa, 1024})
-        |> Crypto.Key.set_key_use(:enc)
+    rsa_enc_alg_all =
+      JOSE.JWK.generate_key({:rsa, 1024})
+      |> Crypto.Key.set_key_use(:enc)
 
-      Client.gen_new(id: "client_userinfo_sig")
-      |> Client.add("client_id", "client_userinfo_sig")
-      |> Client.add("client_type", "confidential")
-      |> Client.add("userinfo_signed_response_alg", "RS384")
-      |> Client.add("jwks",
-                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
-      |> Client.store()
+    Client.gen_new(id: "client_userinfo_sig")
+    |> Client.add("client_id", "client_userinfo_sig")
+    |> Client.add("client_type", "confidential")
+    |> Client.add("userinfo_signed_response_alg", "RS384")
+    |> Client.add(
+      "jwks",
+      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+    )
+    |> Client.store()
 
-      Client.gen_new(id: "client_userinfo_enc")
-      |> Client.add("client_id", "client_userinfo_enc")
-      |> Client.add("client_type", "confidential")
-      |> Client.add("userinfo_signed_response_alg", "RS384")
-      |> Client.add("userinfo_encrypted_response_alg", "RSA1_5")
-      |> Client.add("userinfo_encrypted_response_enc", "A128GCM")
-      |> Client.add("jwks",
-                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
-      |> Client.store()
+    Client.gen_new(id: "client_userinfo_enc")
+    |> Client.add("client_id", "client_userinfo_enc")
+    |> Client.add("client_type", "confidential")
+    |> Client.add("userinfo_signed_response_alg", "RS384")
+    |> Client.add("userinfo_encrypted_response_alg", "RSA1_5")
+    |> Client.add("userinfo_encrypted_response_enc", "A128GCM")
+    |> Client.add(
+      "jwks",
+      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+    )
+    |> Client.store()
 
     %{rsa_enc_alg_all: rsa_enc_alg_all}
   end
@@ -94,12 +98,14 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     assert response["updated_at"] == "2019-07-17T21:02:47Z"
     assert response["email"] == "full.name@example.com"
     assert response["email_verified"] == true
+
     assert response["address"] == %{
-        "street_address" => "42, Sir Example Street",
-        "locality" => "St. Exampleburg",
-        "postal_code" => "77852",
-        "country" => "Groland"
-      }
+             "street_address" => "42, Sir Example Street",
+             "locality" => "St. Exampleburg",
+             "postal_code" => "77852",
+             "country" => "Groland"
+           }
+
     assert response["phone_number"] == "+3942390027"
     refute Map.has_key?(response, "phone_number_verified")
     refute Map.has_key?(response, "non_standard_claim_1")
@@ -115,9 +121,12 @@ defmodule AsteroidWeb.UserinfoControllerTest do
       |> AccessToken.put_value("iat", now())
       |> AccessToken.store()
 
-    conn = post(conn,
-                Routes.userinfo_path(conn, :show),
-                %{"access_token" => AccessToken.serialize(access_token)})
+    conn =
+      post(
+        conn,
+        Routes.userinfo_path(conn, :show),
+        %{"access_token" => AccessToken.serialize(access_token)}
+      )
 
     response = json_response(conn, 200)
 
@@ -139,12 +148,14 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     assert response["updated_at"] == "2019-07-17T21:02:47Z"
     assert response["email"] == "full.name@example.com"
     assert response["email_verified"] == true
+
     assert response["address"] == %{
-        "street_address" => "42, Sir Example Street",
-        "locality" => "St. Exampleburg",
-        "postal_code" => "77852",
-        "country" => "Groland"
-      }
+             "street_address" => "42, Sir Example Street",
+             "locality" => "St. Exampleburg",
+             "postal_code" => "77852",
+             "country" => "Groland"
+           }
+
     assert response["phone_number"] == "+3942390027"
     refute Map.has_key?(response, "phone_number_verified")
     refute Map.has_key?(response, "non_standard_claim_1")
@@ -160,11 +171,11 @@ defmodule AsteroidWeb.UserinfoControllerTest do
       |> AccessToken.put_value("iat", now())
       |> AccessToken.store()
 
-    conn = 
+    conn =
       conn
       |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
       |> get(Routes.userinfo_path(conn, :show))
-    
+
     response = json_response(conn, 200)
 
     assert "application/json" in simplified_content_type_from_conn(conn)
@@ -200,11 +211,11 @@ defmodule AsteroidWeb.UserinfoControllerTest do
       |> AccessToken.put_value("iat", now())
       |> AccessToken.store()
 
-    conn = 
+    conn =
       conn
       |> put_req_header("authorization", "Bearer " <> AccessToken.serialize(access_token))
       |> get(Routes.userinfo_path(conn, :show))
-    
+
     response = json_response(conn, 200)
 
     assert "application/json" in simplified_content_type_from_conn(conn)
@@ -255,20 +266,21 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     assert payload["updated_at"] == "2019-07-17T21:02:47Z"
     assert payload["email"] == "full.name@example.com"
     assert payload["email_verified"] == true
+
     assert payload["address"] == %{
-        "street_address" => "42, Sir Example Street",
-        "locality" => "St. Exampleburg",
-        "postal_code" => "77852",
-        "country" => "Groland"
-      }
+             "street_address" => "42, Sir Example Street",
+             "locality" => "St. Exampleburg",
+             "postal_code" => "77852",
+             "country" => "Groland"
+           }
+
     assert payload["phone_number"] == "+3942390027"
     refute Map.has_key?(payload, "phone_number_verified")
     refute Map.has_key?(payload, "non_standard_claim_1")
   end
 
   test "Success case - requesting using all scopes values, signed and encrypted resp, get req",
-  %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
-  do
+       %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all} do
     {:ok, access_token} =
       AccessToken.gen_new()
       |> AccessToken.put_value("scope", ["profile", "email", "address", "phone"])
@@ -314,12 +326,14 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     assert payload["updated_at"] == "2019-07-17T21:02:47Z"
     assert payload["email"] == "full.name@example.com"
     assert payload["email_verified"] == true
+
     assert payload["address"] == %{
-        "street_address" => "42, Sir Example Street",
-        "locality" => "St. Exampleburg",
-        "postal_code" => "77852",
-        "country" => "Groland"
-      }
+             "street_address" => "42, Sir Example Street",
+             "locality" => "St. Exampleburg",
+             "postal_code" => "77852",
+             "country" => "Groland"
+           }
+
     assert payload["phone_number"] == "+3942390027"
     refute Map.has_key?(payload, "phone_number_verified")
     refute Map.has_key?(payload, "non_standard_claim_1")
@@ -434,17 +448,15 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
   defp simplified_content_type_from_conn(conn) do
     Plug.Conn.get_resp_header(conn, "content-type")
-    |> Enum.map(
-      fn
-        val ->
-          case String.split(val, ";") do
-            [_] ->
-              val
+    |> Enum.map(fn
+      val ->
+        case String.split(val, ";") do
+          [_] ->
+            val
 
-            [type | _] ->
-              type
-          end
-      end
-    )
+          [type | _] ->
+            type
+        end
+    end)
   end
 end

@@ -41,10 +41,10 @@ defmodule Asteroid.Token.RefreshToken do
   @type id :: binary()
 
   @type t :: %__MODULE__{
-    id: __MODULE__.id(),
-    serialization_format: Asteroid.Token.serialization_format(),
-    data: map()
-  }
+          id: __MODULE__.id(),
+          serialization_format: Asteroid.Token.serialization_format(),
+          data: map()
+        }
 
   @doc ~s"""
   Creates a new refresh token
@@ -60,7 +60,7 @@ defmodule Asteroid.Token.RefreshToken do
 
   def new(opts) do
     %__MODULE__{
-      id: opts[:id] || (raise "Missing refresh token id"),
+      id: opts[:id] || raise("Missing refresh token id"),
       data: opts[:data] || %{},
       serialization_format: opts[:serialization_format] || :opaque
     }
@@ -80,7 +80,7 @@ defmodule Asteroid.Token.RefreshToken do
     %__MODULE__{
       id: secure_random_b64(),
       data: %{},
-      serialization_format: (if opts[:format], do: opts[:format], else: :opaque)
+      serialization_format: if(opts[:format], do: opts[:format], else: :opaque)
     }
   end
 
@@ -107,17 +107,21 @@ defmodule Asteroid.Token.RefreshToken do
         if opts[:check_active] != true or active?(refresh_token) do
           {:ok, refresh_token}
         else
-          {:error, Token.InvalidTokenError.exception(
-            sort: "refresh token",
-            reason: "inactive token",
-            id: refresh_token_id)}
+          {:error,
+           Token.InvalidTokenError.exception(
+             sort: "refresh token",
+             reason: "inactive token",
+             id: refresh_token_id
+           )}
         end
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "refresh token",
-          reason: "not found in the token store",
-          id: refresh_token_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "refresh token",
+           reason: "not found in the token store",
+           id: refresh_token_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -165,14 +169,13 @@ defmodule Asteroid.Token.RefreshToken do
     at_store_module = astrenv(:object_store_access_token)[:module]
     at_store_opts = astrenv(:object_store_access_token)[:opts] || []
 
-    case at_store_module.get_from_refresh_token_id(refresh_token_id, rt_store_opts)
-    do
-      {:ok, access_token_ids} -> 
+    case at_store_module.get_from_refresh_token_id(refresh_token_id, rt_store_opts) do
+      {:ok, access_token_ids} ->
         for access_token_id <- access_token_ids do
           at_store_module.delete(access_token_id, at_store_opts)
         end
 
-      :ok
+        :ok
 
       {:error, _} = error ->
         error
@@ -230,12 +233,11 @@ defmodule Asteroid.Token.RefreshToken do
   @spec active?(t()) :: boolean()
 
   def active?(refresh_token) do
-    (is_nil(refresh_token.data["nbf"]) or refresh_token.data["nbf"] < now())
-    and
-    (is_nil(refresh_token.data["exp"]) or refresh_token.data["exp"] > now())
-    and
-    (is_nil(refresh_token.data["status"]) or refresh_token.data["status"] != "revoked")
-    #FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
+    (is_nil(refresh_token.data["nbf"]) or refresh_token.data["nbf"] < now()) and
+      (is_nil(refresh_token.data["exp"]) or refresh_token.data["exp"] > now()) and
+      (is_nil(refresh_token.data["status"]) or refresh_token.data["status"] != "revoked")
+
+    # FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
     #   o  If the token has been signed, the authorization server MUST
     #  validate the signature.
     #   o  If the token can be used only at certain resource servers, the
@@ -266,11 +268,19 @@ defmodule Asteroid.Token.RefreshToken do
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_issue_refresh_token_init)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_ropc_issue_refresh_token_refresh)}
     - #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_issue_refresh_token_init)}
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_issue_refresh_token_refresh)}
+    - #{
+    Asteroid.Config.link_to_option(:oauth2_flow_client_credentials_issue_refresh_token_refresh)
+  }
     - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_issue_refresh_token_init)}
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_issue_refresh_token_refresh)}
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_init)}
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_refresh)}
+    - #{
+    Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_issue_refresh_token_refresh)
+  }
+    - #{
+    Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_init)
+  }
+    - #{
+    Asteroid.Config.link_to_option(:oauth2_flow_device_authorization_issue_refresh_token_refresh)
+  }
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_issue_refresh_token_init)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_issue_refresh_token_refresh)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_issue_refresh_token_init)}
@@ -291,8 +301,10 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_ropc_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oauth2_flow_ropc_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
@@ -304,16 +316,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_ropc_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oauth2_flow_ropc_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :client_credentials,
-    grant_type: :client_credentials,
-    client: client})
-  do
+        flow: :client_credentials,
+        grant_type: :client_credentials,
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_client_credentials_issue_refresh_token_init"
 
     client = Client.fetch_attributes(client, [attr])
@@ -321,16 +335,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_client_credentials_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oauth2_flow_client_credentials_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :client_credentials,
-    grant_type: :refresh_token,
-    client: client})
-  do
+        flow: :client_credentials,
+        grant_type: :refresh_token,
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_client_credentials_issue_refresh_token_refresh"
 
     client = Client.fetch_attributes(client, [attr])
@@ -338,16 +354,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_client_credentials_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oauth2_flow_client_credentials_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :authorization_code,
-    grant_type: :authorization_code,
-    client: client})
-  do
+        flow: :authorization_code,
+        grant_type: :authorization_code,
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_authorization_code_issue_refresh_token_init"
 
     client = Client.fetch_attributes(client, [attr])
@@ -355,16 +373,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_authorization_code_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oauth2_flow_authorization_code_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :authorization_code,
-    grant_type: :refresh_token,
-    client: client})
-  do
+        flow: :authorization_code,
+        grant_type: :refresh_token,
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_authorization_code_issue_refresh_token_refresh"
 
     client = Client.fetch_attributes(client, [attr])
@@ -372,16 +392,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_authorization_code_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oauth2_flow_authorization_code_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :device_authorization,
-    grant_type: :"urn:ietf:params:oauth:grant-type:device_code",
-    client: client})
-  do
+        flow: :device_authorization,
+        grant_type: :"urn:ietf:params:oauth:grant-type:device_code",
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_device_authorization_issue_refresh_token_init"
 
     client = Client.fetch_attributes(client, [attr])
@@ -389,16 +411,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_device_authorization_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oauth2_flow_device_authorization_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :device_authorization,
-    grant_type: :refresh_token,
-    client: client})
-  do
+        flow: :device_authorization,
+        grant_type: :refresh_token,
+        client: client
+      }) do
     attr = "__asteroid_oauth2_flow_device_authorization_issue_refresh_token_refresh"
 
     client = Client.fetch_attributes(client, [attr])
@@ -406,16 +430,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oauth2_flow_device_authorization_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oauth2_flow_device_authorization_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :oidc_authorization_code,
-    grant_type: :authorization_code,
-    client: client})
-  do
+        flow: :oidc_authorization_code,
+        grant_type: :authorization_code,
+        client: client
+      }) do
     attr = "__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"
 
     client = Client.fetch_attributes(client, [attr])
@@ -423,16 +449,18 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oidc_flow_authorization_code_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oidc_flow_authorization_code_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
   def issue_refresh_token?(%{
-    flow: :oidc_authorization_code,
-    grant_type: :refresh_token,
-    client: client})
-  do
+        flow: :oidc_authorization_code,
+        grant_type: :refresh_token,
+        client: client
+      }) do
     attr = "__asteroid_oidc_flow_authorization_code_issue_refresh_token_refresh"
 
     client = Client.fetch_attributes(client, [attr])
@@ -440,16 +468,14 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oidc_flow_authorization_code_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oidc_flow_authorization_code_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
-  def issue_refresh_token?(%{
-    flow: :oidc_hybrid,
-    grant_type: :authorization_code,
-    client: client})
-  do
+  def issue_refresh_token?(%{flow: :oidc_hybrid, grant_type: :authorization_code, client: client}) do
     attr = "__asteroid_oidc_flow_hybrid_issue_refresh_token_init"
 
     client = Client.fetch_attributes(client, [attr])
@@ -457,16 +483,14 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oidc_flow_hybrid_issue_refresh_token_init,
-              astrenv(:oauth2_issue_refresh_token_init, false))
+      astrenv(
+        :oidc_flow_hybrid_issue_refresh_token_init,
+        astrenv(:oauth2_issue_refresh_token_init, false)
+      )
     end
   end
 
-  def issue_refresh_token?(%{
-    flow: :oidc_hybrid,
-    grant_type: :refresh_token,
-    client: client})
-  do
+  def issue_refresh_token?(%{flow: :oidc_hybrid, grant_type: :refresh_token, client: client}) do
     attr = "__asteroid_oidc_flow_hybrid_issue_refresh_token_refresh"
 
     client = Client.fetch_attributes(client, [attr])
@@ -474,8 +498,10 @@ defmodule Asteroid.Token.RefreshToken do
     if client.attrs[attr] == true do
       true
     else
-      astrenv(:oidc_flow_authorization_code_issue_refresh_token_refresh,
-              astrenv(:oauth2_issue_refresh_token_refresh, false))
+      astrenv(
+        :oidc_flow_authorization_code_issue_refresh_token_refresh,
+        astrenv(:oauth2_issue_refresh_token_refresh, false)
+      )
     end
   end
 
@@ -570,7 +596,7 @@ defmodule Asteroid.Token.RefreshToken do
 
             :authorization_code ->
               :oauth2_flow_authorization_code_refresh_token_lifetime
-            
+
             :device_authorization ->
               :oauth2_flow_device_authorization_refresh_token_lifetime
 

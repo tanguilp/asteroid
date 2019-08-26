@@ -17,7 +17,9 @@ defmodule AsteroidWeb.OIDCOTPController do
           conn,
           %{
             authz_request: authz_request,
-            error: OIDC.LoginRequiredError.exception(reason: "Login required")})
+            error: OIDC.LoginRequiredError.exception(reason: "Login required")
+          }
+        )
       else
         subject =
           get_session(conn, :subject)
@@ -27,7 +29,7 @@ defmodule AsteroidWeb.OIDCOTPController do
         # To make it secure, we'd need to seed this PRNG with a secure PRNG, for example
         # at application start
         authentication_code =
-          :io_lib.format("~6..0B", [:rand.uniform(1000000) - 1])
+          :io_lib.format("~6..0B", [:rand.uniform(1_000_000) - 1])
           |> to_string()
 
         AsteroidWeb.OTPEmail.otp_email(subject.attrs["email"], authentication_code)
@@ -82,19 +84,16 @@ defmodule AsteroidWeb.OIDCOTPController do
         authenticated_session_id when is_binary(authenticated_session_id) ->
           case AuthenticatedSession.get(authenticated_session_id) do
             {:ok, authenticated_session} ->
-              session_info =
-                AuthenticatedSession.info(authenticated_session)
+              session_info = AuthenticatedSession.info(authenticated_session)
 
-                "otp" not in (session_info[:amr] || []) or
-                (
-                  authz_request.max_age != nil and
-                  authz_request.max_age < now() - session_info[:auth_time]
-                )
+              "otp" not in (session_info[:amr] || []) or
+                (authz_request.max_age != nil and
+                   authz_request.max_age < now() - session_info[:auth_time])
 
             {:error, _} ->
               true
           end
-          
+
         _ ->
           true
       end

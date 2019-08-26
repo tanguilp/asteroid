@@ -15,9 +15,12 @@ defmodule AsteroidWeb.WebauthnLoginController do
 
     challenge =
       Wax.new_authentication_challenge(
-        Enum.map(webauthn_creds,
-                 fn %{"id" => cred_id, "key" => cose_key} -> {cred_id, cose_key} end),
-        [origin: Routes.url(conn), rp_id: :auto]
+        Enum.map(
+          webauthn_creds,
+          fn %{"id" => cred_id, "key" => cose_key} -> {cred_id, cose_key} end
+        ),
+        origin: Routes.url(conn),
+        rp_id: :auto
       )
 
     Logger.debug("Wax: generated authentication challenge #{inspect(challenge)}")

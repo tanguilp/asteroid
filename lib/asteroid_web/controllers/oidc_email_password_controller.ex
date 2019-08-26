@@ -15,7 +15,9 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
           conn,
           %{
             authz_request: get_session(conn, :authz_request),
-            error: OIDC.LoginRequiredError.exception(reason: "Login required")})
+            error: OIDC.LoginRequiredError.exception(reason: "Login required")
+          }
+        )
       else
         conn
         |> put_session(:authz_request, authz_request)
@@ -48,7 +50,7 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
               Subject.gen_new()
               |> Subject.add("sub", secure_random_b64())
               |> Subject.add("email", email)
-              
+
             :ok = Subject.store(subject)
 
             subject
@@ -93,19 +95,16 @@ defmodule AsteroidWeb.OIDCEmailPasswordController do
         authenticated_session_id when is_binary(authenticated_session_id) ->
           case AuthenticatedSession.get(authenticated_session_id) do
             {:ok, authenticated_session} ->
-              session_info =
-                AuthenticatedSession.info(authenticated_session)
+              session_info = AuthenticatedSession.info(authenticated_session)
 
-                "pwd" not in (session_info[:amr] || []) or
-                (
-                  authz_request.max_age != nil and
-                  authz_request.max_age < now() - session_info[:auth_time]
-                )
+              "pwd" not in (session_info[:amr] || []) or
+                (authz_request.max_age != nil and
+                   authz_request.max_age < now() - session_info[:auth_time])
 
             {:error, _} ->
               true
           end
-          
+
         _ ->
           true
       end

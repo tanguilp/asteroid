@@ -10,33 +10,37 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
   alias OAuth2Utils.Scope
 
   setup_all do
-      rsa_enc_alg_all =
-        JOSE.JWK.generate_key({:rsa, 1024})
-        |> Crypto.Key.set_key_use(:enc)
+    rsa_enc_alg_all =
+      JOSE.JWK.generate_key({:rsa, 1024})
+      |> Crypto.Key.set_key_use(:enc)
 
-      Client.gen_new(id: "client_oidc_test_sig")
-      |> Client.add("client_id", "client_oidc_test_sig")
-      |> Client.add("client_secret", "password1")
-      |> Client.add("client_type", "confidential")
-      |> Client.add("grant_types", ["authorization_code", "refresh_token"])
-      |> Client.add("redirect_uris", ["https://www.example.com"])
-      |> Client.add("id_token_signed_response_alg", "RS384")
-      |> Client.add("jwks",
-                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
-      |> Client.store()
+    Client.gen_new(id: "client_oidc_test_sig")
+    |> Client.add("client_id", "client_oidc_test_sig")
+    |> Client.add("client_secret", "password1")
+    |> Client.add("client_type", "confidential")
+    |> Client.add("grant_types", ["authorization_code", "refresh_token"])
+    |> Client.add("redirect_uris", ["https://www.example.com"])
+    |> Client.add("id_token_signed_response_alg", "RS384")
+    |> Client.add(
+      "jwks",
+      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+    )
+    |> Client.store()
 
-      Client.gen_new(id: "client_oidc_test_enc")
-      |> Client.add("client_id", "client_oidc_test_enc")
-      |> Client.add("client_secret", "password1")
-      |> Client.add("client_type", "confidential")
-      |> Client.add("grant_types", ["authorization_code"])
-      |> Client.add("redirect_uris", ["https://www.example.com"])
-      |> Client.add("id_token_signed_response_alg", "RS384")
-      |> Client.add("id_token_encrypted_response_alg", "RSA1_5")
-      |> Client.add("id_token_encrypted_response_enc", "A128GCM")
-      |> Client.add("jwks",
-                    [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)])
-      |> Client.store()
+    Client.gen_new(id: "client_oidc_test_enc")
+    |> Client.add("client_id", "client_oidc_test_enc")
+    |> Client.add("client_secret", "password1")
+    |> Client.add("client_type", "confidential")
+    |> Client.add("grant_types", ["authorization_code"])
+    |> Client.add("redirect_uris", ["https://www.example.com"])
+    |> Client.add("id_token_signed_response_alg", "RS384")
+    |> Client.add("id_token_encrypted_response_alg", "RSA1_5")
+    |> Client.add("id_token_encrypted_response_enc", "A128GCM")
+    |> Client.add(
+      "jwks",
+      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+    )
+    |> Client.store()
 
     %{rsa_enc_alg_all: rsa_enc_alg_all}
   end
@@ -55,8 +59,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
       |> AuthorizationCode.put_value("redirect_uri", "https://www.example.com")
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
       |> AuthorizationCode.put_value("__asteroid_oidc_nonce", "xkgjuf9eswmgwszorixq")
-      |> AuthorizationCode.put_value("__asteroid_oidc_claims",
-                                     ["email", "phone_number", "non_standard_claim_1"])
+      |> AuthorizationCode.put_value(
+        "__asteroid_oidc_claims",
+        ["email", "phone_number", "non_standard_claim_1"]
+      )
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
       |> AuthorizationCode.store()
 
@@ -81,7 +87,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -89,8 +95,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
+
     assert id_token_data["at_hash"] ==
-      TestOIDCHelpers.token_hash(digest, response["access_token"])
+             TestOIDCHelpers.token_hash(digest, response["access_token"])
+
     assert id_token_data["nickname"] == nil
     assert id_token_data["email"] == "user1@example.com"
     assert id_token_data["phone_number"] == "+3942390027"
@@ -98,8 +106,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
   end
 
   test "grant type code flow code success with no refresh token & encrypted ID token",
-  %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all}
-  do
+       %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all} do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, false)
     Process.put(:oidc_id_token_encryption_alg_values_supported, ["RSA1_5"])
     Process.put(:oidc_id_token_encryption_enc_values_supported, ["A128GCM", "A192GCM"])
@@ -141,7 +148,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk_sig = JOSE.JWK.to_public(jwk_sig)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk_sig, ["RS384"], id_token_jws)
+             JOSE.JWS.verify_strict(jwk_sig, ["RS384"], id_token_jws)
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -149,8 +156,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
+
     assert id_token_data["at_hash"] ==
-      TestOIDCHelpers.token_hash(digest, response["access_token"])
+             TestOIDCHelpers.token_hash(digest, response["access_token"])
   end
 
   test "grant type code flow code success with refresh token", %{conn: conn} do
@@ -191,7 +199,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -199,8 +207,9 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
+
     assert id_token_data["at_hash"] ==
-      TestOIDCHelpers.token_hash(digest, response["access_token"])
+             TestOIDCHelpers.token_hash(digest, response["access_token"])
   end
 
   test "grant type code flow hybrid success with no refresh token", %{conn: conn} do
@@ -218,8 +227,10 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
       |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow", "oidc_hybrid")
       |> AuthorizationCode.put_value("__asteroid_oidc_nonce", "xkgjuf9eswmgwszorixq")
       |> AuthorizationCode.put_value("issuer", OAuth2.issuer())
-      |> AuthorizationCode.put_value("__asteroid_oidc_claims",
-                                     ["email", "phone_number", "non_standard_claim_1"])
+      |> AuthorizationCode.put_value(
+        "__asteroid_oidc_claims",
+        ["email", "phone_number", "non_standard_claim_1"]
+      )
       |> AuthorizationCode.store()
 
     req_body = %{
@@ -243,7 +254,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -296,7 +307,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -323,7 +334,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id,
+      "refresh_token" => refresh_token.id
     }
 
     response =
@@ -352,13 +363,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
       |> RefreshToken.put_value("iss", "https://example.net")
       |> RefreshToken.put_value("scope", Scope.Set.new(["openid"]))
       |> RefreshToken.put_value("__asteroid_oauth2_initial_flow", "oidc_authorization_code")
-      |> RefreshToken.put_value("__asteroid_oidc_claims",
-                                ["email", "phone_number", "non_standard_claim_1"])
+      |> RefreshToken.put_value(
+        "__asteroid_oidc_claims",
+        ["email", "phone_number", "non_standard_claim_1"]
+      )
       |> RefreshToken.store(%{})
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id,
+      "refresh_token" => refresh_token.id
     }
 
     response =
@@ -377,7 +390,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -408,7 +421,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id,
+      "refresh_token" => refresh_token.id
     }
 
     response =
@@ -441,7 +454,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id,
+      "refresh_token" => refresh_token.id
     }
 
     response =
@@ -460,7 +473,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -472,8 +485,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
   end
 
   test "grant type code flow code success with no refresh token, acr/amr/auth_time set",
-  %{conn: conn}
-  do
+       %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_init, false)
 
     {:ok, code} =
@@ -514,7 +526,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -522,16 +534,17 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == "xkgjuf9eswmgwszorixq"
     assert id_token_data["sub"] == "user_1"
+
     assert id_token_data["at_hash"] ==
-      TestOIDCHelpers.token_hash(digest, response["access_token"])
+             TestOIDCHelpers.token_hash(digest, response["access_token"])
+
     assert id_token_data["acr"] == "urn:example:loa:loa1"
     assert Enum.sort(id_token_data["amr"]) == ["phr", "pwd"]
     assert id_token_data["auth_time"] == 100_000
   end
 
   test "grant type refresh token flow az code success with new ID token, acramr/auth_time set",
-  %{conn: conn}
-  do
+       %{conn: conn} do
     Process.put(:oidc_flow_authorization_code_issue_id_token_refresh, true)
     Process.put(:oidc_flow_authorization_code_issue_refresh_token_refresh, false)
 
@@ -551,7 +564,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
 
     req_body = %{
       "grant_type" => "refresh_token",
-      "refresh_token" => refresh_token.id,
+      "refresh_token" => refresh_token.id
     }
 
     response =
@@ -570,7 +583,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenControllerOIDCTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-      JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
+             JOSE.JWS.verify_strict(jwk, ["RS384"], response["id_token"])
 
     id_token_data = Jason.decode!(id_token_str)
 

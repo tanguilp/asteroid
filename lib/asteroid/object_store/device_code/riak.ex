@@ -112,9 +112,7 @@ defmodule Asteroid.ObjectStore.DeviceCode.Riak do
         {:ok, device_code}
 
       nil ->
-        Logger.debug(
-          "#{__MODULE__}: getting device code `#{device_code_id}`, " <> "value: `nil`"
-        )
+        Logger.debug("#{__MODULE__}: getting device code `#{device_code_id}`, " <> "value: `nil`")
 
         {:ok, nil}
     end
@@ -156,9 +154,12 @@ defmodule Asteroid.ObjectStore.DeviceCode.Riak do
 
     riak_map = Riak.CRDT.Map.put(riak_map, "device_code_data_binary", device_code_data_binary)
 
-    riak_map = Riak.CRDT.Map.put(riak_map,
-                                 "user_code",
-                                 Riak.CRDT.Register.new(device_code.user_code))
+    riak_map =
+      Riak.CRDT.Map.put(
+        riak_map,
+        "user_code",
+        Riak.CRDT.Register.new(device_code.user_code)
+      )
 
     riak_map =
       if device_code.data["exp"] != nil do

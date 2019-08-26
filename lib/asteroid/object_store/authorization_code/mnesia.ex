@@ -90,7 +90,8 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Mnesia do
     case :mnesia.dirty_read(table_name, authorization_code_id) do
       [] ->
         Logger.debug(
-          "#{__MODULE__}: getting authorization code `#{authorization_code_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authorization code `#{authorization_code_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}

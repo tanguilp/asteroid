@@ -88,9 +88,9 @@ defmodule Asteroid.Crypto.Key do
   """
 
   @type key_config_entry ::
-  {:pem_file, Keyword.t()}
-  | {:map, Keyword.t()}
-  | {:auto_gen, Keyword.t()}
+          {:pem_file, Keyword.t()}
+          | {:map, Keyword.t()}
+          | {:auto_gen, Keyword.t()}
 
   @typedoc """
   Key config entry
@@ -117,9 +117,23 @@ defmodule Asteroid.Crypto.Key do
   """
 
   @jws_alg [
-    "ES256", "ES384", "ES512", "Ed25519", "Ed25519ph", "Ed448", "Ed448ph",
-    "HS256", "HS384", "HS512", "PS256", "PS384", "PS512", "Poly1305", "RS256",
-    "RS384", "RS512"
+    "ES256",
+    "ES384",
+    "ES512",
+    "Ed25519",
+    "Ed25519ph",
+    "Ed448",
+    "Ed448ph",
+    "HS256",
+    "HS384",
+    "HS512",
+    "PS256",
+    "PS384",
+    "PS512",
+    "Poly1305",
+    "RS256",
+    "RS384",
+    "RS512"
   ]
 
   @type jws_alg :: String.t()
@@ -140,10 +154,23 @@ defmodule Asteroid.Crypto.Key do
   """
 
   @jwe_alg [
-    "A128GCMKW", "A128KW", "A192GCMKW", "A192KW", "A256GCMKW", "A256KW",
-    "ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW",
-    "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW",
-    "RSA-OAEP", "RSA-OAEP-256", "RSA1_5", "dir"
+    "A128GCMKW",
+    "A128KW",
+    "A192GCMKW",
+    "A192KW",
+    "A256GCMKW",
+    "A256KW",
+    "ECDH-ES",
+    "ECDH-ES+A128KW",
+    "ECDH-ES+A192KW",
+    "ECDH-ES+A256KW",
+    "PBES2-HS256+A128KW",
+    "PBES2-HS384+A192KW",
+    "PBES2-HS512+A256KW",
+    "RSA-OAEP",
+    "RSA-OAEP-256",
+    "RSA1_5",
+    "dir"
   ]
 
   @type jwe_alg :: String.t()
@@ -162,8 +189,13 @@ defmodule Asteroid.Crypto.Key do
   """
 
   @jwe_enc [
-    "A128CBC-HS256", "A128GCM", "A192CBC-HS384", "A192GCM", "A256CBC-HS512",
-    "A256GCM", "ChaCha20/Poly1305"
+    "A128CBC-HS256",
+    "A128GCM",
+    "A192CBC-HS384",
+    "A192GCM",
+    "A256CBC-HS512",
+    "A256GCM",
+    "ChaCha20/Poly1305"
   ]
 
   @type jwe_enc :: String.t()

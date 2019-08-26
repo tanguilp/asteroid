@@ -1,11 +1,11 @@
 defmodule AsteroidWeb.Gettext do
   @moduledoc false
 
-  #@moduledoc """
-  #A module providing Internationalization with a gettext-based API.
+  # @moduledoc """
+  # A module providing Internationalization with a gettext-based API.
 
-  #By using [Gettext](https://hexdocs.pm/gettext),
-  #your module gains a set of macros for translations, for example:
+  # By using [Gettext](https://hexdocs.pm/gettext),
+  # your module gains a set of macros for translations, for example:
 
   #    import AsteroidWeb.Gettext
 
@@ -20,7 +20,7 @@ defmodule AsteroidWeb.Gettext do
   #    # Domain-based translation
   #    dgettext("errors", "Here is the error message to translate")
 
-  #See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
-  #"""
+  # See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
+  # """
   use Gettext, otp_app: :asteroid
 end

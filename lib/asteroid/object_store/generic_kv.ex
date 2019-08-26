@@ -38,8 +38,8 @@ defmodule Asteroid.ObjectStore.GenericKV do
   """
 
   @callback get(key(), opts()) ::
-  {:ok, value() | nil}
-  | {:error, any()}
+              {:ok, value() | nil}
+              | {:error, any()}
 
   @doc """
   Stores an object

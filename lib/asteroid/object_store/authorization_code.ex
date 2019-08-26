@@ -31,8 +31,8 @@ defmodule Asteroid.ObjectStore.AuthorizationCode do
   """
 
   @callback get(Asteroid.Token.AuthorizationCode.id(), opts()) ::
-  {:ok, Asteroid.Token.AuthorizationCode.t() | nil}
-  | {:error, any()}
+              {:ok, Asteroid.Token.AuthorizationCode.t() | nil}
+              | {:error, any()}
 
   @doc """
   Stores an authorization code 

@@ -41,10 +41,10 @@ defmodule Asteroid.Token.AuthorizationCode do
   @type id :: binary()
 
   @type t :: %__MODULE__{
-    id: __MODULE__.id(),
-    serialization_format: Asteroid.Token.serialization_format(),
-    data: map()
-  }
+          id: __MODULE__.id(),
+          serialization_format: Asteroid.Token.serialization_format(),
+          data: map()
+        }
 
   @doc ~s"""
   Creates a new authorization code struct
@@ -60,7 +60,7 @@ defmodule Asteroid.Token.AuthorizationCode do
 
   def new(opts) do
     %__MODULE__{
-      id: opts[:id] || (raise "Missing authorization code id"),
+      id: opts[:id] || raise("Missing authorization code id"),
       data: opts[:data] || %{},
       serialization_format: opts[:serialization_format] || :opaque
     }
@@ -107,17 +107,21 @@ defmodule Asteroid.Token.AuthorizationCode do
         if opts[:check_active] != true or active?(authorization_code) do
           {:ok, authorization_code}
         else
-          {:error, Token.InvalidTokenError.exception(
-            sort: "authorization code",
-            reason: "inactive token",
-            id: authorization_code_id)}
+          {:error,
+           Token.InvalidTokenError.exception(
+             sort: "authorization code",
+             reason: "inactive token",
+             id: authorization_code_id
+           )}
         end
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "authorization code",
-          reason: "not found in the token store",
-          id: authorization_code_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "authorization code",
+           reason: "not found in the token store",
+           id: authorization_code_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -213,9 +217,8 @@ defmodule Asteroid.Token.AuthorizationCode do
   @spec active?(t()) :: boolean()
 
   def active?(authorization_code) do
-    (is_nil(authorization_code.data["nbf"]) or authorization_code.data["nbf"] < now())
-    and
-    (is_nil(authorization_code.data["exp"]) or authorization_code.data["exp"] > now())
+    (is_nil(authorization_code.data["nbf"]) or authorization_code.data["nbf"] < now()) and
+      (is_nil(authorization_code.data["exp"]) or authorization_code.data["exp"] > now())
   end
 
   @doc """
@@ -229,7 +232,9 @@ defmodule Asteroid.Token.AuthorizationCode do
     - `"__asteroid_oidc_flow_hybrid_authorization_code_lifetime"`
   - Otherwise, if the following configuration option is set to an integer for the corresponding
   flow, returns its value:
-    - #{Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_authorization_code_lifetime)}
+    - #{
+    Asteroid.Config.link_to_option(:oauth2_flow_authorization_code_authorization_code_lifetime)
+  }
     - #{Asteroid.Config.link_to_option(:oidc_flow_authorization_code_authorization_code_lifetime)}
     - #{Asteroid.Config.link_to_option(:oidc_flow_hybrid_authorization_code_lifetime)}
   - otherwise uses the value of the
@@ -242,15 +247,15 @@ defmodule Asteroid.Token.AuthorizationCode do
       case flow do
         :authorization_code ->
           {"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime",
-            :oauth2_flow_authorization_code_authorization_code_lifetime}
+           :oauth2_flow_authorization_code_authorization_code_lifetime}
 
         :oidc_authorization_code ->
           {"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime",
-            :oidc_flow_authorization_code_authorization_code_lifetime}
+           :oidc_flow_authorization_code_authorization_code_lifetime}
 
         :oidc_hybrid ->
           {"__asteroid_oidc_flow_hybrid_authorization_code_lifetime",
-            :oidc_flow_hybrid_authorization_code_lifetime}
+           :oidc_flow_hybrid_authorization_code_lifetime}
       end
 
     client = Client.fetch_attributes(client, [attr])

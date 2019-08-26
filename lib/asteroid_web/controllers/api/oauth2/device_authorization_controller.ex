@@ -13,13 +13,17 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
   def handle(conn, params) do
     scope_param = params["scope"]
 
-    with :ok <- Asteroid.OAuth2.grant_type_enabled?(:"urn:ietf:params:oauth:grant-type:device_code"),
+    with :ok <-
+           Asteroid.OAuth2.grant_type_enabled?(:"urn:ietf:params:oauth:grant-type:device_code"),
          {:ok, client} <- OAuth2.Client.get_client(conn),
-         :ok <- OAuth2.Client.grant_type_authorized?(client, "urn:ietf:params:oauth:grant-type:device_code"),
+         :ok <-
+           OAuth2.Client.grant_type_authorized?(
+             client,
+             "urn:ietf:params:oauth:grant-type:device_code"
+           ),
          {:ok, requested_scopes} <- get_scope(scope_param),
          :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :device_authorization),
-         :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes)
-    do
+         :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes) do
       ctx =
         %{}
         |> Map.put(:endpoint, :device_authorization)
@@ -31,14 +35,17 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
       requested_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
 
       {:ok, device_code} =
-        DeviceCode.gen_new(user_code:
-                           astrenv(:oauth2_flow_device_authorization_user_code_callback).(ctx))
-          |> DeviceCode.put_value("exp",
-             now() + astrenv(:oauth2_flow_device_authorization_device_code_lifetime))
-          |> DeviceCode.put_value("clid", client.id)
-          |> DeviceCode.put_value("requested_scopes", Scope.Set.to_list(requested_scopes))
-          |> DeviceCode.put_value("status", "authorization_pending")
-          |> DeviceCode.store(ctx)
+        DeviceCode.gen_new(
+          user_code: astrenv(:oauth2_flow_device_authorization_user_code_callback).(ctx)
+        )
+        |> DeviceCode.put_value(
+          "exp",
+          now() + astrenv(:oauth2_flow_device_authorization_device_code_lifetime)
+        )
+        |> DeviceCode.put_value("clid", client.id)
+        |> DeviceCode.put_value("requested_scopes", Scope.Set.to_list(requested_scopes))
+        |> DeviceCode.put_value("status", "authorization_pending")
+        |> DeviceCode.store(ctx)
 
       verif_uri = Routes.device_url(AsteroidWeb.Endpoint, :pre_authorize)
 
@@ -50,8 +57,10 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
           "verification_uri_complete" => verif_uri <> "?user_code=" <> device_code.user_code,
           "expires_in" => device_code.data["exp"] - now()
         }
-        |> put_if_not_nil("interval",
-                          astrenv(:oauth2_flow_device_authorization_rate_limiter_interval))
+        |> put_if_not_nil(
+          "interval",
+          astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+        )
         |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
 
       conn
@@ -70,15 +79,18 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
 
-      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} -> # OK
+      # OK
+      {:error, %OAuth2.UnsupportedGrantTypeError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %OAuth2.Scope.UnknownRequestedScopeError{} = e} ->
         AsteroidWeb.Error.respond_api(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{}} ->
-        AsteroidWeb.Error.respond_api(conn, OAuth2.Client.AuthenticationError.exception(
-          reason: :unknown_client))
+        AsteroidWeb.Error.respond_api(
+          conn,
+          OAuth2.Client.AuthenticationError.exception(reason: :unknown_client)
+        )
     end
   end
 
@@ -90,8 +102,11 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
     if Scope.oauth2_scope_param?(scope_param) do
       {:ok, Scope.Set.from_scope_param!(scope_param)}
     else
-      {:error, OAuth2.Request.MalformedParamError.exception(name: "scope",
-                                                            value: scope_param)}
+      {:error,
+       OAuth2.Request.MalformedParamError.exception(
+         name: "scope",
+         value: scope_param
+       )}
     end
   end
 end

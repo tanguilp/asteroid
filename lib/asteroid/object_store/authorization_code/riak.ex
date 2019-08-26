@@ -114,7 +114,8 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Riak do
 
       nil ->
         Logger.debug(
-          "#{__MODULE__}: getting authorization code `#{authorization_code_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authorization code `#{authorization_code_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}
@@ -138,7 +139,12 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Riak do
       |> Base.encode64(padding: false)
       |> Riak.CRDT.Register.new()
 
-    riak_map = Riak.CRDT.Map.put(riak_map, "authorization_code_data_binary", authorization_code_data_binary)
+    riak_map =
+      Riak.CRDT.Map.put(
+        riak_map,
+        "authorization_code_data_binary",
+        authorization_code_data_binary
+      )
 
     riak_map =
       if authorization_code.data["exp"] != nil do
@@ -149,7 +155,9 @@ defmodule Asteroid.ObjectStore.AuthorizationCode.Riak do
         )
       else
         Logger.warn(
-          "Inserting authorization code with no expiration: #{String.slice(authorization_code.id, 1..5)}..."
+          "Inserting authorization code with no expiration: #{
+            String.slice(authorization_code.id, 1..5)
+          }..."
         )
 
         riak_map

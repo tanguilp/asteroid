@@ -15,19 +15,19 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   test "Missing response_type parameter with valid client_id & redirect_uri", %{conn: conn} do
     params = %{
       "client_id" => "client_confidential_1",
-      "redirect_uri" => "https://www.example.com",
+      "redirect_uri" => "https://www.example.com"
     }
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "Missing response_type and no client_id & redirect_uri", %{conn: conn} do
-    params = %{
-    }
+    params = %{}
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
@@ -107,8 +107,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "unsupported_response_type"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "Unauthorized response_type for client", %{conn: conn} do
@@ -121,8 +122,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "unauthorized_client"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "Malformed scope param", %{conn: conn} do
@@ -136,8 +138,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "invalid_scope"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert %{"error" => "invalid_scope"} = URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "Unauthorized scope param", %{conn: conn} do
@@ -151,8 +152,7 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
-    assert %{"error" => "invalid_scope"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+    assert %{"error" => "invalid_scope"} = URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   ##########################
@@ -160,100 +160,115 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   ##########################
 
   test "Authorization denied - access denied with no state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_denied(
-      conn,
-      %{
-        authz_request: authz_request,
-        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_denied(
+        conn,
+        %{
+          authz_request: authz_request,
+          error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+             "abc def"
 
     refute URI.decode_query(URI.parse(redirected_to(conn)).query)["state"]
   end
 
   test "Authorization denied - access denied with state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{"state" => "sxgjwzedrgdfchexgim"}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{"state" => "sxgjwzedrgdfchexgim"}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_denied(
-      conn,
-      %{
-        authz_request: authz_request,
-        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_denied(
+        conn,
+        %{
+          authz_request: authz_request,
+          error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "access_denied"
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["state"] == "sxgjwzedrgdfchexgim"
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+             "abc def"
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["state"] ==
+             "sxgjwzedrgdfchexgim"
   end
 
   test "Authorization denied - server error with no state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_denied(
-      conn,
-      %{
-        authz_request: authz_request,
-        error: OAuth2.ServerError.exception(reason: "abc def")
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_denied(
+        conn,
+        %{
+          authz_request: authz_request,
+          error: OAuth2.ServerError.exception(reason: "abc def")
+        }
+      )
 
     assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "server_error"
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+             "abc def"
   end
 
   test "Authorization denied - temporarily unavailable with no state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_denied(
-      conn,
-      %{
-        authz_request: authz_request,
-        error: OAuth2.TemporarilyUnavailableError.exception(reason: "abc def")
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_denied(
+        conn,
+        %{
+          authz_request: authz_request,
+          error: OAuth2.TemporarilyUnavailableError.exception(reason: "abc def")
+        }
+      )
 
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] == "temporarily_unavailable"
-    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~ "abc def"
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error"] ==
+             "temporarily_unavailable"
+
+    assert URI.decode_query(URI.parse(redirected_to(conn)).query)["error_description"] =~
+             "abc def"
   end
 
   ##########################
@@ -261,28 +276,30 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   ##########################
 
   test "Authorization granted (code) - access granted with state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{"state" => "sxgjwzedrgdfchexgim"}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{"state" => "sxgjwzedrgdfchexgim"}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"code" => _, "state" => "sxgjwzedrgdfchexgim"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
 
     %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
 
@@ -293,24 +310,25 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   end
 
   test "Authorization granted (code) - access granted without state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
@@ -327,33 +345,34 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   ##########################
 
   test "Authorization granted (implicit) - access granted with state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :implicit,
-        response_type: :token,
-        response_mode: :fragment,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{"state" => "sxgjwzedrgdfchexgim"}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :implicit,
+      response_type: :token,
+      response_mode: :fragment,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{"state" => "sxgjwzedrgdfchexgim"}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
     assert %{
-      "access_token" => access_token,
-      "token_type" => "bearer",
-      "expires_in" => _,
-      "state" => "sxgjwzedrgdfchexgim"
-    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+             "access_token" => access_token,
+             "token_type" => "bearer",
+             "expires_in" => _,
+             "state" => "sxgjwzedrgdfchexgim"
+           } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
     {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
 
@@ -362,32 +381,33 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   end
 
   test "Authorization granted (implicit) - access granted without state", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :implicit,
-        response_type: :token,
-        response_mode: :fragment,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :implicit,
+      response_type: :token,
+      response_mode: :fragment,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
     assert %{
-      "access_token" => access_token,
-      "token_type" => "bearer",
-      "expires_in" => _,
-    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+             "access_token" => access_token,
+             "token_type" => "bearer",
+             "expires_in" => _
+           } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
     assert URI.decode_query(URI.parse(redirected_to(conn)).fragment)["state"] == nil
 
@@ -398,37 +418,40 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   end
 
   test "Authorization granted (implicit) - access granted with differing scopes", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :implicit,
-        response_type: :token,
-        response_mode: :fragment,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
-        params: %{"state" => "sxgjwzedrgdfchexgim"}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :implicit,
+      response_type: :token,
+      response_mode: :fragment,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
+      params: %{"state" => "sxgjwzedrgdfchexgim"}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3"])
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3"])
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
     assert %{
-      "access_token" => access_token,
-      "token_type" => "bearer",
-      "expires_in" => _,
-      "scope" => granted_scopes,
-      "state" => "sxgjwzedrgdfchexgim"
-    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+             "access_token" => access_token,
+             "token_type" => "bearer",
+             "expires_in" => _,
+             "scope" => granted_scopes,
+             "state" => "sxgjwzedrgdfchexgim"
+           } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    assert Scope.Set.equal?(Scope.Set.from_scope_param!(granted_scopes),
-                            Scope.Set.new(["scp2", "scp4", "scp3"]))
+    assert Scope.Set.equal?(
+             Scope.Set.from_scope_param!(granted_scopes),
+             Scope.Set.new(["scp2", "scp4", "scp3"])
+           )
 
     {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
 
@@ -436,47 +459,51 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     assert access_token.data["sub"] == "user_1"
   end
 
-  test "Authorization granted (implicit) - access granted with capped access token lifetime", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :implicit,
-        response_type: :token,
-        response_mode: :fragment,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
-        params: %{"state" => "sxgjwzedrgdfchexgim"}
-      }
+  test "Authorization granted (implicit) - access granted with capped access token lifetime", %{
+    conn: conn
+  } do
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :implicit,
+      response_type: :token,
+      response_mode: :fragment,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: Scope.Set.new(["scp1", "scp2", "scp3", "scp4"]),
+      params: %{"state" => "sxgjwzedrgdfchexgim"}
+    }
 
-    Process.put(:oauth2_flow_implicit_scope_config, [
+    Process.put(:oauth2_flow_implicit_scope_config,
       scopes: %{
         "scp1" => [],
         "scp2" => [],
         "scp3" => [],
         "scp4" => [max_refresh_token_lifetime: 1000, max_access_token_lifetime: 30]
-      }])
+      }
+    )
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3", "scp1"])
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new(["scp2", "scp4", "scp3", "scp1"])
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
     assert %{
-      "access_token" => access_token,
-      "token_type" => "bearer",
-      "expires_in" => expires_in,
-      "state" => "sxgjwzedrgdfchexgim"
-    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+             "access_token" => access_token,
+             "token_type" => "bearer",
+             "expires_in" => expires_in,
+             "state" => "sxgjwzedrgdfchexgim"
+           } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
     {:ok, access_token} = Asteroid.Token.AccessToken.get(access_token)
 
-    assert (expires_in |> Integer.parse() |> elem(0)) >= 29
-    assert (expires_in |> Integer.parse() |> elem(0)) <= 31
+    assert expires_in |> Integer.parse() |> elem(0) >= 29
+    assert expires_in |> Integer.parse() |> elem(0) <= 31
     assert access_token.data["client_id"] == "client_confidential_1"
     assert access_token.data["sub"] == "user_1"
     assert access_token.data["exp"] >= now() + 29
@@ -488,32 +515,33 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     Process.put(:oauth2_flow_implicit_access_token_signing_key, "key_auto_sig")
     Process.put(:oauth2_flow_implicit_access_token_signing_alg, "RS384")
 
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :implicit,
-        response_type: :token,
-        response_mode: :fragment,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :implicit,
+      response_type: :token,
+      response_mode: :fragment,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
 
     assert %{
-      "access_token" => access_token,
-      "token_type" => "bearer",
-      "expires_in" => _,
-    } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
+             "access_token" => access_token,
+             "token_type" => "bearer",
+             "expires_in" => _
+           } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
     assert URI.decode_query(URI.parse(redirected_to(conn)).fragment)["state"] == nil
 
@@ -546,8 +574,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: client doesn't use PKCE but must", %{conn: conn} do
@@ -560,8 +589,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: code challenge too short", %{conn: conn} do
@@ -569,14 +599,15 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       "client_id" => "client_confidential_1",
       "redirect_uri" => "https://www.example.com",
       "response_type" => "code",
-      "code_challenge" => "too_short",
+      "code_challenge" => "too_short"
     }
 
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: code challenge too long", %{conn: conn} do
@@ -590,8 +621,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: code challenge contains an invalid character", %{conn: conn} do
@@ -605,8 +637,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: code challenge method is unsupported", %{conn: conn} do
@@ -621,8 +654,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - error: code challenge method is not enabled", %{conn: conn} do
@@ -639,8 +673,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     conn = get(conn, "/authorize?#{URI.encode_query(params)}")
 
     assert redirected_to(conn) =~ "https://www.example.com"
+
     assert %{"error" => "invalid_request"} =
-      URI.decode_query(URI.parse(redirected_to(conn)).query)
+             URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
   test "PKCE - success request", %{conn: conn} do
@@ -652,18 +687,20 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
       "code_challenge_method" => "S256"
     }
 
-    Process.put(:oauth2_flow_authorization_code_web_authorization_callback,
-                fn conn, request ->
-                  request_map =
-                    Map.from_struct(%{request |
-                      client_id: request.client_id,
-                      requested_scopes: Scope.Set.to_list(request.requested_scopes)
-                    })
+    Process.put(
+      :oauth2_flow_authorization_code_web_authorization_callback,
+      fn conn, request ->
+        request_map =
+          Map.from_struct(%{
+            request
+            | client_id: request.client_id,
+              requested_scopes: Scope.Set.to_list(request.requested_scopes)
+          })
 
-                  conn
-                  |> put_status(200)
-                  |> Phoenix.Controller.json(request_map)
-                end
+        conn
+        |> put_status(200)
+        |> Phoenix.Controller.json(request_map)
+      end
     )
 
     response =
@@ -676,26 +713,27 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   end
 
   test "PKCE (code) - access granted", %{conn: conn} do
-    authz_request =
-      %AsteroidWeb.AuthorizeController.Request{
-        flow: :authorization_code,
-        response_type: :code,
-        response_mode: :query,
-        client_id: "client_confidential_1",
-        redirect_uri: "https://www.example.com",
-        requested_scopes: MapSet.new(),
-        pkce_code_challenge: String.duplicate("x", 50),
-        pkce_code_challenge_method: :S256,
-        params: %{}
-      }
+    authz_request = %AsteroidWeb.AuthorizeController.Request{
+      flow: :authorization_code,
+      response_type: :code,
+      response_mode: :query,
+      client_id: "client_confidential_1",
+      redirect_uri: "https://www.example.com",
+      requested_scopes: MapSet.new(),
+      pkce_code_challenge: String.duplicate("x", 50),
+      pkce_code_challenge_method: :S256,
+      params: %{}
+    }
 
-    conn = AsteroidWeb.AuthorizeController.authorization_granted(
-      conn,
-      %{
-        authz_request: authz_request,
-        subject: Subject.load("user_1") |> elem(1),
-        granted_scopes: Scope.Set.new()
-      })
+    conn =
+      AsteroidWeb.AuthorizeController.authorization_granted(
+        conn,
+        %{
+          authz_request: authz_request,
+          subject: Subject.load("user_1") |> elem(1),
+          granted_scopes: Scope.Set.new()
+        }
+      )
 
     assert redirected_to(conn) =~ "https://www.example.com"
     assert %{"code" => az_code} = URI.decode_query(URI.parse(redirected_to(conn)).query)
@@ -704,8 +742,10 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     assert authorization_code.data["client_id"] == "client_confidential_1"
     assert authorization_code.data["sub"] == "user_1"
+
     assert authorization_code.data["__asteroid_oauth2_pkce_code_challenge"] ==
-      String.duplicate("x", 50)
+             String.duplicate("x", 50)
+
     assert authorization_code.data["__asteroid_oauth2_pkce_code_challenge_method"] == "S256"
   end
 end

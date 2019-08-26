@@ -11,9 +11,12 @@ defmodule AsteroidWeb.AuthorizeScopesController do
 
     authz_request = get_session(conn, :authz_request)
 
-    {:ok, client} = Client.load_from_unique_attribute("client_id",
-                                                      authz_request.client_id,
-                                                      attributes: ["client_name"])
+    {:ok, client} =
+      Client.load_from_unique_attribute(
+        "client_id",
+        authz_request.client_id,
+        attributes: ["client_name"]
+      )
 
     requested_scopes_config = requested_scopes_config(conn, authz_request.client_id)
 
@@ -137,13 +140,12 @@ defmodule AsteroidWeb.AuthorizeScopesController do
       [],
       fn {k, v}, acc ->
         if k in authz_request.requested_scopes do
-          scope =
-            %{
-              name: k,
-              label: v[:label]["en"],
-              optional: v[:optional] || false,
-              already_authorized: k in consented_scopes
-            }
+          scope = %{
+            name: k,
+            label: v[:label]["en"],
+            optional: v[:optional] || false,
+            already_authorized: k in consented_scopes
+          }
 
           [scope | acc]
         else

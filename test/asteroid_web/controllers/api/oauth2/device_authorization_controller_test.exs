@@ -17,7 +17,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
       |> post(Routes.device_authorization_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -33,7 +33,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
       |> post(Routes.device_authorization_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -48,7 +48,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
       |> post(Routes.device_authorization_path(conn, :handle), req)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -122,8 +122,9 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri"])
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
+
     assert response["interval"] ==
-      astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
 
     {:ok, device_code} = DeviceCode.get(response["device_code"])
 
@@ -149,9 +150,12 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri"])
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
+
     assert response["interval"] ==
-      astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
-    assert response["scope"] == nil # there is not such an attribute returned
+             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+
+    # there is not such an attribute returned
+    assert response["scope"] == nil
 
     {:ok, device_code} = DeviceCode.get(response["device_code"])
 
@@ -159,8 +163,12 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert device_code.data["clid"] == "client_confidential_1"
     assert device_code.data["sjid"] == nil
     assert device_code.data["granted_scopes"] == nil
-    assert Scope.Set.equal?(Scope.Set.new(device_code.data["requested_scopes"]),
-                            Scope.Set.new(["scp1", "scp2", "scp6", "scp5"]))
+
+    assert Scope.Set.equal?(
+             Scope.Set.new(device_code.data["requested_scopes"]),
+             Scope.Set.new(["scp1", "scp2", "scp6", "scp5"])
+           )
+
     assert device_code.data["status"] == "authorization_pending"
   end
 
@@ -180,9 +188,12 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri"])
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
+
     assert response["interval"] ==
-      astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
-    assert response["scope"] == nil # there is not such an attribute returned
+             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+
+    # there is not such an attribute returned
+    assert response["scope"] == nil
 
     {:ok, device_code} = DeviceCode.get(response["device_code"])
 
@@ -190,10 +201,15 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert device_code.data["clid"] == "client_public_1"
     assert device_code.data["sjid"] == nil
     assert device_code.data["granted_scopes"] == nil
-    assert Scope.Set.equal?(Scope.Set.new(device_code.data["requested_scopes"]),
-                            Scope.Set.new(["scp1", "scp3", "scp5"]))
+
+    assert Scope.Set.equal?(
+             Scope.Set.new(device_code.data["requested_scopes"]),
+             Scope.Set.new(["scp1", "scp3", "scp5"])
+           )
+
     assert device_code.data["status"] == "authorization_pending"
   end
+
   defp basic_auth_header(client, secret) do
     "Basic " <> Base.encode64(client <> ":" <> secret)
   end

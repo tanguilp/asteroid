@@ -35,8 +35,8 @@ defmodule Asteroid.WebFlow do
   """
 
   @spec web_authorization_callback(Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t()) ::
-  {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
-  | {:error, Exception.t()}
+          {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
+          | {:error, Exception.t()}
 
   def web_authorization_callback(_conn, authz_request) do
     oidc_acr_config = astrenv(:oidc_acr_config, [])
@@ -53,16 +53,20 @@ defmodule Asteroid.WebFlow do
                 {:ok, oidc_acr_config[acr][:callback]}
 
               nil ->
-                {:error, OAuth2.AccessDeniedError.exception(
-                  reason: "Requested acrs could not be satisfied in regards to scopes config")}
+                {:error,
+                 OAuth2.AccessDeniedError.exception(
+                   reason: "Requested acrs could not be satisfied in regards to scopes config"
+                 )}
             end
 
           %{"id_token" => %{"acr" => %{"essential" => true, "value" => value}}} ->
             if value in acceptable_acrs do
               {:ok, oidc_acr_config[value][:callback]}
             else
-              {:error, OAuth2.AccessDeniedError.exception(
-                reason: "Requested acr could not be satisfied in regards to scopes config")}
+              {:error,
+               OAuth2.AccessDeniedError.exception(
+                 reason: "Requested acr could not be satisfied in regards to scopes config"
+               )}
             end
 
           %{"id_token" => %{"acr" => %{"values" => values}}} ->
@@ -81,7 +85,7 @@ defmodule Asteroid.WebFlow do
               {:ok, first_acr_callback_from_config(acceptable_acrs)}
             end
 
-          _ -> 
+          _ ->
             case authz_request.acr_values do
               acr_values when is_list(acr_values) ->
                 case Enum.find(acr_values, &(&1 in acceptable_acrs)) do
@@ -91,6 +95,7 @@ defmodule Asteroid.WebFlow do
                   nil ->
                     {:ok, first_acr_callback_from_config(acceptable_acrs)}
                 end
+
               nil ->
                 default_web_authorization_callback(authz_request)
             end
@@ -99,8 +104,8 @@ defmodule Asteroid.WebFlow do
   end
 
   @spec first_acr_callback_from_config(MapSet.t(OIDC.acr())) ::
-  {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
-  | {:error, Exception.t()}
+          {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
+          | {:error, Exception.t()}
 
   defp first_acr_callback_from_config(acceptable_acrs) do
     Enum.find(
@@ -115,14 +120,14 @@ defmodule Asteroid.WebFlow do
         {:ok, acr_config[:callback]}
 
       _ ->
-        {:error, OAuth2.AccessDeniedError.exception(
-          reason: "no suitable acr found in configuration")}
+        {:error,
+         OAuth2.AccessDeniedError.exception(reason: "no suitable acr found in configuration")}
     end
   end
 
   @spec default_web_authorization_callback(AsteroidWeb.AuthorizeController.Request.t()) ::
-  {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
-  | {:error, Exception.t()}
+          {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
+          | {:error, Exception.t()}
 
   defp default_web_authorization_callback(%Request{flow: :authorization_code}) do
     {:ok, astrenv(:oauth2_flow_authorization_code_web_authorization_callback)}
@@ -132,11 +137,12 @@ defmodule Asteroid.WebFlow do
     {:ok, astrenv(:oauth2_flow_implicit_web_authorization_callback)}
   end
 
-  defp default_web_authorization_callback(%Request{flow: flow} = authz_req) when flow in [
-    :oidc_authorization_code,
-    :oidc_implicit,
-    :oidc_hybrid
-  ] do
+  defp default_web_authorization_callback(%Request{flow: flow} = authz_req)
+       when flow in [
+              :oidc_authorization_code,
+              :oidc_implicit,
+              :oidc_hybrid
+            ] do
     oidc_acr_config = astrenv(:oidc_acr_config, [])
 
     maybe_preferred_acr =
@@ -203,7 +209,7 @@ defmodule Asteroid.WebFlow do
               map_set = if acc, do: acc, else: MapSet.new()
 
               acrs
-              |> Enum.reduce(MapSet.new(), &(MapSet.put(&2, &1)))
+              |> Enum.reduce(MapSet.new(), &MapSet.put(&2, &1))
               |> MapSet.intersection(map_set)
           end
       end

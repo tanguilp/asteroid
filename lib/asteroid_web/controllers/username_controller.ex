@@ -21,7 +21,7 @@ defmodule AsteroidWeb.UsernameController do
           subject =
             Subject.gen_new()
             |> Subject.add("sub", username)
-            
+
           :ok = Subject.store(subject)
 
           subject

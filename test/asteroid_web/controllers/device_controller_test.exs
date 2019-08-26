@@ -17,7 +17,8 @@ defmodule AsteroidWeb.DeviceControllerTest do
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: nil,
-        error: OAuth2.AccessDeniedError.exception(reason: "abc def")})
+        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+      })
 
     assert html_response(conn, 200) =~ "Pairing denied"
   end
@@ -35,11 +36,13 @@ defmodule AsteroidWeb.DeviceControllerTest do
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: "ABCDEFGH1",
-        error: OAuth2.AccessDeniedError.exception(reason: "abc def")})
+        error: OAuth2.AccessDeniedError.exception(reason: "abc def")
+      })
 
     assert html_response(conn, 200) =~ "Pairing denied"
+
     assert {:ok, %DeviceCode{data: %{"status" => "denied"}}} =
-      DeviceCode.get_from_user_code("ABCDEFGH1")
+             DeviceCode.get_from_user_code("ABCDEFGH1")
   end
 
   test "Authorization denied - server error", %{conn: conn} do
@@ -52,7 +55,8 @@ defmodule AsteroidWeb.DeviceControllerTest do
       |> AsteroidWeb.DeviceController.authorization_denied(%{
         authz_request: authz_request,
         user_code: nil,
-        error: OAuth2.ServerError.exception(reason: "abc def")})
+        error: OAuth2.ServerError.exception(reason: "abc def")
+      })
 
     assert html_response(conn, 400) =~ "Pairing error"
   end
@@ -73,10 +77,12 @@ defmodule AsteroidWeb.DeviceControllerTest do
         authz_request: authz_request,
         user_code: "ABCDEFGH2",
         sjid: "user_1",
-        granted_scopes: Scope.Set.new([])})
+        granted_scopes: Scope.Set.new([])
+      })
 
     assert html_response(conn, 200) =~ "Pairing successful"
+
     assert {:ok, %DeviceCode{data: %{"status" => "granted"}}} =
-      DeviceCode.get_from_user_code("ABCDEFGH2")
+             DeviceCode.get_from_user_code("ABCDEFGH2")
   end
 end

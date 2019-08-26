@@ -44,21 +44,21 @@ defmodule Asteroid.Token.IDToken do
   """
 
   @type t :: %__MODULE__{
-    iss: OAuth2.issuer(),
-    sub: OAuth2.subject(),
-    aud: OAuth2.audience(),
-    exp: non_neg_integer(),
-    iat: non_neg_integer(),
-    auth_time: non_neg_integer() | nil,
-    nonce: OIDC.nonce() | nil,
-    acr: OIDC.acr() | nil,
-    amr: OIDC.amr() | nil,
-    azp: String.t() | nil,
-    client: Client.t(),
-    associated_access_token_serialized: String.t() | nil,
-    associated_authorization_code_serialized: String.t() | nil,
-    data: map()
-  }
+          iss: OAuth2.issuer(),
+          sub: OAuth2.subject(),
+          aud: OAuth2.audience(),
+          exp: non_neg_integer(),
+          iat: non_neg_integer(),
+          auth_time: non_neg_integer() | nil,
+          nonce: OIDC.nonce() | nil,
+          acr: OIDC.acr() | nil,
+          amr: OIDC.amr() | nil,
+          azp: String.t() | nil,
+          client: Client.t(),
+          associated_access_token_serialized: String.t() | nil,
+          associated_authorization_code_serialized: String.t() | nil,
+          data: map()
+        }
 
   @type id :: String.t()
 
@@ -112,29 +112,31 @@ defmodule Asteroid.Token.IDToken do
       |> put_if_not_nil("acr", id_token.acr)
       |> put_if_not_nil("amr", id_token.amr)
       |> put_if_not_nil("azp", id_token.azp)
-      |> put_if_not_nil("at_hash",
-                        token_hash(id_token, id_token.associated_access_token_serialized))
-      |> put_if_not_nil("c_hash",
-                        token_hash(id_token, id_token.associated_authorization_code_serialized))
+      |> put_if_not_nil(
+        "at_hash",
+        token_hash(id_token, id_token.associated_access_token_serialized)
+      )
+      |> put_if_not_nil(
+        "c_hash",
+        token_hash(id_token, id_token.associated_authorization_code_serialized)
+      )
 
     signing_alg = client.attrs["id_token_signed_response_alg"] || "RS256"
 
     eligible_jwks =
       Crypto.Key.get_all()
-      |> Enum.filter(
-        fn
-          %JOSE.JWK{fields: fields} ->
-            fields["use"] == "sig" and
+      |> Enum.filter(fn
+        %JOSE.JWK{fields: fields} ->
+          fields["use"] == "sig" and
             (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
             (fields["alg"] == signing_alg or fields["alg"] == nil)
-        end
-      )
+      end)
 
     case eligible_jwks do
       [jwk | _] ->
         serialized_jws =
           JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), jwt)
-          |> JOSE.JWS.compact
+          |> JOSE.JWS.compact()
           |> elem(1)
 
         encryption_alg = client.attrs["id_token_encrypted_response_alg"]
@@ -145,14 +147,12 @@ defmodule Asteroid.Token.IDToken do
               eligible_jwks =
                 keys
                 |> Enum.map(&JOSE.JWK.from/1)
-                |> Enum.filter(
-                  fn
-                    %JOSE.JWK{fields: fields} ->
-                      (fields["use"] == "enc" or fields["use"] == nil) and
+                |> Enum.filter(fn
+                  %JOSE.JWK{fields: fields} ->
+                    (fields["use"] == "enc" or fields["use"] == nil) and
                       (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
                       (fields["alg"] == encryption_alg or fields["alg"] == nil)
-                  end
-                )
+                end)
 
               case eligible_jwks do
                 [jwk | _] ->
@@ -162,7 +162,8 @@ defmodule Asteroid.Token.IDToken do
                   JOSE.JWE.block_encrypt(
                     jwk,
                     serialized_jws,
-                    %{"alg" => encryption_alg, "enc" => encryption_enc})
+                    %{"alg" => encryption_alg, "enc" => encryption_enc}
+                  )
                   |> JOSE.JWE.compact()
                   |> elem(1)
 
@@ -293,11 +294,7 @@ defmodule Asteroid.Token.IDToken do
 
   @spec issue_id_token?(Context.t()) :: boolean()
 
-  def issue_id_token?(%{
-    flow: flow,
-    grant_type: :refresh_token,
-    client: client})
-  do
+  def issue_id_token?(%{flow: flow, grant_type: :refresh_token, client: client}) do
     attr =
       case flow do
         :oidc_authorization_code ->
@@ -350,13 +347,13 @@ defmodule Asteroid.Token.IDToken do
       "nonce",
       "acr",
       "amr",
-      "azp",
+      "azp"
     ]
 
     claims_to_load = Enum.filter(claims, &(&1 not in claims_to_exclude))
 
     subject = Subject.fetch_attributes(subject, claims_to_load)
 
-    Enum.reduce(claims_to_load, id_token, &(put_value(&2, &1, subject.attrs[&1])))
+    Enum.reduce(claims_to_load, id_token, &put_value(&2, &1, subject.attrs[&1]))
   end
 end

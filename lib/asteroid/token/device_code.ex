@@ -37,11 +37,11 @@ defmodule Asteroid.Token.DeviceCode do
   defstruct [:id, :user_code, :serialization_format, :data]
 
   @type t :: %__MODULE__{
-    id: OAuth2.DeviceAuthorization.device_code(),
-    user_code: binary() | nil,
-    serialization_format: Asteroid.Token.serialization_format(),
-    data: map()
-  }
+          id: OAuth2.DeviceAuthorization.device_code(),
+          user_code: binary() | nil,
+          serialization_format: Asteroid.Token.serialization_format(),
+          data: map()
+        }
 
   @doc ~s"""
   Creates a new device code
@@ -59,8 +59,8 @@ defmodule Asteroid.Token.DeviceCode do
 
   def new(opts) do
     %__MODULE__{
-      id: opts[:id] || (raise "Missing device code"),
-      user_code: opts[:user_code] || (raise "Missing user code"),
+      id: opts[:id] || raise("Missing device code"),
+      user_code: opts[:user_code] || raise("Missing user code"),
       data: opts[:data] || %{},
       serialization_format: opts[:serialization_format] || :opaque
     }
@@ -79,9 +79,10 @@ defmodule Asteroid.Token.DeviceCode do
   def gen_new(opts \\ []) do
     %__MODULE__{
       id: secure_random_b64(),
-      user_code: opts[:user_code] || (raise "Missing user code"),
+      user_code: opts[:user_code] || raise("Missing user code"),
       data: %{},
-      serialization_format: (if opts[:serialization_format], do: opts[:serialization_format], else: :opaque),
+      serialization_format:
+        if(opts[:serialization_format], do: opts[:serialization_format], else: :opaque)
     }
   end
 
@@ -94,8 +95,8 @@ defmodule Asteroid.Token.DeviceCode do
   """
 
   @spec get(OAuth2.DeviceAuthorization.device_code(), Keyword.t()) ::
-  {:ok, t()}
-  | {:error, Exception.t()}
+          {:ok, t()}
+          | {:error, Exception.t()}
 
   def get(device_code_id, opts \\ [check_active: true]) do
     code_store_module = astrenv(:object_store_device_code)[:module]
@@ -106,17 +107,21 @@ defmodule Asteroid.Token.DeviceCode do
         if opts[:check_active] != true or active?(device_code) do
           {:ok, device_code}
         else
-          {:error, Token.InvalidTokenError.exception(
-            sort: "device code",
-            reason: "expired code",
-            id: device_code_id)}
+          {:error,
+           Token.InvalidTokenError.exception(
+             sort: "device code",
+             reason: "expired code",
+             id: device_code_id
+           )}
         end
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "device code",
-          reason: "not found in the token store",
-          id: device_code_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "device code",
+           reason: "not found in the token store",
+           id: device_code_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -132,8 +137,8 @@ defmodule Asteroid.Token.DeviceCode do
   """
 
   @spec get_from_user_code(OAuth2.DeviceAuthorization.user_code(), Keyword.t()) ::
-  {:ok, t()}
-  | {:error, Exception.t()}
+          {:ok, t()}
+          | {:error, Exception.t()}
 
   def get_from_user_code(user_code, opts \\ [check_active: true]) do
     code_store_module = astrenv(:object_store_device_code)[:module]
@@ -144,17 +149,21 @@ defmodule Asteroid.Token.DeviceCode do
         if opts[:check_active] != true or active?(device_code) do
           {:ok, device_code}
         else
-          {:error, Token.InvalidTokenError.exception(
-            sort: "device code",
-            reason: "inactive token",
-            id: device_code.id)}
+          {:error,
+           Token.InvalidTokenError.exception(
+             sort: "device code",
+             reason: "inactive token",
+             id: device_code.id
+           )}
         end
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "device code",
-          reason: "invalid user code",
-          id: user_code)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "device code",
+           reason: "invalid user code",
+           id: user_code
+         )}
 
       {:error, error} ->
         {:error, error}

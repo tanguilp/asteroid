@@ -40,7 +40,7 @@ defmodule Asteroid.MixProject do
       {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic"},
       {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer"},
       {:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
-      #{:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
+      # {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
       {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist"},
       {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist"},
       {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler"},
@@ -81,8 +81,8 @@ defmodule Asteroid.MixProject do
   defp aliases do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
-      "ecto.reset": ["ecto.drop", "ecto.setup"],
-      #test: ["ecto.create --quiet", "ecto.migrate", "test"]
+      "ecto.reset": ["ecto.drop", "ecto.setup"]
+      # test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 
@@ -90,8 +90,8 @@ defmodule Asteroid.MixProject do
     [
       main: "getting-started",
       groups_for_modules: [
-        "Resources": [Asteroid.Client, Asteroid.Subject, Asteroid.Device],
-        "Tokens": [
+        Resources: [Asteroid.Client, Asteroid.Subject, Asteroid.Device],
+        Tokens: [
           Asteroid.Token,
           Asteroid.Token.AccessToken,
           Asteroid.Token.RefreshToken,
@@ -152,11 +152,10 @@ defmodule Asteroid.MixProject do
         "guides/openid-connect/openid-connect-core.md",
         "guides/openid-connect/oidc-dynamic-client-registration.md",
         "guides/openid-connect/response-mode.md",
-        "guides/openid-connect/openid-connect-discovery.md",
+        "guides/openid-connect/openid-connect-discovery.md"
       ],
-      groups_for_extras:
-      [
-        "OAuth2": [
+      groups_for_extras: [
+        OAuth2: [
           "guides/oauth2/terminology-conventions.md",
           "guides/oauth2/managing-scopes.md",
           "guides/oauth2/oauth2-core.md",
@@ -169,13 +168,13 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/server-metadata.md",
           "guides/oauth2/jar.md"
         ],
-      "OpenID Connect": [
-        "guides/openid-connect/sessions-loas.md",
-        "guides/openid-connect/openid-connect-core.md",
-        "guides/openid-connect/oidc-dynamic-client-registration.md",
-        "guides/openid-connect/response-mode.md",
-        "guides/openid-connect/openid-connect-discovery.md",
-      ]
+        "OpenID Connect": [
+          "guides/openid-connect/sessions-loas.md",
+          "guides/openid-connect/openid-connect-core.md",
+          "guides/openid-connect/oidc-dynamic-client-registration.md",
+          "guides/openid-connect/response-mode.md",
+          "guides/openid-connect/openid-connect-discovery.md"
+        ]
       ]
     ]
   end

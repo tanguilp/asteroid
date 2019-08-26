@@ -25,10 +25,10 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   defstruct [:id, :authenticated_session_id, :data]
 
   @type t :: %__MODULE__{
-    id: id(),
-    authenticated_session_id: AuthenticatedSession.id(),
-    data: map()
-  }
+          id: id(),
+          authenticated_session_id: AuthenticatedSession.id(),
+          data: map()
+        }
 
   @doc """
   Generates a new authentication event
@@ -40,7 +40,7 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
     %__MODULE__{
       id: secure_random_b64(),
       authenticated_session_id: authenticated_session_id,
-      data: %{},
+      data: %{}
     }
   end
 
@@ -59,10 +59,12 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
         {:ok, authentication_event}
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "authentication event",
-          reason: "not found in the store",
-          id: authentication_event_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "authentication event",
+           reason: "not found in the store",
+           id: authentication_event_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -81,18 +83,20 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
 
     case ae_store_module.get_from_authenticated_session_id(auth_session_id, ae_store_opts) do
       {:ok, auth_event_ids} ->
-        Enum.reduce(auth_event_ids,
-                    [],
-                    fn
-                      auth_event_id, acc ->
-                        case get(auth_event_id) do
-                          {:ok, auth_event} ->
-                            [auth_event | acc]
+        Enum.reduce(
+          auth_event_ids,
+          [],
+          fn
+            auth_event_id, acc ->
+              case get(auth_event_id) do
+                {:ok, auth_event} ->
+                  [auth_event | acc]
 
-                          {:error, _} ->
-                            acc
-                        end
-                    end)
+                {:error, _} ->
+                  acc
+              end
+          end
+        )
 
       _ ->
         []
@@ -112,8 +116,10 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
     ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
 
     authentication_event =
-      astrenv(:object_store_authentication_event_before_store_callback).(authentication_event,
-                                                                         ctx)
+      astrenv(:object_store_authentication_event_before_store_callback).(
+        authentication_event,
+        ctx
+      )
 
     case ae_store_module.put(authentication_event, ae_store_opts) do
       :ok ->

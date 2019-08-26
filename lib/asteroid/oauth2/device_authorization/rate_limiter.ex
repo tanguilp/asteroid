@@ -15,7 +15,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization.RateLimiter do
   """
 
   @callback check(DeviceAuthorization.device_code(), opts()) ::
-  :ok
-  | {:rate_limited, non_neg_integer()}
-  | {:rate_limited, nil}
+              :ok
+              | {:rate_limited, non_neg_integer()}
+              | {:rate_limited, nil}
 end

@@ -32,7 +32,7 @@ defmodule Asteroid.OIDC.Userinfo do
   ```
   """
 
-  @spec scope_claims_mapping() :: %{required(String.t) => [String.t()]}
+  @spec scope_claims_mapping() :: %{required(String.t()) => [String.t()]}
 
   def scope_claims_mapping() do
     %{
@@ -54,7 +54,7 @@ defmodule Asteroid.OIDC.Userinfo do
       ],
       "email" => ["email", "email_verified"],
       "address" => ["address"],
-      "phone" => ["phone_number","phone_number_verified"]
+      "phone" => ["phone_number", "phone_number_verified"]
     }
   end
 end

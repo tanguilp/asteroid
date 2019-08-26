@@ -31,15 +31,15 @@ defmodule Asteroid.ObjectStore.DeviceCode do
   """
 
   @callback get(Asteroid.OAuth2.DeviceAuthorization.device_code(), opts()) ::
-  {:ok, Asteroid.Token.DeviceCode.t() | nil}
-  | {:error, any()}
+              {:ok, Asteroid.Token.DeviceCode.t() | nil}
+              | {:error, any()}
 
   @doc """
   Returns the *device code id* from a user code
   """
 
   @callback get_from_user_code(Asteroid.OAuth2.DeviceAuthorization.user_code(), opts()) ::
-  {:ok, Asteroid.Token.DeviceCode.t()} | {:error, any()}
+              {:ok, Asteroid.Token.DeviceCode.t()} | {:error, any()}
 
   @doc """
   Stores an device code
@@ -54,8 +54,8 @@ defmodule Asteroid.ObjectStore.DeviceCode do
   """
 
   @callback delete(Asteroid.OAuth2.DeviceAuthorization.device_code(), opts()) ::
-  :ok
-  | {:error, any()}
+              :ok
+              | {:error, any()}
 
   @optional_callbacks start: 1,
                       start_link: 1

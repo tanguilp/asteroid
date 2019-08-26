@@ -67,17 +67,17 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     req_body = %{
       "token" => "egxeghqearfza"
     }
-    conn =
-      post(conn, Routes.introspect_path(conn, :handle), req_body)
+
+    conn = post(conn, Routes.introspect_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="always erroneous client password")
+             ~s(Basic realm="always erroneous client password")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer realm="Asteroid")
+             ~s(Bearer realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -105,10 +105,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
       |> post(Routes.introspect_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm=)
+             ~s(Basic realm=)
 
     refute Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer )
+             ~s(Bearer )
 
     response = json_response(conn, 401)
 
@@ -120,17 +120,16 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
       "token" => "onetokenewxoqziurmfaiy"
     }
 
-    conn = post(conn, Routes.introspect_path(conn, :handle),
-                                                                          req_body)
+    conn = post(conn, Routes.introspect_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="always erroneous client password")
+             ~s(Basic realm="always erroneous client password")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer realm="Asteroid")
+             ~s(Bearer realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -168,9 +167,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == access_token.data["token_type"]
     assert response["exp"] == access_token.data["exp"]
     assert response["iat"] == access_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(access_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(access_token.data["scope"])
+           )
   end
 
   test "existing access token, no token_type_hint param, basic auth with no scopes", %{conn: conn} do
@@ -236,9 +237,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == access_token.data["token_type"]
     assert response["exp"] == access_token.data["exp"]
     assert response["iat"] == access_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(access_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(access_token.data["scope"])
+           )
   end
 
   test "existing access token, correct token_type_hint param", %{conn: conn} do
@@ -269,9 +272,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == access_token.data["token_type"]
     assert response["exp"] == access_token.data["exp"]
     assert response["iat"] == access_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(access_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(access_token.data["scope"])
+           )
   end
 
   test "existing access token, incorrect token_type_hint param", %{conn: conn} do
@@ -302,9 +307,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == access_token.data["token_type"]
     assert response["exp"] == access_token.data["exp"]
     assert response["iat"] == access_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(access_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(access_token.data["scope"])
+           )
   end
 
   test "existing access token, but expired", %{conn: conn} do
@@ -416,9 +423,12 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == refresh_token.data["token_type"]
     assert response["exp"] == refresh_token.data["exp"]
     assert response["iat"] == refresh_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(refresh_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(refresh_token.data["scope"])
+           )
+
     assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
@@ -451,9 +461,12 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == refresh_token.data["token_type"]
     assert response["exp"] == refresh_token.data["exp"]
     assert response["iat"] == refresh_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(refresh_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(refresh_token.data["scope"])
+           )
+
     assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
@@ -486,9 +499,12 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
     assert response["token_type"] == refresh_token.data["token_type"]
     assert response["exp"] == refresh_token.data["exp"]
     assert response["iat"] == refresh_token.data["iat"]
+
     assert Scope.Set.equal?(
-      Scope.Set.from_scope_param!(response["scope"]),
-      Scope.Set.new(refresh_token.data["scope"]))
+             Scope.Set.from_scope_param!(response["scope"]),
+             Scope.Set.new(refresh_token.data["scope"])
+           )
+
     assert response["__asteroid_oauth2_initial_flow"] == nil
   end
 
@@ -579,5 +595,4 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectControllerTest do
   defp basic_auth_header(client, secret) do
     "Basic " <> Base.encode64(client <> ":" <> secret)
   end
-
 end

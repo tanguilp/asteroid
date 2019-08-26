@@ -19,7 +19,7 @@ defmodule AsteroidWeb.RegisterWebauthnKeyController do
             |> Subject.add("webauthn_key_reg_last_proposed", now())
             |> Subject.store()
 
-          challenge = Wax.new_registration_challenge([origin: Routes.url(conn), rp_id: :auto])
+          challenge = Wax.new_registration_challenge(origin: Routes.url(conn), rp_id: :auto)
 
           Logger.debug("Wax: generated attestation challenge #{inspect(challenge)}")
 
@@ -35,7 +35,8 @@ defmodule AsteroidWeb.RegisterWebauthnKeyController do
         end
 
       nil ->
-        redirect(conn, to: "/") #FIXME: return error
+        # FIXME: return error
+        redirect(conn, to: "/")
     end
   end
 

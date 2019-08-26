@@ -10,13 +10,13 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
       AuthenticatedSession.gen_new("user1id")
       |> AuthenticatedSession.store()
 
-    {:ok, rt1} = 
+    {:ok, rt1} =
       RefreshToken.gen_new()
       |> RefreshToken.put_value("authenticated_session_id", as.id)
       |> RefreshToken.put_value("scope", ["openid"])
       |> RefreshToken.store()
 
-    {:ok, rt2} = 
+    {:ok, rt2} =
       RefreshToken.gen_new()
       |> RefreshToken.put_value("authenticated_session_id", as.id)
       |> RefreshToken.put_value("scope", ["openid"])
@@ -33,7 +33,7 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
       AuthenticatedSession.gen_new("user1id")
       |> AuthenticatedSession.store()
 
-    {:ok, rt} = 
+    {:ok, rt} =
       RefreshToken.gen_new()
       |> RefreshToken.put_value("authenticated_session_id", as.id)
       |> RefreshToken.store()
@@ -48,7 +48,7 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
       AuthenticatedSession.gen_new("user1id")
       |> AuthenticatedSession.store()
 
-    {:ok, rt} = 
+    {:ok, rt} =
       RefreshToken.gen_new()
       |> RefreshToken.put_value("authenticated_session_id", as.id)
       |> RefreshToken.put_value("scope", ["openid", "offline_access"])
@@ -137,21 +137,20 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
 
   test "info function" do
     Process.put(:oidc_acr_config,
-      [
-        "3-factor": [
-          callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp", "webauthn"]]
-        ],
-        "2-factor": [
-          callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
-        ],
-        "1-factor": [
-          callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-          auth_event_set: [["password"], ["webauthn"]],
-          default: true
-        ]
-      ])
+      "3-factor": [
+        callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp", "webauthn"]]
+      ],
+      "2-factor": [
+        callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+      ],
+      "1-factor": [
+        callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+        auth_event_set: [["password"], ["webauthn"]],
+        default: true
+      ]
+    )
 
     {:ok, as} =
       AuthenticatedSession.gen_new("user1id")
@@ -160,25 +159,25 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
     AuthenticationEvent.gen_new(as.id)
     |> AuthenticationEvent.put_value("name", "password")
     |> AuthenticationEvent.put_value("amr", "pwd")
-    |> AuthenticationEvent.put_value("time", 100000)
-    |> AuthenticationEvent.store()
-    
-    AuthenticationEvent.gen_new(as.id)
-    |> AuthenticationEvent.put_value("name", "otp")
-    |> AuthenticationEvent.put_value("amr", "otp")
-    |> AuthenticationEvent.put_value("time", 200000)
+    |> AuthenticationEvent.put_value("time", 100_000)
     |> AuthenticationEvent.store()
 
     AuthenticationEvent.gen_new(as.id)
     |> AuthenticationEvent.put_value("name", "otp")
     |> AuthenticationEvent.put_value("amr", "otp")
-    |> AuthenticationEvent.put_value("time", 250000)
+    |> AuthenticationEvent.put_value("time", 200_000)
+    |> AuthenticationEvent.store()
+
+    AuthenticationEvent.gen_new(as.id)
+    |> AuthenticationEvent.put_value("name", "otp")
+    |> AuthenticationEvent.put_value("amr", "otp")
+    |> AuthenticationEvent.put_value("time", 250_000)
     |> AuthenticationEvent.store()
 
     AuthenticationEvent.gen_new(as.id)
     |> AuthenticationEvent.put_value("name", "webauthn")
     |> AuthenticationEvent.put_value("amr", "phr")
-    |> AuthenticationEvent.put_value("time", 300000)
+    |> AuthenticationEvent.put_value("time", 300_000)
     |> AuthenticationEvent.store()
 
     {:ok, as} = AuthenticatedSession.get(as.id)
@@ -189,34 +188,35 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
     assert Enum.sort(amr) == ["otp", "phr", "pwd"]
 
     assert %{acr: "1-factor", amr: ["pwd"], auth_time: 100_000} ==
-      AuthenticatedSession.info(as.id, "1-factor")
+             AuthenticatedSession.info(as.id, "1-factor")
 
     assert %{acr: "2-factor", amr: amr, auth_time: 250_000} =
-      AuthenticatedSession.info(as.id, "2-factor")
+             AuthenticatedSession.info(as.id, "2-factor")
+
     assert Enum.sort(amr) == ["otp", "pwd"]
 
     assert %{acr: "3-factor", amr: amr, auth_time: 300_000} =
-      AuthenticatedSession.info(as.id, "3-factor")
+             AuthenticatedSession.info(as.id, "3-factor")
+
     assert Enum.sort(amr) == ["otp", "phr", "pwd"]
   end
 
   test "info function - no auth event associated" do
     Process.put(:oidc_acr_config,
-      [
-        "3-factor": [
-          callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp", "webauthn"]]
-        ],
-        "2-factor": [
-          callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
-        ],
-        "1-factor": [
-          callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-          auth_event_set: [["password"], ["webauthn"]],
-          default: true
-        ]
-      ])
+      "3-factor": [
+        callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp", "webauthn"]]
+      ],
+      "2-factor": [
+        callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+      ],
+      "1-factor": [
+        callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+        auth_event_set: [["password"], ["webauthn"]],
+        default: true
+      ]
+    )
 
     {:ok, as} =
       AuthenticatedSession.gen_new("user1id")
@@ -230,21 +230,20 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
 
   test "info function - acr doesn't exist in config" do
     Process.put(:oidc_acr_config,
-      [
-        "3-factor": [
-          callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp", "webauthn"]]
-        ],
-        "2-factor": [
-          callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
-          auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
-        ],
-        "1-factor": [
-          callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
-          auth_event_set: [["password"], ["webauthn"]],
-          default: true
-        ]
-      ])
+      "3-factor": [
+        callback: &AsteroidWeb.LOA3_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp", "webauthn"]]
+      ],
+      "2-factor": [
+        callback: &AsteroidWeb.LOA2_webflow.start_webflow/2,
+        auth_event_set: [["password", "otp"], ["password", "webauthn"], ["webauthn", "otp"]]
+      ],
+      "1-factor": [
+        callback: &AsteroidWeb.LOA1_webflow.start_webflow/2,
+        auth_event_set: [["password"], ["webauthn"]],
+        default: true
+      ]
+    )
 
     {:ok, as} =
       AuthenticatedSession.gen_new("user1id")
@@ -254,6 +253,6 @@ defmodule Asteroid.OIDC.AuthenticatedSessionTest do
     {:ok, as} = AuthenticatedSession.get(as.id)
 
     assert %{acr: "some_inexistant_acr", amr: nil, auth_time: nil} ==
-      AuthenticatedSession.info(as.id)
+             AuthenticatedSession.info(as.id)
   end
 end

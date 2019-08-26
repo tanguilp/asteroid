@@ -61,8 +61,8 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
     defexception [:retry_after]
 
     @type t :: %__MODULE__{
-      retry_after: non_neg_integer()
-    }
+            retry_after: non_neg_integer()
+          }
 
     def message(%{retry_after: retry_after}) do
       case astrenv(:api_error_response_verbosity) do
@@ -74,7 +74,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
           end
 
         :normal ->
-            "Too many requests"
+          "Too many requests"
 
         :minimal ->
           ""
@@ -121,7 +121,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
             {:error, RateLimitedError.exception([])}
 
           {:rate_limited, retry_after} ->
-            {:error, RateLimitedError.exception([retry_after: retry_after])}
+            {:error, RateLimitedError.exception(retry_after: retry_after)}
         end
 
       nil ->

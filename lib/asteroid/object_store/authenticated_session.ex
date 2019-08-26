@@ -31,15 +31,15 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession do
   """
 
   @callback get(Asteroid.OIDC.AuthenticatedSession.id(), opts()) ::
-  {:ok, Asteroid.OIDC.AuthenticatedSession.t() | nil}
-  | {:error, any()}
+              {:ok, Asteroid.OIDC.AuthenticatedSession.t() | nil}
+              | {:error, any()}
 
   @doc """
   Returns all the *authenticated session ids* of a subject
   """
 
   @callback get_from_subject_id(Asteroid.Subject.id(), opts()) ::
-  {:ok, [Asteroid.OIDC.AuthenticatedSession.id()]} | {:error, any()}
+              {:ok, [Asteroid.OIDC.AuthenticatedSession.id()]} | {:error, any()}
 
   @doc """
   Stores an authenticated session

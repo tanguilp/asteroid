@@ -33,7 +33,7 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Riak.Purge do
       {:ok, authentication_event_ids} ->
         for authentication_event_id <- authentication_event_ids do
           # this causes Riak connection exhaustion, to investigate further
-          #Task.start(Asteroid.ObjectStore.AuthenticationEvent.Riak, :delete, [authentication_event_id, opts])
+          # Task.start(Asteroid.ObjectStore.AuthenticationEvent.Riak, :delete, [authentication_event_id, opts])
           Asteroid.OIDC.AuthenticationEvent.delete(authentication_event_id)
         end
 

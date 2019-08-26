@@ -19,46 +19,56 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
     assert response["authorization_endpoint"] == Routes.authorize_url(Endpoint, :pre_authorize)
     assert response["token_endpoint"] == Routes.token_url(Endpoint, :handle)
     assert response["jwks_uri"] == Routes.keys_url(Endpoint, :handle)
+
     assert response["registration_endpoint"] ==
-      Routes.register_url(Endpoint, :handle)
+             Routes.register_url(Endpoint, :handle)
+
     assert Enum.sort(response["scopes_supported"]) ==
-      Scope.Set.new()
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:ropc))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:client_credentials))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:authorization_code))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:implicit))
-      |> Scope.Set.to_list()
-      |> Enum.sort()
+             Scope.Set.new()
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:ropc))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:client_credentials))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:authorization_code))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:implicit))
+             |> Scope.Set.to_list()
+             |> Enum.sort()
+
     assert Enum.sort(response["response_types_supported"]) ==
-      astrenv(:oauth2_response_types_enabled)
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             astrenv(:oauth2_response_types_enabled)
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
+
     assert Enum.sort(response["grant_types_supported"]) ==
-      astrenv(:oauth2_grant_types_enabled)
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             astrenv(:oauth2_grant_types_enabled)
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
+
     assert Enum.sort(response["token_endpoint_auth_methods_supported"]) ==
-      OAuth2.Endpoint.token_endpoint_auth_methods_supported()
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             OAuth2.Endpoint.token_endpoint_auth_methods_supported()
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
+
     assert response["service_documentation"] == nil
     assert response["ui_locales_supported"] == nil
     assert response["op_policy_uri"] == nil
     assert response["op_tos_uri"] == nil
     assert response["revocation_endpoint"] == Routes.revoke_url(Endpoint, :handle)
+
     assert Enum.sort(response["revocation_endpoint_auth_methods_supported"]) ==
-      OAuth2.Endpoint.revoke_endpoint_auth_methods_supported()
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             OAuth2.Endpoint.revoke_endpoint_auth_methods_supported()
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
+
     assert response["introspection_endpoint"] == Routes.introspect_url(Endpoint, :handle)
+
     assert Enum.sort(response["introspection_endpoint_auth_methods_supported"]) ==
-      OAuth2.Endpoint.introspect_endpoint_auth_methods_supported()
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             OAuth2.Endpoint.introspect_endpoint_auth_methods_supported()
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
+
     assert Enum.sort(response["code_challenge_methods_supported"]) ==
-      astrenv(:oauth2_pkce_allowed_methods)
-      |> Enum.map(&to_string/1)
-      |> Enum.sort()
+             astrenv(:oauth2_pkce_allowed_methods)
+             |> Enum.map(&to_string/1)
+             |> Enum.sort()
   end
 
   test "authorization endpoint not needed", %{conn: conn} do
@@ -92,14 +102,14 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
       |> json_response(200)
 
     assert Enum.sort(response["scopes_supported"]) ==
-      Scope.Set.new()
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:ropc))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:client_credentials))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:authorization_code))
-      |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:implicit))
-      |> Scope.Set.to_list()
-      |> Kernel.--(["scp6"])
-      |> Enum.sort()
+             Scope.Set.new()
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:ropc))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:client_credentials))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:authorization_code))
+             |> Scope.Set.union(OAuth2.Scope.scopes_for_flow(:implicit))
+             |> Scope.Set.to_list()
+             |> Kernel.--(["scp6"])
+             |> Enum.sort()
   end
 
   test "non automatic fields can be set", %{conn: conn} do
@@ -142,8 +152,11 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   end
 
   test "signed_metadata published with issuer and correct signature", %{conn: conn} do
-    Process.put(:oauth2_endpoint_metadata_signed_fields,
-      ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"])
+    Process.put(
+      :oauth2_endpoint_metadata_signed_fields,
+      ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"]
+    )
+
     Process.put(:oauth2_endpoint_metadata_signing_key, "key_auto_sig")
     Process.put(:oauth2_endpoint_metadata_signing_alg, "PS512")
 
@@ -156,7 +169,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
     jwk = JOSE.JWK.to_public(jwk)
 
     assert {true, signed_metadata_str, _} =
-      JOSE.JWS.verify_strict(jwk, ["PS512"], response["signed_metadata"])
+             JOSE.JWS.verify_strict(jwk, ["PS512"], response["signed_metadata"])
 
     signed_metadata = Jason.decode!(signed_metadata_str)
 

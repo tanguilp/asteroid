@@ -52,40 +52,44 @@ defmodule AsteroidWeb.AuthorizeController do
     ]
 
     @type t :: %__MODULE__{
-      flow: OAuth2.flow(),
-      response_type: OAuth2.response_type(),
-      response_mode: OAuth2.response_mode(),
-      client_id: OAuth2.client_id(),
-      redirect_uri: OAuth2.RedirectUri.t(),
-      requested_scopes: Scope.Set.t(),
-      pkce_code_challenge: OAuth2.PKCE.code_challenge() | nil,
-      pkce_code_challenge_method: OAuth2.PKCE.code_challenge_method() | nil,
-      nonce: String.t() | nil,
-      display: String.t() | nil,
-      prompt: [String.t()],
-      max_age: non_neg_integer() | nil,
-      ui_locales: [String.t()] | nil,
-      id_token_hint: String.t() | nil,
-      login_hint: String.t() | nil,
-      acr_values: [Asteroid.OIDC.acr()] | nil,
-      preferred_acr: Asteroid.OIDC.acr(),
-      claims: map(),
-      params: map()
-    }
+            flow: OAuth2.flow(),
+            response_type: OAuth2.response_type(),
+            response_mode: OAuth2.response_mode(),
+            client_id: OAuth2.client_id(),
+            redirect_uri: OAuth2.RedirectUri.t(),
+            requested_scopes: Scope.Set.t(),
+            pkce_code_challenge: OAuth2.PKCE.code_challenge() | nil,
+            pkce_code_challenge_method: OAuth2.PKCE.code_challenge_method() | nil,
+            nonce: String.t() | nil,
+            display: String.t() | nil,
+            prompt: [String.t()],
+            max_age: non_neg_integer() | nil,
+            ui_locales: [String.t()] | nil,
+            id_token_hint: String.t() | nil,
+            login_hint: String.t() | nil,
+            acr_values: [Asteroid.OIDC.acr()] | nil,
+            preferred_acr: Asteroid.OIDC.acr(),
+            claims: map(),
+            params: map()
+          }
   end
 
   @type web_authorization_callback ::
-  (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() ->
-  {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
-  | {:error, Exception.t()})
+          (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() ->
+             {:ok, (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())}
+             | {:error, Exception.t()})
 
   @doc false
 
   @spec pre_authorize(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
   def pre_authorize(conn, %{"request" => _, "request_uri" => _}) do
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-          reason: "`request` and `request_uri` parameters cannot be used simultaneously"))
+    AsteroidWeb.Error.respond_authorize(
+      conn,
+      OAuth2.Request.InvalidRequestError.exception(
+        reason: "`request` and `request_uri` parameters cannot be used simultaneously"
+      )
+    )
   end
 
   def pre_authorize(conn, %{"request" => _} = params) do
@@ -108,21 +112,23 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
-  def pre_authorize(conn,
-                    %{"response_type" => response_type_str,
-                      "client_id" => client_id,
-                      "redirect_uri" => redirect_uri
-                    } = params)
-  when response_type_str in [
-    "code",
-    "token",
-    "id_token",
-    "id_token token",
-    "code id_token",
-    "code token",
-    "code id_token token"
-  ]
-  do
+  def pre_authorize(
+        conn,
+        %{
+          "response_type" => response_type_str,
+          "client_id" => client_id,
+          "redirect_uri" => redirect_uri
+        } = params
+      )
+      when response_type_str in [
+             "code",
+             "token",
+             "id_token",
+             "id_token token",
+             "code id_token",
+             "code token",
+             "code id_token token"
+           ] do
     requested_scopes =
       case params["scope"] do
         nil ->
@@ -146,16 +152,41 @@ defmodule AsteroidWeb.AuthorizeController do
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, {maybe_code_challenge, maybe_code_challenge_method}} <-
            maybe_pkce_params(client, params, flow),
-         :ok <-  nonce_parameter_present(params, flow),
+         :ok <- nonce_parameter_present(params, flow),
          {:ok, response_mode} <- response_mode(params, flow),
-         {:ok, claims_param} <- parse_claims_param(params)
-    do
+         {:ok, claims_param} <- parse_claims_param(params) do
       client = Client.fetch_attributes(client, ["client_id"])
 
       case protocol do
         :oauth2 ->
-          req =
-            %Request{
+          req = %Request{
+            flow: flow,
+            response_type: response_type,
+            response_mode: response_mode,
+            client_id: client.attrs["client_id"],
+            redirect_uri: redirect_uri,
+            requested_scopes: requested_scopes,
+            pkce_code_challenge: maybe_code_challenge,
+            pkce_code_challenge_method: maybe_code_challenge_method,
+            params: params
+          }
+
+          case astrenv(:web_authorization_callback).(conn, req) do
+            {:ok, callback} ->
+              callback.(conn, req)
+
+            {:error, e} ->
+              AsteroidWeb.Error.respond_authorize(conn, e)
+          end
+
+        :oidc ->
+          with :ok <- oidc_param_display_valid(params["display"]),
+               {:ok, prompt_values} <- oidc_param_prompt_parse(params["prompt"]),
+               {:ok, max_age_int} <- oidc_param_max_age_parse(params["max_age"]),
+               {:ok, ui_locales_list} <- oidc_param_ui_locales_parse(params["ui_locales"]),
+               {:ok, acr_values_list} <- oidc_param_acr_values_parse(params["acr_values"]),
+               {:ok, preferred_acr} <- preferred_acr(claims_param, acr_values_list, client) do
+            req = %Request{
               flow: flow,
               response_type: response_type,
               response_mode: response_mode,
@@ -164,47 +195,18 @@ defmodule AsteroidWeb.AuthorizeController do
               requested_scopes: requested_scopes,
               pkce_code_challenge: maybe_code_challenge,
               pkce_code_challenge_method: maybe_code_challenge_method,
+              nonce: params["nonce"],
+              display: params["display"],
+              prompt: prompt_values,
+              max_age: max_age_int,
+              ui_locales: ui_locales_list,
+              id_token_hint: params["id_token_hint"],
+              login_hint: params["login_hint"],
+              acr_values: acr_values_list,
+              preferred_acr: preferred_acr,
+              claims: claims_param,
               params: params
             }
-
-            case astrenv(:web_authorization_callback).(conn, req) do
-              {:ok, callback} ->
-                callback.(conn, req)
-
-              {:error, e} ->
-                AsteroidWeb.Error.respond_authorize(conn, e)
-            end
-
-        :oidc ->
-          with :ok <- oidc_param_display_valid(params["display"]),
-               {:ok, prompt_values} <- oidc_param_prompt_parse(params["prompt"]),
-               {:ok, max_age_int} <- oidc_param_max_age_parse(params["max_age"]),
-               {:ok, ui_locales_list} <- oidc_param_ui_locales_parse(params["ui_locales"]),
-               {:ok, acr_values_list} <- oidc_param_acr_values_parse(params["acr_values"]),
-               {:ok, preferred_acr} <- preferred_acr(claims_param, acr_values_list, client)
-          do
-            req =
-              %Request{
-                flow: flow,
-                response_type: response_type,
-                response_mode: response_mode,
-                client_id: client.attrs["client_id"],
-                redirect_uri: redirect_uri,
-                requested_scopes: requested_scopes,
-                pkce_code_challenge: maybe_code_challenge,
-                pkce_code_challenge_method: maybe_code_challenge_method,
-                nonce: params["nonce"],
-                display: params["display"],
-                prompt: prompt_values,
-                max_age: max_age_int,
-                ui_locales: ui_locales_list,
-                id_token_hint: params["id_token_hint"],
-                login_hint: params["login_hint"],
-                acr_values: acr_values_list,
-                preferred_acr: preferred_acr,
-                claims: claims_param,
-                params: params
-              }
 
             case astrenv(:web_authorization_callback).(conn, req) do
               {:ok, callback} ->
@@ -220,8 +222,10 @@ defmodule AsteroidWeb.AuthorizeController do
       end
     else
       {:error, %OAuth2.Client.AuthorizationError{reason: :unauthorized_scope} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.AccessDeniedError.exception(
-          reason: Exception.message(e)))
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.AccessDeniedError.exception(reason: Exception.message(e))
+        )
 
       {:error, %OAuth2.Client.AuthorizationError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
@@ -242,37 +246,53 @@ defmodule AsteroidWeb.AuthorizeController do
         AsteroidWeb.Error.respond_authorize(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-          reason: Exception.message(e),
-          parameter: "client_id"))
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.Request.InvalidRequestError.exception(
+            reason: Exception.message(e),
+            parameter: "client_id"
+          )
+        )
     end
   rescue
     _ in Scope.Set.InvalidScopeParam ->
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.MalformedParamError.exception(
-          name: "scope", value: params["scope"]))
+      AsteroidWeb.Error.respond_authorize(
+        conn,
+        OAuth2.Request.MalformedParamError.exception(name: "scope", value: params["scope"])
+      )
   end
 
   def pre_authorize(conn, %{"redirect_uri" => redirect_uri, "client_id" => client_id} = params) do
     with :ok <- client_id_valid?(client_id),
          :ok <- redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
-         :ok <- redirect_uri_registered_for_client?(client, redirect_uri)
-    do
+         :ok <- redirect_uri_registered_for_client?(client, redirect_uri) do
       if params["response_type"] do
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.UnsupportedResponseTypeError.exception(
-          response_type: params["response_type"]))
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.UnsupportedResponseTypeError.exception(response_type: params["response_type"])
+        )
       else
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-          reason: "missing parameter", parameter: "response_type"))
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.Request.InvalidRequestError.exception(
+            reason: "missing parameter",
+            parameter: "response_type"
+          )
+        )
       end
     else
       {:error, %OAuth2.Request.MalformedParamError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
 
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
-        AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-          reason: Exception.message(e),
-          parameter: "client_id"))
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.Request.InvalidRequestError.exception(
+            reason: Exception.message(e),
+            parameter: "client_id"
+          )
+        )
 
       {:error, %OAuth2.Request.InvalidRequestError{} = e} ->
         AsteroidWeb.Error.respond_authorize(conn, e)
@@ -280,8 +300,13 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   def pre_authorize(conn, _params) do
-    AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-      reason: "missing parameter", parameter: "client_id"))
+    AsteroidWeb.Error.respond_authorize(
+      conn,
+      OAuth2.Request.InvalidRequestError.exception(
+        reason: "missing parameter",
+        parameter: "client_id"
+      )
+    )
   end
 
   @doc """
@@ -314,17 +339,22 @@ defmodule AsteroidWeb.AuthorizeController do
         if session_info[:acr] in acr_list do
           do_authorization_granted(conn, opts, session_info)
         else
-          Logger.debug("#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) "
-          <> "with reason: returned acr value doesn't match mandatory acr")
+          Logger.debug(
+            "#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) " <>
+              "with reason: returned acr value doesn't match mandatory acr"
+          )
 
           conn
           |> assign(:authz_request, opts[:authz_request])
-          |> AsteroidWeb.Error.respond_authorize(OAuth2.AccessDeniedError.exception([
-            reason: "requested essential acr condition not satisfied"]))
+          |> AsteroidWeb.Error.respond_authorize(
+            OAuth2.AccessDeniedError.exception(
+              reason: "requested essential acr condition not satisfied"
+            )
+          )
         end
 
-        _ ->
-          do_authorization_granted(conn, opts, session_info)
+      _ ->
+        do_authorization_granted(conn, opts, session_info)
     end
   end
 
@@ -334,9 +364,11 @@ defmodule AsteroidWeb.AuthorizeController do
     authz_request = opts[:authz_request]
 
     {:ok, client} =
-      Client.load_from_unique_attribute("client_id",
-                                        authz_request.client_id,
-                                        attributes: ["client_id"])
+      Client.load_from_unique_attribute(
+        "client_id",
+        authz_request.client_id,
+        attributes: ["client_id"]
+      )
 
     subject = Subject.fetch_attributes(opts[:subject], ["sub"])
 
@@ -356,35 +388,52 @@ defmodule AsteroidWeb.AuthorizeController do
 
     maybe_authorization_code_serialized =
       if authz_request.response_type in [
-        :code, :"code id_token", :"code token", :"code id_token token"
-      ] do
+           :code,
+           :"code id_token",
+           :"code token",
+           :"code id_token token"
+         ] do
         {:ok, authorization_code} =
           AuthorizationCode.gen_new()
           |> AuthorizationCode.put_value("iat", now())
-          |> AuthorizationCode.put_value("exp",
-            now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx))
+          |> AuthorizationCode.put_value(
+            "exp",
+            now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx)
+          )
           |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
           |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
           |> AuthorizationCode.put_value("sub", subject.attrs["sub"])
-          |> AuthorizationCode.put_value("requested_scopes",
-                                         Scope.Set.to_list(authz_request.requested_scopes))
+          |> AuthorizationCode.put_value(
+            "requested_scopes",
+            Scope.Set.to_list(authz_request.requested_scopes)
+          )
           |> AuthorizationCode.put_value("granted_scopes", Scope.Set.to_list(granted_scopes))
-          |> AuthorizationCode.put_value("__asteroid_oauth2_initial_flow",
-                                         Atom.to_string(authz_request.flow))
+          |> AuthorizationCode.put_value(
+            "__asteroid_oauth2_initial_flow",
+            Atom.to_string(authz_request.flow)
+          )
           |> AuthorizationCode.put_value("iss", OAuth2.issuer())
-          |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge",
-                                         authz_request.pkce_code_challenge)
-          |> AuthorizationCode.put_value("__asteroid_oauth2_pkce_code_challenge_method",
-                                         if authz_request.pkce_code_challenge_method != nil do
-                                           to_string(authz_request.pkce_code_challenge_method)
-                                         end)
+          |> AuthorizationCode.put_value(
+            "__asteroid_oauth2_pkce_code_challenge",
+            authz_request.pkce_code_challenge
+          )
+          |> AuthorizationCode.put_value(
+            "__asteroid_oauth2_pkce_code_challenge_method",
+            if authz_request.pkce_code_challenge_method != nil do
+              to_string(authz_request.pkce_code_challenge_method)
+            end
+          )
           |> AuthorizationCode.put_value("__asteroid_oidc_nonce", authz_request.nonce)
-          |> AuthorizationCode.put_value("__asteroid_oidc_authenticated_session_id",
-                                         opts[:authenticated_session_id])
+          |> AuthorizationCode.put_value(
+            "__asteroid_oidc_authenticated_session_id",
+            opts[:authenticated_session_id]
+          )
           |> AuthorizationCode.put_value("__asteroid_oidc_initial_acr", session_info[:acr])
           |> AuthorizationCode.put_value("__asteroid_oidc_initial_amr", session_info[:amr])
-          |> AuthorizationCode.put_value("__asteroid_oidc_initial_auth_time",
-                                         session_info[:auth_time])
+          |> AuthorizationCode.put_value(
+            "__asteroid_oidc_initial_auth_time",
+            session_info[:auth_time]
+          )
           |> AuthorizationCode.put_value("__asteroid_oidc_claims", authz_request.claims)
           |> AuthorizationCode.store(ctx)
 
@@ -393,26 +442,35 @@ defmodule AsteroidWeb.AuthorizeController do
 
     maybe_access_token =
       if authz_request.response_type in [
-        :token, :"id_token token", :"code token", :"code id_token token"
-      ] do
+           :token,
+           :"id_token token",
+           :"code token",
+           :"code id_token token"
+         ] do
         {:ok, access_token} =
           new_access_token(ctx)
           |> AccessToken.put_value("iss", OAuth2.issuer())
           |> AccessToken.put_value("iat", now())
-          |> AccessToken.put_value("exp",
-                                   now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx))
+          |> AccessToken.put_value(
+            "exp",
+            now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+          )
           |> AccessToken.put_value("client_id", client.attrs["client_id"])
           |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
           |> AccessToken.put_value("sub", subject.attrs["sub"])
           |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
-          |> AccessToken.put_value("__asteroid_oidc_authenticated_session_id",
-                                   opts[:authenticated_session_id])
-          |> AccessToken.put_value("__asteroid_oauth2_initial_flow",
-                                   Atom.to_string(authz_request.flow))
+          |> AccessToken.put_value(
+            "__asteroid_oidc_authenticated_session_id",
+            opts[:authenticated_session_id]
+          )
+          |> AccessToken.put_value(
+            "__asteroid_oauth2_initial_flow",
+            Atom.to_string(authz_request.flow)
+          )
           |> AccessToken.put_value("__asteroid_oidc_claims", authz_request.claims)
           |> AccessToken.store(ctx)
 
-          access_token
+        access_token
       end
 
     maybe_access_token_lifetime =
@@ -425,8 +483,11 @@ defmodule AsteroidWeb.AuthorizeController do
 
     maybe_id_token_serialized =
       if authz_request.response_type in [
-        :id_token, :"id_token token", :"code id_token", :"code id_token token"
-      ] do
+           :id_token,
+           :"id_token token",
+           :"code id_token",
+           :"code id_token token"
+         ] do
         additional_claims = additional_claims(authz_request, granted_scopes)
 
         %IDToken{
@@ -450,17 +511,19 @@ defmodule AsteroidWeb.AuthorizeController do
         nil
       end
 
-      params =
-        %{}
-        |> put_if_not_nil("code", maybe_authorization_code_serialized)
-        |> put_if_not_nil("access_token", maybe_access_token_serialized)
-        |> put_if_not_nil("id_token", maybe_id_token_serialized)
-        |> put_if_not_nil("state", authz_request.params["state"])
-        |> put_if_not_nil("token_type", (if maybe_access_token_serialized, do: "bearer"))
-        |> put_if_not_nil("expires_in", maybe_access_token_lifetime)
-        |> maybe_put_scope(authz_request.requested_scopes,
-                           opts[:granted_scopes],
-                           authz_request.response_type)
+    params =
+      %{}
+      |> put_if_not_nil("code", maybe_authorization_code_serialized)
+      |> put_if_not_nil("access_token", maybe_access_token_serialized)
+      |> put_if_not_nil("id_token", maybe_id_token_serialized)
+      |> put_if_not_nil("state", authz_request.params["state"])
+      |> put_if_not_nil("token_type", if(maybe_access_token_serialized, do: "bearer"))
+      |> put_if_not_nil("expires_in", maybe_access_token_lifetime)
+      |> maybe_put_scope(
+        authz_request.requested_scopes,
+        opts[:granted_scopes],
+        authz_request.response_type
+      )
 
     case authz_request.response_mode do
       :query ->
@@ -494,7 +557,9 @@ defmodule AsteroidWeb.AuthorizeController do
         |> put_view(AsteroidWeb.AuthorizeView)
         |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
         |> render("authorization_form_post_response.html",
-                  params: params, target: authz_request.redirect_uri)
+          params: params,
+          target: authz_request.redirect_uri
+        )
     end
   end
 
@@ -520,12 +585,13 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec authorization_denied(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_denied(conn, opts)
-  do
+  def authorization_denied(conn, opts) do
     authz_request = opts[:authz_request]
 
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with "
-    <> "reason: `#{Exception.message(opts[:error])}`")
+    Logger.debug(
+      "#{__MODULE__}: authorization denied (#{inspect(authz_request)}) with " <>
+        "reason: `#{Exception.message(opts[:error])}`"
+    )
 
     conn
     |> assign(:authz_request, authz_request)
@@ -538,27 +604,26 @@ defmodule AsteroidWeb.AuthorizeController do
     if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
       case OAuth2.JAR.verify_and_parse(request_object) do
         {:ok, jar_req_params} ->
-            req_params =
-              Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+          req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
-            pre_authorize(conn, req_params)
+          pre_authorize(conn, req_params)
 
         {:error, e} ->
           AsteroidWeb.Error.respond_authorize(conn, e)
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn,
-                                          OAuth2.JAR.RequestNotSupportedError.exception([]))
+      AsteroidWeb.Error.respond_authorize(
+        conn,
+        OAuth2.JAR.RequestNotSupportedError.exception([])
+      )
     end
   end
 
   defp jar_pre_authorize_oauth2(conn, %{"request_uri" => request_uri} = params) do
     if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
       with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
-           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj)
-      do
-        req_params =
-          Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
+        req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
         pre_authorize(conn, req_params)
       else
@@ -566,38 +631,42 @@ defmodule AsteroidWeb.AuthorizeController do
           AsteroidWeb.Error.respond_authorize(conn, e)
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn,
-                                          OAuth2.JAR.RequestURINotSupportedError.exception([]))
+      AsteroidWeb.Error.respond_authorize(
+        conn,
+        OAuth2.JAR.RequestURINotSupportedError.exception([])
+      )
     end
   end
 
   @spec jar_pre_authorize_oidc(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
   defp jar_pre_authorize_oidc(
-    conn,
-    %{
-      "request" => request_object,
-      "response_type" => response_type,
-      "client_id" => client_id,
-      "scope" => scope_param
-    } = params) do
+         conn,
+         %{
+           "request" => request_object,
+           "response_type" => response_type,
+           "client_id" => client_id,
+           "scope" => scope_param
+         } = params
+       ) do
     scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
     if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
       case OAuth2.JAR.verify_and_parse(request_object) do
         {:ok, jar_req_params} ->
           if jar_req_params["response_type"] in [response_type, nil] and
-             jar_req_params["client_id"] in [client_id, nil] and
-             "openid" in scopes
-          do
-            req_params =
-              Map.merge(Map.delete(params, "request"), jar_req_params)
+               jar_req_params["client_id"] in [client_id, nil] and
+               "openid" in scopes do
+            req_params = Map.merge(Map.delete(params, "request"), jar_req_params)
 
             pre_authorize(conn, req_params)
           else
-            AsteroidWeb.Error.respond_authorize(conn,
-              OAuth2.JAR.InvalidRequestObjectError.exception([
-                reason: "Request and request object `response_type` or `client_id` don't match"]))
+            AsteroidWeb.Error.respond_authorize(
+              conn,
+              OAuth2.JAR.InvalidRequestObjectError.exception(
+                reason: "Request and request object `response_type` or `client_id` don't match"
+              )
+            )
           end
 
         {:error, e} ->
@@ -609,39 +678,42 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   defp jar_pre_authorize_oidc(
-    conn,
-    %{
-      "request_uri" => request_uri,
-      "response_type" => response_type,
-      "client_id" => client_id,
-      "scope" => scope_param
-    } = params) do
+         conn,
+         %{
+           "request_uri" => request_uri,
+           "response_type" => response_type,
+           "client_id" => client_id,
+           "scope" => scope_param
+         } = params
+       ) do
     scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
     if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
       with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
-           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj)
-      do
+           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
         if jar_req_params["response_type"] in [response_type, nil] and
-           jar_req_params["client_id"] in [client_id, nil] and
-           "openid" in scopes
-        do
-          req_params =
-            Map.merge(Map.delete(params, "request_uri"), jar_req_params)
+             jar_req_params["client_id"] in [client_id, nil] and
+             "openid" in scopes do
+          req_params = Map.merge(Map.delete(params, "request_uri"), jar_req_params)
 
           pre_authorize(conn, req_params)
         else
-          AsteroidWeb.Error.respond_authorize(conn,
-            OAuth2.JAR.InvalidRequestObjectError.exception([
-              reason: "Request and request object `response_type` or `client_id` don't match"]))
+          AsteroidWeb.Error.respond_authorize(
+            conn,
+            OAuth2.JAR.InvalidRequestObjectError.exception(
+              reason: "Request and request object `response_type` or `client_id` don't match"
+            )
+          )
         end
       else
         {:error, e} ->
           AsteroidWeb.Error.respond_authorize(conn, e)
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn,
-                                          OAuth2.JAR.RequestURINotSupportedError.exception([]))
+      AsteroidWeb.Error.respond_authorize(
+        conn,
+        OAuth2.JAR.RequestURINotSupportedError.exception([])
+      )
     end
   end
 
@@ -657,13 +729,18 @@ defmodule AsteroidWeb.AuthorizeController do
         end
       end
 
-    AsteroidWeb.Error.respond_authorize(conn, OAuth2.Request.InvalidRequestError.exception(
-      reason: "missing parameter", parameter: missing_parameter))
+    AsteroidWeb.Error.respond_authorize(
+      conn,
+      OAuth2.Request.InvalidRequestError.exception(
+        reason: "missing parameter",
+        parameter: missing_parameter
+      )
+    )
   end
 
   @spec redirect_uri_registered_for_client?(Client.t(), OAuth2.RedirectUri.t()) ::
-  :ok
-  | {:error, %OAuth2.Request.InvalidRequestError{}}
+          :ok
+          | {:error, %OAuth2.Request.InvalidRequestError{}}
 
   def redirect_uri_registered_for_client?(client, redirect_uri) do
     client = Client.fetch_attributes(client, ["redirect_uri"])
@@ -671,9 +748,11 @@ defmodule AsteroidWeb.AuthorizeController do
     if redirect_uri in (client.attrs["redirect_uris"] || []) do
       :ok
     else
-      {:error, OAuth2.Request.InvalidRequestError.exception(
-        reason: "unregistered `redirect_uri` for client",
-        parameter: "redirect_uri")}
+      {:error,
+       OAuth2.Request.InvalidRequestError.exception(
+         reason: "unregistered `redirect_uri` for client",
+         parameter: "redirect_uri"
+       )}
     end
   end
 
@@ -690,8 +769,8 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec client_id_valid?(String.t()) ::
-  :ok
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          :ok
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   def client_id_valid?(client_id) do
     if OAuth2Utils.valid_client_id_param?(client_id) do
@@ -701,36 +780,38 @@ defmodule AsteroidWeb.AuthorizeController do
     end
   end
 
-
   @spec redirect_uri_valid?(String.t()) ::
-  :ok
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          :ok
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   def redirect_uri_valid?(redirect_uri) do
     if OAuth2.RedirectUri.valid?(redirect_uri) do
       :ok
     else
-      {:error, OAuth2.Request.MalformedParamError.exception(
-        name: "redirect_uri",
-        value: redirect_uri)}
+      {:error,
+       OAuth2.Request.MalformedParamError.exception(
+         name: "redirect_uri",
+         value: redirect_uri
+       )}
     end
   end
 
   @spec oidc_param_display_valid(String.t() | nil) ::
-  :ok 
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          :ok
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp oidc_param_display_valid(nil), do: :ok
   defp oidc_param_display_valid("page"), do: :ok
   defp oidc_param_display_valid("popup"), do: :ok
   defp oidc_param_display_valid("touch"), do: :ok
   defp oidc_param_display_valid("wap"), do: :ok
-  defp oidc_param_display_valid(val), do: OAuth2.Request.MalformedParamError.exception([
-    name: "display", value: val])
+
+  defp oidc_param_display_valid(val),
+    do: OAuth2.Request.MalformedParamError.exception(name: "display", value: val)
 
   @spec oidc_param_prompt_parse(String.t() | nil) ::
-  {:ok , [String.t()]}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, [String.t()]}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp oidc_param_prompt_parse(nil) do
     {:ok, []}
@@ -742,14 +823,13 @@ defmodule AsteroidWeb.AuthorizeController do
     if Enum.all?(prompt_values, &(&1 in ["none", "login", "consent", "select_account"])) do
       {:ok, prompt_values}
     else
-      {:error,
-        OAuth2.Request.MalformedParamError.exception([name: "prompt", value: prompt_param])}
+      {:error, OAuth2.Request.MalformedParamError.exception(name: "prompt", value: prompt_param)}
     end
   end
 
   @spec oidc_param_max_age_parse(String.t() | nil) ::
-  {:ok, non_neg_integer() | nil}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, non_neg_integer() | nil}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   def oidc_param_max_age_parse(nil) do
     {:ok, nil}
@@ -761,13 +841,13 @@ defmodule AsteroidWeb.AuthorizeController do
         {:ok, max_age}
 
       :error ->
-        OAuth2.Request.MalformedParamError.exception([name: "max_age", value: maybe_integer_str])
+        OAuth2.Request.MalformedParamError.exception(name: "max_age", value: maybe_integer_str)
     end
   end
 
   @spec oidc_param_ui_locales_parse(String.t() | nil) ::
-  {:ok, [String.t()] | nil}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, [String.t()] | nil}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp oidc_param_ui_locales_parse(nil) do
     {:ok, nil}
@@ -779,13 +859,13 @@ defmodule AsteroidWeb.AuthorizeController do
         {:ok, ui_locales_list}
 
       [] ->
-        OAuth2.Request.MalformedParamError.exception([name: "ui_locales", value: ""])
+        OAuth2.Request.MalformedParamError.exception(name: "ui_locales", value: "")
     end
   end
 
   @spec oidc_param_acr_values_parse(String.t() | nil) ::
-  {:ok, [OIDC.acr()] | nil}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, [OIDC.acr()] | nil}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp oidc_param_acr_values_parse(nil) do
     {:ok, nil}
@@ -797,14 +877,14 @@ defmodule AsteroidWeb.AuthorizeController do
         {:ok, acr_values_list}
 
       [] ->
-        OAuth2.Request.MalformedParamError.exception([name: "acr_values", value: ""])
+        OAuth2.Request.MalformedParamError.exception(name: "acr_values", value: "")
     end
   end
 
   @spec preferred_acr(map() | nil, [OIDC.acr()] | nil, Client.t()) ::
-  {:ok, OIDC.acr()}
-  | {:ok, nil}
-  | {:error, Exception.t()}
+          {:ok, OIDC.acr()}
+          | {:ok, nil}
+          | {:error, Exception.t()}
 
   defp preferred_acr(claims_param, acr_values, client) do
     case preferred_acr_from_claims_param(claims_param) do
@@ -834,9 +914,9 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec preferred_acr_from_claims_param(map()) ::
-  {:ok, OIDC.acr()}
-  | {:ok, nil}
-  | {:error, Exception.t()}
+          {:ok, OIDC.acr()}
+          | {:ok, nil}
+          | {:error, Exception.t()}
 
   defp preferred_acr_from_claims_param(nil) do
     {:ok, nil}
@@ -850,16 +930,22 @@ defmodule AsteroidWeb.AuthorizeController do
         if acr in acrs_config do
           {:ok, acr}
         else
-          {:error, OAuth2.Request.InvalidRequestError.exception(
-            reason: "`acr` value of the `claims` parameter is unknown", parameter: "claims")}
+          {:error,
+           OAuth2.Request.InvalidRequestError.exception(
+             reason: "`acr` value of the `claims` parameter is unknown",
+             parameter: "claims"
+           )}
         end
 
-      %{"value" => acr} when is_binary(acr)->
+      %{"value" => acr} when is_binary(acr) ->
         if acr in acrs_config do
           {:ok, acr}
         else
-          {:error, OAuth2.Request.InvalidRequestError.exception(
-            reason: "`acr` value of the `claims` parameter is unknown", parameter: "claims")}
+          {:error,
+           OAuth2.Request.InvalidRequestError.exception(
+             reason: "`acr` value of the `claims` parameter is unknown",
+             parameter: "claims"
+           )}
         end
 
       _ ->
@@ -868,9 +954,9 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec preferred_acr_from_acr_values_param([OIDC.acr()]) ::
-  {:ok, OIDC.acr()}
-  | {:ok, nil}
-  | {:error, Exception.t()}
+          {:ok, OIDC.acr()}
+          | {:ok, nil}
+          | {:error, Exception.t()}
 
   defp preferred_acr_from_acr_values_param(nil) do
     {:ok, nil}
@@ -882,22 +968,25 @@ defmodule AsteroidWeb.AuthorizeController do
     if acr in acrs_config do
       {:ok, acr}
     else
-      {:error, OAuth2.Request.InvalidRequestError.exception(
-        reason: "unknown acr requested", parameter: "acr_values")}
+      {:error,
+       OAuth2.Request.InvalidRequestError.exception(
+         reason: "unknown acr requested",
+         parameter: "acr_values"
+       )}
     end
   end
 
   @spec nonce_parameter_present(map(), OAuth2.flow()) ::
-  :ok
-  | {:error, %OAuth2.Request.InvalidRequestError{}}
+          :ok
+          | {:error, %OAuth2.Request.InvalidRequestError{}}
 
   defp nonce_parameter_present(%{"nonce" => _}, :oidc_implicit) do
     :ok
   end
 
   defp nonce_parameter_present(_, :oidc_implicit) do
-    {:error, OAuth2.Request.InvalidRequestError.exception(
-      reason: "missing parameter", parameter: "nonce")}
+    {:error,
+     OAuth2.Request.InvalidRequestError.exception(reason: "missing parameter", parameter: "nonce")}
   end
 
   defp nonce_parameter_present(_, _) do
@@ -905,8 +994,8 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec response_mode(map(), OAuth2.flow()) ::
-  {:ok, OAuth2.response_mode()}
-  | {:error, %OAuth2.Request.InvalidRequestError{}}
+          {:ok, OAuth2.response_mode()}
+          | {:error, %OAuth2.Request.InvalidRequestError{}}
 
   defp response_mode(%{"response_mode" => response_mode_param}, flow) do
     if response_mode_param in ["query", "fragment", "form_post"] do
@@ -937,8 +1026,11 @@ defmodule AsteroidWeb.AuthorizeController do
           {:ok, response_mode}
       end
     else
-      {:error, OAuth2.Request.InvalidRequestError.exception(
-        parameter: "response_mode", reason: "unsupported value `#{response_mode_param}`")}
+      {:error,
+       OAuth2.Request.InvalidRequestError.exception(
+         parameter: "response_mode",
+         reason: "unsupported value `#{response_mode_param}`"
+       )}
     end
   end
 
@@ -955,7 +1047,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
       _ ->
         {:error,
-          OAuth2.Request.MalformedParamError.exception(name: "claims", value: claims_param)}
+         OAuth2.Request.MalformedParamError.exception(name: "claims", value: claims_param)}
     end
   end
 
@@ -966,8 +1058,7 @@ defmodule AsteroidWeb.AuthorizeController do
   @spec maybe_put_scope(map(), Scope.Set.t(), Scope.Set.t(), OAuth2.response_type()) :: map()
 
   defp maybe_put_scope(m, requested_scopes, granted_scopes, response_type)
-  when response_type in [ :token, :"id_token token", :"code token", :"code id_token token"]
-  do
+       when response_type in [:token, :"id_token token", :"code token", :"code id_token token"] do
     if Scope.Set.equal?(requested_scopes, granted_scopes) do
       m
     else
@@ -980,19 +1071,20 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec maybe_pkce_params(Client.t(), map(), OAuth2.flow()) ::
-  {:ok, {OAuth2.PKCE.code_challenge() | nil, OAuth2.PKCE.code_challenge_method() | nil}}
-  | {:error, %OAuth2.Request.InvalidRequestError{}}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, {OAuth2.PKCE.code_challenge() | nil, OAuth2.PKCE.code_challenge_method() | nil}}
+          | {:error, %OAuth2.Request.InvalidRequestError{}}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp maybe_pkce_params(_client, _params, flow) when flow in [:implicit, :oidc_implicit] do
     {:ok, {nil, nil}}
   end
 
-  defp maybe_pkce_params(client, params, flow) when flow in [
-    :authorization_code,
-    :oidc_authorization_code,
-    :oidc_hybrid
-  ] do
+  defp maybe_pkce_params(client, params, flow)
+       when flow in [
+              :authorization_code,
+              :oidc_authorization_code,
+              :oidc_hybrid
+            ] do
     case astrenv(:oauth2_pkce_policy, :optional) do
       :disabled ->
         {:ok, {nil, nil}}
@@ -1002,8 +1094,11 @@ defmodule AsteroidWeb.AuthorizeController do
           if params["code_challenge"] != nil do
             pkce_params_when_mandatory(params)
           else
-            {:error, OAuth2.Request.InvalidRequestError.exception(
-              parameter: "code_challenge", reason: "missing `code_challenge` parameter")}
+            {:error,
+             OAuth2.Request.InvalidRequestError.exception(
+               parameter: "code_challenge",
+               reason: "missing `code_challenge` parameter"
+             )}
           end
         else
           if params["code_challenge"] != nil do
@@ -1019,9 +1114,9 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec pkce_params_when_mandatory(map()) ::
-  {:ok, {OAuth2.PKCE.code_challenge(), OAuth2.PKCE.code_challenge_method()}}
-  | {:error, %OAuth2.Request.InvalidRequestError{}}
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          {:ok, {OAuth2.PKCE.code_challenge(), OAuth2.PKCE.code_challenge_method()}}
+          | {:error, %OAuth2.Request.InvalidRequestError{}}
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp pkce_params_when_mandatory(%{"code_challenge" => code_challenge} = params) do
     method =
@@ -1036,26 +1131,35 @@ defmodule AsteroidWeb.AuthorizeController do
     if OAuth2.PKCE.code_challenge_valid?(code_challenge) do
       case OAuth2.PKCE.code_challenge_method_from_string(method) do
         nil ->
-          {:error, OAuth2.Request.InvalidRequestError.exception(
-            reason: "unsupported code challenge method", parameter: "code_challenge_method")}
+          {:error,
+           OAuth2.Request.InvalidRequestError.exception(
+             reason: "unsupported code challenge method",
+             parameter: "code_challenge_method"
+           )}
 
         code_challenge_method when is_atom(code_challenge_method) ->
           if code_challenge_method in astrenv(:oauth2_pkce_allowed_methods) do
             {:ok, {code_challenge, code_challenge_method}}
           else
-            {:error, OAuth2.Request.InvalidRequestError.exception(
-              reason: "unsupported code challenge method", parameter: "code_challenge_method")}
+            {:error,
+             OAuth2.Request.InvalidRequestError.exception(
+               reason: "unsupported code challenge method",
+               parameter: "code_challenge_method"
+             )}
           end
       end
     else
-      {:error, OAuth2.Request.MalformedParamError.exception(
-        name: "code_challenge", value: code_challenge)}
+      {:error,
+       OAuth2.Request.MalformedParamError.exception(name: "code_challenge", value: code_challenge)}
     end
   end
 
   defp pkce_params_when_mandatory(_) do
-    {:error, OAuth2.Request.InvalidRequestError.exception(
-      parameter: "code_challenge", reason: "missing `code_challenge` parameter")}
+    {:error,
+     OAuth2.Request.InvalidRequestError.exception(
+       parameter: "code_challenge",
+       reason: "missing `code_challenge` parameter"
+     )}
   end
 
   @spec new_access_token(Context.t(), Keyword.t()) :: AccessToken.t()
@@ -1112,12 +1216,12 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   @spec session_info(map()) ::
-  %{
-    required(:acr) => Asteroid.OIDC.acr() | nil,
-    required(:auth_time) => non_neg_integer() | nil,
-    required(:amr) => [Asteroid.OIDC.amr(), ...]
-  }
-  | nil
+          %{
+            required(:acr) => Asteroid.OIDC.acr() | nil,
+            required(:auth_time) => non_neg_integer() | nil,
+            required(:amr) => [Asteroid.OIDC.amr(), ...]
+          }
+          | nil
 
   defp session_info(opts) do
     if opts[:authenticated_session_id] do
@@ -1151,10 +1255,11 @@ defmodule AsteroidWeb.AuthorizeController do
             else
               acc
             end
-        end)
+        end
+      )
     else
       []
-    end
-    ++ Map.keys(authz_request.claims["id_token"] || %{})
+    end ++
+      Map.keys(authz_request.claims["id_token"] || %{})
   end
 end
