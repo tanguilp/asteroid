@@ -17,8 +17,8 @@ defmodule Asteroid.OAuth2.Client do
     defexception [:reason]
 
     @type t :: %__MODULE__{
-      reason: :unknown_client | :unauthenticated_request
-    }
+            reason: :unknown_client | :unauthenticated_request
+          }
 
     @impl true
 
@@ -44,8 +44,8 @@ defmodule Asteroid.OAuth2.Client do
     defexception [:reason]
 
     @type t :: %__MODULE__{
-      reason: :unauthorized_grant_type | :unauthorized_scope
-    }
+            reason: :unauthorized_grant_type | :unauthorized_scope
+          }
 
     def message(%__MODULE__{reason: reason}) do
       case astrenv(:api_error_response_verbosity) do
@@ -83,8 +83,8 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec get_client(Plug.Conn.t()) ::
-  {:ok, Client.t()}
-  | {:error, %AuthenticationError{}}
+          {:ok, Client.t()}
+          | {:error, %AuthenticationError{}}
 
   def get_client(conn) do
     case get_authenticated_client(conn) do
@@ -104,8 +104,8 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec get_authenticated_client(Plug.Conn.t()) ::
-  {:ok, Client.t()}
-  | {:error, %AuthenticationError{}}
+          {:ok, Client.t()}
+          | {:error, %AuthenticationError{}}
 
   def get_authenticated_client(conn) do
     if APIac.authenticated?(conn) do
@@ -131,8 +131,8 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec get_unauthenticated_client(Plug.Conn.t()) ::
-  {:ok, Client.t()}
-  | {:error, %AuthenticationError{}}
+          {:ok, Client.t()}
+          | {:error, %AuthenticationError{}}
 
   def get_unauthenticated_client(conn) do
     case conn.body_params["client_id"] do
@@ -147,20 +147,24 @@ defmodule Asteroid.OAuth2.Client do
                 if not has_credentials?(client) do
                   {:ok, client}
                 else
-                  {:error, AuthenticationError.exception(reason:
-                    :public_client_has_credentials_and_must_authenticate)}
+                  {:error,
+                   AuthenticationError.exception(
+                     reason: :public_client_has_credentials_and_must_authenticate
+                   )}
                 end
               else
-                {:error, AuthenticationError.exception(reason:
-                  :unauthenticated_request)}
+                {:error, AuthenticationError.exception(reason: :unauthenticated_request)}
               end
 
             {:error, _} ->
               {:error, AuthenticationError.exception(reason: :unkown_client)}
           end
         else
-          {:error, OAuth2.Request.MalformedParamError.exception(name: "client_id",
-                                                                value: client_id)}
+          {:error,
+           OAuth2.Request.MalformedParamError.exception(
+             name: "client_id",
+             value: client_id
+           )}
         end
     end
   end
@@ -173,10 +177,10 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec grant_type_authorized?(Asteroid.Client.t(), Asteroid.OAuth2.grant_type_str()) ::
-  :ok
-  | {:error, %AuthorizationError{}}
+          :ok
+          | {:error, %AuthorizationError{}}
 
-  def  grant_type_authorized?(client, grant_type) do
+  def grant_type_authorized?(client, grant_type) do
     client = Client.fetch_attributes(client, ["grant_types"])
 
     if grant_type in client.attrs["grant_types"] do
@@ -194,10 +198,10 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec response_type_authorized?(Asteroid.Client.t(), Asteroid.OAuth2.response_type_str()) ::
-  :ok
-  | {:error, %AuthorizationError{}}
+          :ok
+          | {:error, %AuthorizationError{}}
 
-  def  response_type_authorized?(client, response_type) do
+  def response_type_authorized?(client, response_type) do
     client = Client.fetch_attributes(client, ["response_types"])
 
     if response_type in (client.attrs["response_types"] || []) do
@@ -215,10 +219,10 @@ defmodule Asteroid.OAuth2.Client do
   """
 
   @spec scopes_authorized?(Asteroid.Client.t(), Scope.Set.t()) ::
-  :ok
-  | {:error, %AuthorizationError{}}
+          :ok
+          | {:error, %AuthorizationError{}}
 
-  def  scopes_authorized?(client, scope_set) do
+  def scopes_authorized?(client, scope_set) do
     client = Client.fetch_attributes(client, ["scope"])
 
     if Scope.Set.subset?(scope_set, Scope.Set.new(client.attrs["scope"] || [])) do
@@ -320,8 +324,7 @@ defmodule Asteroid.OAuth2.Client do
   @spec get_client_secret(String.t(), String.t()) :: String.t()
 
   def get_client_secret(_realm, client_id) do
-    case Client.load_from_unique_attribute("client_id",client_id, attributes: ["client_secret"])
-    do
+    case Client.load_from_unique_attribute("client_id", client_id, attributes: ["client_secret"]) do
       {:ok, client} ->
         client.attrs["client_secret"]
 

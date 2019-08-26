@@ -17,17 +17,23 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
           conn,
           %{
             authz_request: get_session(conn, :authz_request),
-            error: OIDC.LoginRequiredError.exception(reason: "Login required")})
+            error: OIDC.LoginRequiredError.exception(reason: "Login required")
+          }
+        )
       else
         {:ok, client} =
-          Client.load_from_unique_attribute("client_id",
-                                            authz_request.client_id,
-                                            attributes: ["client_name", "client_id"])
+          Client.load_from_unique_attribute(
+            "client_id",
+            authz_request.client_id,
+            attributes: ["client_name", "client_id"]
+          )
 
         requested_scopes_config = requested_scopes_config(conn)
 
         conn
         |> put_status(200)
+        |> put_secure_browser_headers()
+        |> put_resp_header("cache-control", "no-cache, no-store, must-revalidate")
         |> render("scope_selector.html", scopes: requested_scopes_config, client: client)
       end
     else
@@ -38,7 +44,8 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
           subject: get_session(conn, :subject),
           granted_scopes: Scope.Set.new(authz_request.requested_scopes),
           authenticated_session_id: get_session(conn, :authenticated_session_id)
-        })
+        }
+      )
     end
   end
 
@@ -151,14 +158,13 @@ defmodule AsteroidWeb.OIDCAuthorizeScopesController do
       fn
         {k, v}, acc ->
           if k in authz_request.requested_scopes do
-            scope =
-              %{
-                name: k,
-                label: v[:label]["en"],
-                optional: v[:optional] || false,
-                already_authorized: k in consented_scopes,
-                display: (if v[:display] == false, do: false, else: true)
-              }
+            scope = %{
+              name: k,
+              label: v[:label]["en"],
+              optional: v[:optional] || false,
+              already_authorized: k in consented_scopes,
+              display: if(v[:display] == false, do: false, else: true)
+            }
 
             Scope.Set.put(acc, scope)
           else

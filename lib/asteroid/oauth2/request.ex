@@ -13,9 +13,9 @@ defmodule Asteroid.OAuth2.Request do
     defexception [:reason, :parameter]
 
     @type t :: %__MODULE__{
-      reason: String.t(),
-      parameter: String.t()
-    }
+            reason: String.t(),
+            parameter: String.t()
+          }
 
     @impl true
 
@@ -41,9 +41,9 @@ defmodule Asteroid.OAuth2.Request do
     defexception [:name, :value]
 
     @type t :: %__MODULE__{
-      name: String.t(),
-      value: String.t()
-    }
+            name: String.t(),
+            value: String.t()
+          }
 
     @impl true
 

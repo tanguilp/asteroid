@@ -36,13 +36,13 @@ defmodule Asteroid.Token.AccessToken do
   @type id :: binary()
 
   @type t :: %__MODULE__{
-    id: __MODULE__.id(),
-    refresh_token_id: binary() | nil,
-    serialization_format: Asteroid.Token.serialization_format(),
-    signing_key: Asteroid.Crypto.Key.name() | nil,
-    signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
-    data: map()
-  }
+          id: __MODULE__.id(),
+          refresh_token_id: binary() | nil,
+          serialization_format: Asteroid.Token.serialization_format(),
+          signing_key: Asteroid.Crypto.Key.name() | nil,
+          signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
+          data: map()
+        }
 
   @doc ~s"""
   Creates a new access token
@@ -61,7 +61,7 @@ defmodule Asteroid.Token.AccessToken do
 
   def new(opts) do
     %__MODULE__{
-      id: opts[:id] || (raise "Missing access token id"),
+      id: opts[:id] || raise("Missing access token id"),
       refresh_token_id: opts[:refresh_token_id] || nil,
       data: opts[:data] || %{},
       serialization_format: opts[:serialization_format] || :opaque,
@@ -86,7 +86,8 @@ defmodule Asteroid.Token.AccessToken do
       id: secure_random_b64(20),
       refresh_token_id: opts[:refresh_token],
       data: %{},
-      serialization_format: (if opts[:serialization_format], do: opts[:serialization_format], else: :opaque),
+      serialization_format:
+        if(opts[:serialization_format], do: opts[:serialization_format], else: :opaque),
       signing_key: opts[:signing_key],
       signing_alg: opts[:signing_alg]
     }
@@ -115,17 +116,21 @@ defmodule Asteroid.Token.AccessToken do
         if opts[:check_active] != true or active?(access_token) do
           {:ok, access_token}
         else
-          {:error, Token.InvalidTokenError.exception(
-            sort: "access token",
-            reason: "inactive token",
-            id: access_token_id)}
+          {:error,
+           Token.InvalidTokenError.exception(
+             sort: "access token",
+             reason: "inactive token",
+             id: access_token_id
+           )}
         end
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "access token",
-          reason: "not found in the token store",
-          id: access_token_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "access token",
+           reason: "not found in the token store",
+           id: access_token_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -241,11 +246,11 @@ defmodule Asteroid.Token.AccessToken do
       jws = JOSE.JWS.from_map(%{"alg" => access_token.signing_alg})
 
       JOSE.JWT.sign(jwk, jws, jwt)
-      |> JOSE.JWS.compact
+      |> JOSE.JWS.compact()
       |> elem(1)
     else
       JOSE.JWT.sign(jwk, jwt)
-      |> JOSE.JWS.compact
+      |> JOSE.JWS.compact()
       |> elem(1)
     end
   end
@@ -261,12 +266,11 @@ defmodule Asteroid.Token.AccessToken do
 
   @spec active?(t()) :: boolean()
   def active?(access_token) do
-    (is_nil(access_token.data["nbf"]) or access_token.data["nbf"] < now())
-    and
-    (is_nil(access_token.data["exp"]) or access_token.data["exp"] > now())
-    and
-    (is_nil(access_token.data["status"]) or access_token.data["status"] != "revoked")
-    #FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
+    (is_nil(access_token.data["nbf"]) or access_token.data["nbf"] < now()) and
+      (is_nil(access_token.data["exp"]) or access_token.data["exp"] > now()) and
+      (is_nil(access_token.data["status"]) or access_token.data["status"] != "revoked")
+
+    # FIXME: implement the following items from https://tools.ietf.org/html/rfc7662#section-4
     #   o  If the token has been signed, the authorization server MUST
     #  validate the signature.
     #   o  If the token can be used only at certain resource servers, the
@@ -410,31 +414,32 @@ defmodule Asteroid.Token.AccessToken do
 
   def serialization_format(%{flow: flow, client: client}) do
     attr = "__asteroid_oauth2_flow_#{Atom.to_string(flow)}_access_token_serialization_format"
-      case flow do
-        :ropc ->
-          "__asteroid_oauth2_flow_ropc_access_token_serialization_format"
 
-        :client_credentials ->
-          "__asteroid_oauth2_flow_client_credentials_access_token_serialization_format"
+    case flow do
+      :ropc ->
+        "__asteroid_oauth2_flow_ropc_access_token_serialization_format"
 
-        :authorization_code ->
-          "__asteroid_oauth2_flow_authorization_code_access_token_serialization_format"
+      :client_credentials ->
+        "__asteroid_oauth2_flow_client_credentials_access_token_serialization_format"
 
-        :implicit ->
-          "__asteroid_oauth2_flow_implicit_access_token_serialization_format"
+      :authorization_code ->
+        "__asteroid_oauth2_flow_authorization_code_access_token_serialization_format"
 
-        :device_authorization ->
-          "__asteroid_oauth2_flow_device_authorization_access_token_serialization_format"
+      :implicit ->
+        "__asteroid_oauth2_flow_implicit_access_token_serialization_format"
 
-        :oidc_authorization_code ->
-          "__asteroid_oidc_flow_authorization_code_access_token_serialization_format"
+      :device_authorization ->
+        "__asteroid_oauth2_flow_device_authorization_access_token_serialization_format"
 
-        :oidc_implicit ->
-          "__asteroid_oidc_flow_implicit_access_token_serialization_format"
+      :oidc_authorization_code ->
+        "__asteroid_oidc_flow_authorization_code_access_token_serialization_format"
 
-        :oidc_hybrid ->
-          "__asteroid_oidc_flow_hybrid_access_token_serialization_format"
-      end
+      :oidc_implicit ->
+        "__asteroid_oidc_flow_implicit_access_token_serialization_format"
+
+      :oidc_hybrid ->
+        "__asteroid_oidc_flow_hybrid_access_token_serialization_format"
+    end
 
     client = Client.fetch_attributes(client, [attr])
 

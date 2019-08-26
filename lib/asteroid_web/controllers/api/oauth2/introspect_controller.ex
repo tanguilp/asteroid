@@ -10,21 +10,19 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
   def handle(%Plug.Conn{body_params: %{"token" => token}} = conn, params) do
     with {:ok, client} <- OAuth2.Client.get_authenticated_client(conn),
          :ok <- valid_token_parameter?(token),
-         :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client)
-    do
+         :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client) do
       do_handle(conn, params, client)
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+      {:error, e} ->
         AsteroidWeb.Error.respond_api(conn, e)
     end
   end
 
   def handle(conn, _) do
-    error_resp(conn, 400, error: :invalid_request,
-               error_description: "Missing `token` parameter")
+    error_resp(conn, 400,
+      error: :invalid_request,
+      error_description: "Missing `token` parameter"
+    )
   end
 
   def do_handle(conn, %{"token" => token} = params, client) do
@@ -60,8 +58,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
         end
 
       _ ->
-        error_resp(conn, 400, error: :invalid_request,
-                   error_description: "Unrecognized `token_type_hint`")
+        error_resp(conn, 400,
+          error: :invalid_request,
+          error_description: "Unrecognized `token_type_hint`"
+        )
     end
   end
 
@@ -127,7 +127,8 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
     resp =
       refresh_token.data
       |> Enum.filter(fn {k, _} -> k in response_claims end)
-      |> Enum.into(%{}) # since Enum.filter/2 returns a list
+      # since Enum.filter/2 returns a list
+      |> Enum.into(%{})
       |> scope_list_to_param()
       |> Map.put("active", true)
       |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
@@ -139,16 +140,19 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
   end
 
   @spec valid_token_parameter?(String.t()) ::
-  :ok
-  | {:error, %OAuth2.Request.MalformedParamError{}}
+          :ok
+          | {:error, %OAuth2.Request.MalformedParamError{}}
 
   defp valid_token_parameter?(token) do
     if OAuth2Utils.valid_access_token_param?(token) or
-      OAuth2Utils.valid_refresh_token_param?(token) do
+         OAuth2Utils.valid_refresh_token_param?(token) do
       :ok
     else
-      {:error, OAuth2.Request.MalformedParamError.exception(name: "token",
-                                                            value: token)}
+      {:error,
+       OAuth2.Request.MalformedParamError.exception(
+         name: "token",
+         value: token
+       )}
     end
   end
 

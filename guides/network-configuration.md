@@ -65,3 +65,12 @@ which are the 2 endpoints likely to be used by a javascript client.
 
 Note that Corsica supports determining origin dynamically - it's therefore possible to return
 only client's authorized origins as long as you have it registered upon client creation.
+
+# Outbound request
+
+Asteroid can perform outbound requests on any port, for instance:
+- when retrieving JWKs
+- when retrieving a request object
+- when verifying a sector identifier URI against a list of redirect URIS
+(`AsteroidWeb.RegisterController.verify_sector_identifier_uri/2`)
+- etc.

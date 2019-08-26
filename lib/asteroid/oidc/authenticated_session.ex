@@ -26,10 +26,10 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   defstruct [:id, :subject_id, :data]
 
   @type t :: %__MODULE__{
-    id: id(),
-    subject_id: Subject.id(),
-    data: map()
-  }
+          id: id(),
+          subject_id: Subject.id(),
+          data: map()
+        }
 
   @doc """
   Generates a new authenticated session
@@ -41,7 +41,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     %__MODULE__{
       id: secure_random_b64(),
       subject_id: subject_id,
-      data: %{},
+      data: %{}
     }
   end
 
@@ -60,10 +60,12 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
         {:ok, authenticated_session}
 
       {:ok, nil} ->
-        {:error, Token.InvalidTokenError.exception(
-          sort: "authenticated session",
-          reason: "not found in the store",
-          id: authenticated_session_id)}
+        {:error,
+         Token.InvalidTokenError.exception(
+           sort: "authenticated session",
+           reason: "not found in the store",
+           id: authenticated_session_id
+         )}
 
       {:error, error} ->
         {:error, error}
@@ -83,8 +85,10 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
 
     authenticated_session =
-      astrenv(:object_store_authenticated_session_before_store_callback).(authenticated_session,
-                                                                          ctx)
+      astrenv(:object_store_authenticated_session_before_store_callback).(
+        authenticated_session,
+        ctx
+      )
 
     case as_store_module.put(authenticated_session, as_store_opts) do
       :ok ->
@@ -114,9 +118,10 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     rt_store_module = astrenv(:object_store_refresh_token)[:module]
     rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
 
-    case rt_store_module.get_from_authenticated_session_id(authenticated_session_id,
-                                                           rt_store_opts)
-    do
+    case rt_store_module.get_from_authenticated_session_id(
+           authenticated_session_id,
+           rt_store_opts
+         ) do
       {:ok, refresh_token_ids} ->
         for refresh_token_id <- refresh_token_ids do
           {:ok, refresh_token} = RefreshToken.get(refresh_token_id, check_active: false)
@@ -128,7 +133,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
           end
         end
 
-      :ok
+        :ok
 
       {:error, _} = error ->
         error
@@ -175,9 +180,10 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
     ae_store_module = astrenv(:object_store_authentication_event)[:module]
     ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
 
-    case ae_store_module.get_from_authenticated_session_id(authenticated_session_id,
-                                                           ae_store_opts)
-    do
+    case ae_store_module.get_from_authenticated_session_id(
+           authenticated_session_id,
+           ae_store_opts
+         ) do
       {:ok, auth_event_ids} ->
         auth_events =
           auth_event_ids
@@ -187,7 +193,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
               auth_event
           end)
-          |> Enum.reduce(MapSet.new(), &(MapSet.put(&2, &1.data["name"])))
+          |> Enum.reduce(MapSet.new(), &MapSet.put(&2, &1.data["name"]))
 
         acr_config =
           Enum.find(
@@ -321,12 +327,12 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   """
 
   @spec info(%__MODULE__{} | id(), Asteroid.OIDC.acr() | nil) ::
-  %{
-    required(:acr) => Asteroid.OIDC.acr() | nil,
-    required(:auth_time) => non_neg_integer() | nil,
-    required(:amr) => [Asteroid.OIDC.amr(), ...]
-  }
-  | nil
+          %{
+            required(:acr) => Asteroid.OIDC.acr() | nil,
+            required(:auth_time) => non_neg_integer() | nil,
+            required(:amr) => [Asteroid.OIDC.amr(), ...]
+          }
+          | nil
 
   def info(auth_session_id, acr \\ nil)
 
@@ -368,7 +374,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
                 _, acc ->
                   acc
-              end)
+              end
+            )
             |> MapSet.to_list()
 
           auth_time =
@@ -389,7 +396,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
                 _, acc ->
                   acc
-              end)
+              end
+            )
 
           %{acr: acr, amr: amr, auth_time: auth_time}
 
@@ -459,14 +467,14 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   """
 
   @spec find_matching_auth_event_set([AuthenticationEvent.t()], OIDC.acr()) ::
-  OIDC.ACR.auth_event_set()
-  | nil
+          OIDC.ACR.auth_event_set()
+          | nil
 
   def find_matching_auth_event_set(auth_events, acr) do
     acr = String.to_existing_atom(acr)
 
     searched_auth_events_set =
-      Enum.reduce(auth_events, MapSet.new(), &(MapSet.put(&2, &1.data["name"])))
+      Enum.reduce(auth_events, MapSet.new(), &MapSet.put(&2, &1.data["name"]))
 
     Enum.find(
       astrenv(:oidc_acr_config)[acr][:auth_event_set] || [],
@@ -474,7 +482,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
         conf_auth_event_set ->
           conf_auth_event_set = MapSet.new(conf_auth_event_set)
 
-        MapSet.subset?(conf_auth_event_set, searched_auth_events_set)
+          MapSet.subset?(conf_auth_event_set, searched_auth_events_set)
       end
     )
   rescue

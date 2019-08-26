@@ -126,11 +126,10 @@ defmodule Asteroid.ObjectStore.RefreshToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_refresh_token
 
     {:ok,
-      for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, subject_id, :_, :_, :_, :_}) do
-        refresh_token_id
-      end
-    }
+     for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, subject_id, :_, :_, :_, :_}) do
+       refresh_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -142,11 +141,10 @@ defmodule Asteroid.ObjectStore.RefreshToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_refresh_token
 
     {:ok,
-      for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, :_, client_id, :_, :_, :_}) do
-        refresh_token_id
-      end
-    }
+     for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, :_, client_id, :_, :_, :_}) do
+       refresh_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -158,11 +156,10 @@ defmodule Asteroid.ObjectStore.RefreshToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_refresh_token
 
     {:ok,
-      for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, :_, :_, device_id, :_, :_}) do
-        refresh_token_id
-      end
-    }
+     for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, :_, :_, device_id, :_, :_}) do
+       refresh_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -174,11 +171,10 @@ defmodule Asteroid.ObjectStore.RefreshToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_refresh_token
 
     {:ok,
-      for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, :_, :_, :_, as_id, :_}) do
-        refresh_token_id
-      end
-    }
+     for {_table_name, refresh_token_id, _subject_id, _client_id, _device_id, _as, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, :_, :_, :_, as_id, :_}) do
+       refresh_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}

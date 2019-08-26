@@ -21,8 +21,8 @@ defmodule AsteroidWeb.DeviceController do
     ]
 
     @type t :: %__MODULE__{
-      params: map()
-    }
+            params: map()
+          }
   end
 
   @doc false
@@ -54,7 +54,7 @@ defmodule AsteroidWeb.DeviceController do
   def authorization_granted(conn, opts) do
     case DeviceCode.get_from_user_code(opts[:user_code]) do
       {:ok, device_code} ->
-        Logger.debug("#{__MODULE__}: authorization granted with params: `#{inspect opts}`")
+        Logger.debug("#{__MODULE__}: authorization granted with params: `#{inspect(opts)}`")
 
         {:ok, subject} = Subject.load(opts[:sjid])
 
@@ -114,10 +114,11 @@ defmodule AsteroidWeb.DeviceController do
 
   @spec authorization_denied(Plug.Conn.t(), Plug.opts()) :: Plug.Conn.t()
 
-  def authorization_denied(conn, %{error: %OAuth2.AccessDeniedError{}, user_code: nil} = opts)
-  do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
-    <> "reason: `#{Exception.message(opts[:error])}`")
+  def authorization_denied(conn, %{error: %OAuth2.AccessDeniedError{}, user_code: nil} = opts) do
+    Logger.debug(
+      "#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) with " <>
+        "reason: `#{Exception.message(opts[:error])}`"
+    )
 
     conn
     |> assign(:exception, opts[:error])
@@ -128,11 +129,14 @@ defmodule AsteroidWeb.DeviceController do
     |> render("device_authorization_denied.html")
   end
 
-  def authorization_denied(conn, %{error: %OAuth2.AccessDeniedError{},
-                                   user_code: user_code} = opts)
-  do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
-    <> "reason: `#{Exception.message(opts[:error])}` and user code `#{user_code}`")
+  def authorization_denied(
+        conn,
+        %{error: %OAuth2.AccessDeniedError{}, user_code: user_code} = opts
+      ) do
+    Logger.debug(
+      "#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) with " <>
+        "reason: `#{Exception.message(opts[:error])}` and user code `#{user_code}`"
+    )
 
     case DeviceCode.get_from_user_code(user_code) do
       {:ok, device_code} ->
@@ -169,8 +173,10 @@ defmodule AsteroidWeb.DeviceController do
   end
 
   def authorization_denied(conn, opts) do
-    Logger.debug("#{__MODULE__}: authorization denied (#{inspect opts[:authz_request]}) with "
-    <> "reason: `#{Exception.message(opts[:error])}`")
+    Logger.debug(
+      "#{__MODULE__}: authorization denied (#{inspect(opts[:authz_request])}) with " <>
+        "reason: `#{Exception.message(opts[:error])}`"
+    )
 
     conn
     |> assign(:exception, opts[:error])

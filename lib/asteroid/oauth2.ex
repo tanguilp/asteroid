@@ -13,8 +13,8 @@ defmodule Asteroid.OAuth2 do
     defexception [:grant_type]
 
     @type t :: %__MODULE__{
-      grant_type: String.t()
-    }
+            grant_type: String.t()
+          }
 
     @impl true
 
@@ -22,7 +22,7 @@ defmodule Asteroid.OAuth2 do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
           "Unsupported grant type `#{grant_type}` (enabled grant types are: " <>
-          "#{inspect astrenv(:oauth2_grant_types_enabled, [])})"
+            "#{inspect(astrenv(:oauth2_grant_types_enabled, []))})"
 
         :normal ->
           "Unsupported grant type `#{grant_type}`"
@@ -41,8 +41,8 @@ defmodule Asteroid.OAuth2 do
     defexception [:response_type]
 
     @type t :: %__MODULE__{
-      response_type: String.t()
-    }
+            response_type: String.t()
+          }
 
     @impl true
 
@@ -50,7 +50,7 @@ defmodule Asteroid.OAuth2 do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
           "Unsupported response type `#{response_type} (enabled grant types are: " <>
-          "#{inspect astrenv(:oauth2_response_types_enabled, [])})"
+            "#{inspect(astrenv(:oauth2_response_types_enabled, []))})"
 
         :normal ->
           "Unsupported response type `#{response_type}`"
@@ -72,10 +72,10 @@ defmodule Asteroid.OAuth2 do
     defexception [:grant, :reason, :debug_details]
 
     @type t :: %__MODULE__{
-      grant: String.t(),
-      reason: String.t(),
-      debug_details: String.t()
-    }
+            grant: String.t(),
+            reason: String.t(),
+            debug_details: String.t()
+          }
 
     @impl true
 
@@ -107,8 +107,8 @@ defmodule Asteroid.OAuth2 do
     defexception [:reason]
 
     @type t :: %__MODULE__{
-      reason: String.t()
-    }
+            reason: String.t()
+          }
 
     @impl true
 
@@ -136,16 +136,16 @@ defmodule Asteroid.OAuth2 do
     defexception [:reason, :stacktrace]
 
     @type t :: %__MODULE__{
-      reason: String.t(),
-      stacktrace: Exception.stacktrace()
-    }
+            reason: String.t(),
+            stacktrace: Exception.stacktrace()
+          }
 
     @impl true
 
     def message(%{reason: reason} = e) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "Server error: #{reason} (stacktrace: #{inspect e.stacktrace})"
+          "Server error: #{reason} (stacktrace: #{inspect(e.stacktrace)})"
 
         :normal ->
           "Server error: " <> reason
@@ -166,8 +166,8 @@ defmodule Asteroid.OAuth2 do
     defexception [:reason]
 
     @type t :: %__MODULE__{
-      reason: String.t()
-    }
+            reason: String.t()
+          }
 
     @impl true
 
@@ -220,12 +220,12 @@ defmodule Asteroid.OAuth2 do
   """
 
   @type grant_type ::
-  :authorization_code
-  | :implicit
-  | :password
-  | :client_credentials
-  | :refresh_token
-  | :"urn:ietf:params:oauth:grant-type:device_code"
+          :authorization_code
+          | :implicit
+          | :password
+          | :client_credentials
+          | :refresh_token
+          | :"urn:ietf:params:oauth:grant-type:device_code"
 
   @typedoc """
   String representation of `t:grant_type/0`
@@ -236,14 +236,14 @@ defmodule Asteroid.OAuth2 do
   @type grant_type_str :: String.t()
 
   @type flow ::
-  :ropc
-  | :client_credentials
-  | :authorization_code
-  | :implicit
-  | :device_authorization
-  | :oidc_authorization_code
-  | :oidc_implicit
-  | :oidc_hybrid
+          :ropc
+          | :client_credentials
+          | :authorization_code
+          | :implicit
+          | :device_authorization
+          | :oidc_authorization_code
+          | :oidc_implicit
+          | :oidc_hybrid
 
   @typedoc """
   String representation of a `t:flow()/0`
@@ -254,13 +254,13 @@ defmodule Asteroid.OAuth2 do
   @type flow_str :: String.t()
 
   @type response_type ::
-  :code
-  | :token
-  | :id_token
-  | :"id_token token"
-  | :"code id_token"
-  | :"code token"
-  | :"code id_token token"
+          :code
+          | :token
+          | :id_token
+          | :"id_token token"
+          | :"code id_token"
+          | :"code token"
+          | :"code id_token token"
 
   @typedoc """
   String representation of a `t:response_type/0`
@@ -271,9 +271,9 @@ defmodule Asteroid.OAuth2 do
   @type response_type_str :: String.t()
 
   @type response_mode ::
-  :query
-  | :fragment
-  | :form_post
+          :query
+          | :fragment
+          | :form_post
 
   @typedoc """
   String representation of a `t:response_mode/0`
@@ -296,14 +296,16 @@ defmodule Asteroid.OAuth2 do
   - `:device_authorization`: `/api/oauth2/device_authorization`
   """
 
+  # web flow for the authorization code or implicit flow
   @type endpoint ::
-  :authorize                  # web flow for the authorization code or implicit flow
-  | :device                   # web flow for the device authorization flow
-  | :token
-  | :introspect
-  | :revoke
-  | :register
-  | :device_authorization
+          :authorize
+          # web flow for the device authorization flow
+          | :device
+          | :token
+          | :introspect
+          | :revoke
+          | :register
+          | :device_authorization
 
   @doc """
   Converts a `t:grant_type_str/0` to a `t:grant_type/0`
@@ -313,15 +315,17 @@ defmodule Asteroid.OAuth2 do
   """
 
   @spec to_grant_type(String.t()) ::
-  {:ok, grant_type()}
-  | {:error, %__MODULE__.UnsupportedGrantTypeError{}}
+          {:ok, grant_type()}
+          | {:error, %__MODULE__.UnsupportedGrantTypeError{}}
 
   def to_grant_type("authorization_code"), do: {:ok, :authorization_code}
   def to_grant_type("implicit"), do: {:ok, :implicit}
   def to_grant_type("password"), do: {:ok, :password}
   def to_grant_type("client_credentials"), do: {:ok, :client_credentials}
   def to_grant_type("refresh_token"), do: {:ok, :refresh_token}
-  def to_grant_type(param), do: {:error, __MODULE__.UnsupportedGrantTypeError.exception(grant_type: param)}
+
+  def to_grant_type(param),
+    do: {:error, __MODULE__.UnsupportedGrantTypeError.exception(grant_type: param)}
 
   @doc """
   Converts a `t:grant_type_str/0` to a `t:grant_type/0`
@@ -369,8 +373,8 @@ defmodule Asteroid.OAuth2 do
   """
 
   @spec response_type_to_flow(response_type_str(), protocol()) ::
-  {:ok, flow()}
-  | {:error, %UnsupportedResponseTypeError{}}
+          {:ok, flow()}
+          | {:error, %UnsupportedResponseTypeError{}}
 
   def response_type_to_flow("code", :oauth2), do: {:ok, :authorization_code}
   def response_type_to_flow("token", :oauth2), do: {:ok, :implicit}
@@ -380,7 +384,9 @@ defmodule Asteroid.OAuth2 do
   def response_type_to_flow("code id_token", :oidc), do: {:ok, :oidc_hybrid}
   def response_type_to_flow("code token", :oidc), do: {:ok, :oidc_hybrid}
   def response_type_to_flow("code id_token token", :oidc), do: {:ok, :oidc_hybrid}
-  def response_type_to_flow(val, _), do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
+
+  def response_type_to_flow(val, _),
+    do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
 
   @doc """
   Converts a `t:response_type_str/0` to a `t:response_type/0`
@@ -390,8 +396,8 @@ defmodule Asteroid.OAuth2 do
   """
 
   @spec to_response_type(String.t()) ::
-  {:ok, response_type()}
-  | {:error, %UnsupportedResponseTypeError{}}
+          {:ok, response_type()}
+          | {:error, %UnsupportedResponseTypeError{}}
 
   def to_response_type("code"), do: {:ok, :code}
   def to_response_type("token"), do: {:ok, :token}
@@ -400,7 +406,9 @@ defmodule Asteroid.OAuth2 do
   def to_response_type("code id_token"), do: {:ok, :"code id_token"}
   def to_response_type("code token"), do: {:ok, :"code token"}
   def to_response_type("code id_token token"), do: {:ok, :"code id_token token"}
-  def to_response_type(val), do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
+
+  def to_response_type(val),
+    do: {:error, UnsupportedResponseTypeError.exception(response_type: val)}
 
   @doc """
   Converts a `t:response_type_str/0` to a `t:response_type/0`
@@ -430,8 +438,8 @@ defmodule Asteroid.OAuth2 do
   """
 
   @spec grant_type_enabled?(grant_type()) ::
-  :ok
-  | {:error, %UnsupportedGrantTypeError{}}
+          :ok
+          | {:error, %UnsupportedGrantTypeError{}}
 
   def grant_type_enabled?(grant_type) do
     if grant_type in astrenv(:oauth2_grant_types_enabled, []) do
@@ -450,15 +458,15 @@ defmodule Asteroid.OAuth2 do
   """
 
   @spec response_type_enabled?(response_type()) ::
-  :ok
-  | {:error, %UnsupportedResponseTypeError{}}
+          :ok
+          | {:error, %UnsupportedResponseTypeError{}}
 
   def response_type_enabled?(response_type) do
     if response_type in astrenv(:oauth2_response_types_enabled, []) do
       :ok
     else
       {:error,
-        UnsupportedResponseTypeError.exception(response_type: Atom.to_string(response_type))}
+       UnsupportedResponseTypeError.exception(response_type: Atom.to_string(response_type))}
     end
   end
 

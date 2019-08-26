@@ -24,6 +24,7 @@ defmodule AsteroidWeb.Error do
   def respond_api(conn, %OAuth2.Client.AuthenticationError{} = e) do
     error_status = err_status(e)
     error_name = err_name(e)
+
     error_response =
       %{}
       |> Map.put("error", error_name)
@@ -38,6 +39,7 @@ defmodule AsteroidWeb.Error do
   def respond_api(conn, e) do
     error_status = err_status(e)
     error_name = err_name(e)
+
     error_response =
       %{}
       |> Map.put("error", error_name)
@@ -68,8 +70,7 @@ defmodule AsteroidWeb.Error do
     |> render("error_redirect_uri.html")
   end
 
-  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "redirect_uri"} = e)
-  do
+  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "redirect_uri"} = e) do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
@@ -78,8 +79,7 @@ defmodule AsteroidWeb.Error do
     |> render("error_redirect_uri.html")
   end
 
-  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "client_id"} = e)
-  do
+  def respond_authorize(conn, %OAuth2.Request.InvalidRequestError{parameter: "client_id"} = e) do
     conn
     |> put_flash(:error, "An error has occured (#{Exception.message(e)})")
     |> put_status(400)
@@ -91,22 +91,27 @@ defmodule AsteroidWeb.Error do
   # function used when the connection is directly returned with an error. In such a case, params
   # are in the Conn
 
-  def respond_authorize(%Plug.Conn{query_params:
-    %{"redirect_uri" => redirect_uri, "client_id" => client_id}} = conn, e)
-  do
+  def respond_authorize(
+        %Plug.Conn{query_params: %{"redirect_uri" => redirect_uri, "client_id" => client_id}} =
+          conn,
+        e
+      ) do
     with :ok <- AuthorizeController.client_id_valid?(client_id),
          :ok <- AuthorizeController.redirect_uri_valid?(redirect_uri),
          {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
-         :ok <- AuthorizeController.redirect_uri_registered_for_client?(client,
-                                                                        redirect_uri)
-    do
-      redirect_uri = OAuth2.RedirectUri.add_params(
-        redirect_uri,
-        %{}
-        |> Map.put("error", err_name(e))
-        |> Map.put("error_description", Exception.message(e))
-        |> put_if_not_nil("state", conn.query_params["state"])
-      )
+         :ok <-
+           AuthorizeController.redirect_uri_registered_for_client?(
+             client,
+             redirect_uri
+           ) do
+      redirect_uri =
+        OAuth2.RedirectUri.add_params(
+          redirect_uri,
+          %{}
+          |> Map.put("error", err_name(e))
+          |> Map.put("error_description", Exception.message(e))
+          |> put_if_not_nil("state", conn.query_params["state"])
+        )
 
       conn
       |> redirect(external: redirect_uri)
@@ -125,12 +130,13 @@ defmodule AsteroidWeb.Error do
   # be put in the assigns under the :authz_request atom
 
   def respond_authorize(%Plug.Conn{assigns: %{:authz_request => authz_request}} = conn, e) do
-    redirect_uri = OAuth2.RedirectUri.add_params(
-      authz_request.redirect_uri,
-      %{"error" => err_name(e)}
-      |> put_if_not_empty_string("error_description", Exception.message(e))
-      |> put_if_not_nil("state", authz_request.params["state"])
-    )
+    redirect_uri =
+      OAuth2.RedirectUri.add_params(
+        authz_request.redirect_uri,
+        %{"error" => err_name(e)}
+        |> put_if_not_empty_string("error_description", Exception.message(e))
+        |> put_if_not_nil("state", authz_request.params["state"])
+      )
 
     conn
     |> redirect(external: redirect_uri)
@@ -186,16 +192,19 @@ defmodule AsteroidWeb.Error do
           with :ok <- AuthorizeController.client_id_valid?(client_id),
                :ok <- AuthorizeController.redirect_uri_valid?(redirect_uri),
                {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id),
-               :ok <- AuthorizeController.redirect_uri_registered_for_client?(client,
-                                                                              redirect_uri)
-          do
-            redirect_uri = OAuth2.RedirectUri.add_params(
-              redirect_uri,
-              %{}
-              |> Map.put("error", err_name(e))
-              |> Map.put("error_description", Exception.message(e))
-              |> put_if_not_nil("state", conn.query_params["state"])
-            )
+               :ok <-
+                 AuthorizeController.redirect_uri_registered_for_client?(
+                   client,
+                   redirect_uri
+                 ) do
+            redirect_uri =
+              OAuth2.RedirectUri.add_params(
+                redirect_uri,
+                %{}
+                |> Map.put("error", err_name(e))
+                |> Map.put("error_description", Exception.message(e))
+                |> put_if_not_nil("state", conn.query_params["state"])
+              )
 
             conn
             |> redirect(external: redirect_uri)
@@ -241,23 +250,34 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OIDC.AccountSelectionRequiredError{}), do: "account_selection_required"
   defp err_name(%OIDC.ConsentRequiredError{}), do: "consent_required"
   defp err_name(%OAuth2.Client.AuthenticationError{}), do: "invalid_client"
-  defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}), do: "invalid_scope"
+
+  defp err_name(%OAuth2.Client.AuthorizationError{reason: :unauthorized_scope}),
+    do: "invalid_scope"
+
   defp err_name(%OAuth2.Client.AuthorizationError{}), do: "unauthorized_client"
   defp err_name(%OAuth2.Request.InvalidRequestError{}), do: "invalid_request"
   defp err_name(%OAuth2.Request.MalformedParamError{name: "scope"}), do: "invalid_scope"
   defp err_name(%OAuth2.Request.MalformedParamError{}), do: "invalid_request"
   defp err_name(%OAuth2.Scope.UnknownRequestedScopeError{}), do: "invalid_scope"
   defp err_name(%OAuth2.DeviceAuthorization.ExpiredTokenError{}), do: "expired_token"
-  defp err_name(%OAuth2.DeviceAuthorization.AuthorizationPendingError{}), do: "authorization_pending"
+
+  defp err_name(%OAuth2.DeviceAuthorization.AuthorizationPendingError{}),
+    do: "authorization_pending"
+
   defp err_name(%OAuth2.DeviceAuthorization.RateLimitedError{}), do: "slow_down"
   defp err_name(%OAuth2.JAR.RequestNotSupportedError{}), do: "request_not_supported"
   defp err_name(%OAuth2.JAR.RequestURINotSupportedError{}), do: "request_uri_not_supported"
   defp err_name(%OAuth2.JAR.InvalidRequestURIError{}), do: "invalid_request_uri"
   defp err_name(%OAuth2.JAR.InvalidRequestObjectError{}), do: "invalid_request_object"
   defp err_name(%TokenController.ExceedingScopeError{}), do: "invalid_scope"
-  defp err_name(%RegisterController.InvalidClientMetadataFieldError{}), do: "invalid_client_metadata"
+
+  defp err_name(%RegisterController.InvalidClientMetadataFieldError{}),
+    do: "invalid_client_metadata"
+
   defp err_name(%RegisterController.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
-  defp err_name(%RegisterController.UnauthorizedRequestedScopesError{}), do: "invalid_client_metadata"
+
+  defp err_name(%RegisterController.UnauthorizedRequestedScopesError{}),
+    do: "invalid_client_metadata"
 
   @spec err_status(Exception.t()) :: non_neg_integer()
 
@@ -286,13 +306,14 @@ defmodule AsteroidWeb.Error do
   def set_www_authenticate_header(conn) do
     apisex_errors = APIac.AuthFailureResponseData.get(conn)
 
-    failed_auth = Enum.find(
-      apisex_errors,
-      fn apisex_error ->
-        apisex_error.reason != :credentials_not_found and
-        is_tuple(apisex_error.www_authenticate_header)
-      end
-    )
+    failed_auth =
+      Enum.find(
+        apisex_errors,
+        fn apisex_error ->
+          apisex_error.reason != :credentials_not_found and
+            is_tuple(apisex_error.www_authenticate_header)
+        end
+      )
 
     case failed_auth do
       %APIac.AuthFailureResponseData{www_authenticate_header: {scheme, params}} ->

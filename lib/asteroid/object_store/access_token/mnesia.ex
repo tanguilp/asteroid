@@ -130,12 +130,10 @@ defmodule Asteroid.ObjectStore.AccessToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_access_token
 
     {:ok,
-
-      for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
-           _data} <- :mnesia.dirty_match_object({table_name, :_, refresh_token_id, :_, :_, :_, :_}) do
-        access_token_id
-      end
-    }
+     for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
+          _data} <- :mnesia.dirty_match_object({table_name, :_, refresh_token_id, :_, :_, :_, :_}) do
+       access_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -147,11 +145,10 @@ defmodule Asteroid.ObjectStore.AccessToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_access_token
 
     {:ok,
-      for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
-           _data} <- :mnesia.dirty_match_object({table_name, :_, :_, subject_id, :_, :_, :_}) do
-        access_token_id
-      end
-    }
+     for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
+          _data} <- :mnesia.dirty_match_object({table_name, :_, :_, subject_id, :_, :_, :_}) do
+       access_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -163,11 +160,10 @@ defmodule Asteroid.ObjectStore.AccessToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_access_token
 
     {:ok,
-      for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
-           _data} <- :mnesia.dirty_match_object({table_name, :_, :_, :_, client_id, :_, :_}) do
-        access_token_id
-      end
-    }
+     for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
+          _data} <- :mnesia.dirty_match_object({table_name, :_, :_, :_, client_id, :_, :_}) do
+       access_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}
@@ -179,11 +175,10 @@ defmodule Asteroid.ObjectStore.AccessToken.Mnesia do
     table_name = opts[:table_name] || :asteroid_access_token
 
     {:ok,
-      for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
-           _data} <- :mnesia.dirty_match_object({table_name, :_, :_, :_, :_, device_id, :_}) do
-        access_token_id
-      end
-    }
+     for {_table_name, access_token_id, _refresh_token_id, _subject_id, _client_id, _device_id,
+          _data} <- :mnesia.dirty_match_object({table_name, :_, :_, :_, :_, device_id, :_}) do
+       access_token_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}

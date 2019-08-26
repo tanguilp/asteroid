@@ -17,8 +17,8 @@ defmodule Asteroid.OAuth2.Scope do
     defexception [:unknown_scopes]
 
     @type t :: %__MODULE__{
-      unknown_scopes: Scope.Set.t()
-    }
+            unknown_scopes: Scope.Set.t()
+          }
 
     def message(%{unknown_scopes: unknown_scopes}) do
       case astrenv(:api_error_response_verbosity) do
@@ -52,6 +52,9 @@ defmodule Asteroid.OAuth2.Scope do
   when this was requested by the client. When not present, shall be treated as `false`
   - `:label`: a map of internationalised labels of the scope, that will be displayed to the
   end-user. The map keys are ISO639 tags, and the values the internationalised text of the label
+  - `:acceptable_acrs`: a list of ACRs for use in OIDC flows. When present, Asteroid will set
+  the preferred ACR in the `t:AsteroiWeb.AuthorizeController.Request.t/0` to a value that
+  satisfies this requirement if the scope is requested. It will return an error otherwise
   - `:max_refresh_token_lifetime`: *when present*, restricts the lifetime of a refresh token
   released when that scope is granted. This *supersedes global*, flow or client refresh token
   lifetime configuration
@@ -61,20 +64,23 @@ defmodule Asteroid.OAuth2.Scope do
   """
 
   @type scope_config_option_individual_scope_configuration ::
-  {:auto, boolean()}
-  | {:display, boolean()}
-  | {:optional, boolean()}
-  | {:label, %{required(String.t()) => String.t()}}
-  | {:acceptable_loas, [Asteroid.OIDC.acr()]}
-  | {:max_refresh_token_lifetime, non_neg_integer()}
-  | {:max_access_token_lifetime, non_neg_integer()}
+          {:auto, boolean()}
+          | {:display, boolean()}
+          | {:optional, boolean()}
+          | {:label, %{required(String.t()) => String.t()}}
+          | {:acceptable_acrs, [Asteroid.OIDC.acr()]}
+          | {:max_refresh_token_lifetime, non_neg_integer()}
+          | {:max_access_token_lifetime, non_neg_integer()}
 
   @typedoc """
   Scope configuration option type
   """
 
   @type scope_config_option ::
-  [{:scopes, %{required(String.t()) => [scope_config_option_individual_scope_configuration()]}}]
+          [
+            {:scopes,
+             %{required(String.t()) => [scope_config_option_individual_scope_configuration()]}}
+          ]
 
   @doc """
   Returns the merged scope configuration for a flow
@@ -84,18 +90,20 @@ defmodule Asteroid.OAuth2.Scope do
 
   @spec configuration_for_flow(OAuth2.flow()) :: scope_config_option()
 
-  def configuration_for_flow(flow) when flow in [
-    :ropc,
-    :client_credentials,
-    :authorization_code,
-    :implicit,
-    :device_authorization,
-    :oidc_authorization_code,
-    :oidc_implicit,
-    :oidc_hybrid
-  ] do
+  def configuration_for_flow(flow)
+      when flow in [
+             :ropc,
+             :client_credentials,
+             :authorization_code,
+             :implicit,
+             :device_authorization,
+             :oidc_authorization_code,
+             :oidc_implicit,
+             :oidc_hybrid
+           ] do
     scope_config = astrenv(:scope_config)
     oauth2_scope_config = astrenv(:oauth2_scope_config)
+
     oauth2_flow_scope_config =
       case flow do
         :ropc ->
@@ -144,8 +152,8 @@ defmodule Asteroid.OAuth2.Scope do
   """
 
   @spec max_refresh_token_lifetime(Scope.Set.t(), scope_config_option()) ::
-  non_neg_integer()
-  | nil
+          non_neg_integer()
+          | nil
 
   def max_refresh_token_lifetime(scopes, scope_config_option) do
     Enum.reduce(
@@ -171,8 +179,8 @@ defmodule Asteroid.OAuth2.Scope do
   """
 
   @spec max_access_token_lifetime(Scope.Set.t(), scope_config_option()) ::
-  non_neg_integer()
-  | nil
+          non_neg_integer()
+          | nil
 
   def max_access_token_lifetime(scopes, scope_config_option) do
     Enum.reduce(
@@ -198,16 +206,17 @@ defmodule Asteroid.OAuth2.Scope do
 
   @spec scopes_for_flow(OAuth2.flow()) :: Scope.Set.t()
 
-  def scopes_for_flow(flow) when flow in [
-    :ropc,
-    :client_credentials,
-    :authorization_code,
-    :implicit,
-    :device_authorization,
-    :oidc_authorization_code,
-    :oidc_implicit,
-    :oidc_hybrid
-  ] do
+  def scopes_for_flow(flow)
+      when flow in [
+             :ropc,
+             :client_credentials,
+             :authorization_code,
+             :implicit,
+             :device_authorization,
+             :oidc_authorization_code,
+             :oidc_implicit,
+             :oidc_hybrid
+           ] do
     Enum.reduce(
       configuration_for_flow(flow)[:scopes] || %{},
       Scope.Set.new(),
@@ -223,8 +232,8 @@ defmodule Asteroid.OAuth2.Scope do
   """
 
   @spec scopes_enabled?(Scope.Set.t(), OAuth2.flow()) ::
-  :ok
-  | {:error, %UnknownRequestedScopeError{}}
+          :ok
+          | {:error, %UnknownRequestedScopeError{}}
 
   def scopes_enabled?(scopes, flow) do
     enabled_scopes_for_flow = scopes_for_flow(flow)
@@ -232,8 +241,10 @@ defmodule Asteroid.OAuth2.Scope do
     if Scope.Set.subset?(scopes, enabled_scopes_for_flow) do
       :ok
     else
-      {:error, UnknownRequestedScopeError.exception(
-        unknown_scopes: Scope.Set.difference(scopes, enabled_scopes_for_flow))}
+      {:error,
+       UnknownRequestedScopeError.exception(
+         unknown_scopes: Scope.Set.difference(scopes, enabled_scopes_for_flow)
+       )}
     end
   end
 

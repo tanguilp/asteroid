@@ -112,16 +112,16 @@ defmodule Asteroid.Utils do
 
   def headers_contain_content_type?(headers, type, subtype) do
     case Enum.find_value(
-      headers,
-      fn
-        {header, value} ->
-          if String.downcase(header) == "content-type" do
-            value
-          else
-            false
-          end
-      end
-    ) do
+           headers,
+           fn
+             {header, value} ->
+               if String.downcase(header) == "content-type" do
+                 value
+               else
+                 false
+               end
+           end
+         ) do
       nil ->
         false
 

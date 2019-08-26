@@ -17,7 +17,8 @@ defmodule AsteroidWeb.API.RequestObjectController do
 
       {:error, _} ->
         conn
-        |> send_resp(404, "") # FIXME: verbose level
+        # FIXME: verbose level
+        |> send_resp(404, "")
     end
   end
 
@@ -32,14 +33,17 @@ defmodule AsteroidWeb.API.RequestObjectController do
     case OAuth2.JAR.put_request_object(key, to_store) do
       :ok ->
         conn
-        |> put_resp_header("location",
-                           Routes.request_object_url(AsteroidWeb.Endpoint, :show, key))
+        |> put_resp_header(
+          "location",
+          Routes.request_object_url(AsteroidWeb.Endpoint, :show, key)
+        )
         |> put_resp_content_type("application/jwt")
         |> send_resp(201, "")
 
       {:error, _} ->
         conn
-        |> send_resp(500, "") # FIXME: verbose level
+        # FIXME: verbose level
+        |> send_resp(500, "")
     end
   end
 end

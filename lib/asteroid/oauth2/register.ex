@@ -23,9 +23,9 @@ defmodule Asteroid.OAuth2.Register do
   """
 
   @spec request_authorized?(Plug.Conn.t(), Client.t() | nil) ::
-  :ok
-  | {:error, %OAuth2.Client.AuthenticationError{}}
-  | {:error, %OAuth2.Client.AuthorizationError{}}
+          :ok
+          | {:error, %OAuth2.Client.AuthenticationError{}}
+          | {:error, %OAuth2.Client.AuthorizationError{}}
 
   def request_authorized?(conn, maybe_authenticated_client) do
     case astrenv(:oauth2_endpoint_register_authorization_policy) do
@@ -37,20 +37,21 @@ defmodule Asteroid.OAuth2.Register do
           :ok
         else
           if maybe_authenticated_client do
-            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
-              reason: :client_authentication_required
-            )}
+            {:error,
+             Asteroid.OAuth2.Client.AuthenticationError.exception(
+               reason: :client_authentication_required
+             )}
           else
-            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
-              reason: :client_authentication_required
-            )}
+            {:error,
+             Asteroid.OAuth2.Client.AuthenticationError.exception(
+               reason: :client_authentication_required
+             )}
           end
         end
 
       :authorized_clients ->
         if APIac.metadata(conn)["scope"] != nil and
-          "asteroid.register" in Scope.Set.from_scope_param!(APIac.metadata(conn)["scope"])
-        do
+             "asteroid.register" in Scope.Set.from_scope_param!(APIac.metadata(conn)["scope"]) do
           :ok
         else
           if maybe_authenticated_client do
@@ -59,14 +60,14 @@ defmodule Asteroid.OAuth2.Register do
             if "asteroid.register" in client.attrs["scope"] do
               :ok
             else
-              {:error, Asteroid.OAuth2.Client.AuthorizationError.exception(
-                reason: :unauthorized_client
-              )}
+              {:error,
+               Asteroid.OAuth2.Client.AuthorizationError.exception(reason: :unauthorized_client)}
             end
           else
-            {:error, Asteroid.OAuth2.Client.AuthenticationError.exception(
-              reason: :client_authentication_required
-            )}
+            {:error,
+             Asteroid.OAuth2.Client.AuthenticationError.exception(
+               reason: :client_authentication_required
+             )}
           end
         end
     end
@@ -99,10 +100,12 @@ defmodule Asteroid.OAuth2.Register do
 
   """
 
-  @spec grant_response_types_consistent?([OAuth2.grant_type_str()],
-                                         [OAuth2.response_type_str()]) ::
-  :ok
-  | {:error, String.t()}
+  @spec grant_response_types_consistent?(
+          [OAuth2.grant_type_str()],
+          [OAuth2.response_type_str()]
+        ) ::
+          :ok
+          | {:error, String.t()}
 
   def grant_response_types_consistent?(grant_types, response_types) do
     mapping = %{
@@ -126,7 +129,7 @@ defmodule Asteroid.OAuth2.Register do
             {:cont, :ok}
           else
             {:halt,
-              {:error, "response_type `#{response_type}` have missing mandatory grant type"}}
+             {:error, "response_type `#{response_type}` have missing mandatory grant type"}}
           end
       end
     )
@@ -139,7 +142,7 @@ defmodule Asteroid.OAuth2.Register do
   """
 
   @spec generate_client_resource_id(processed_metadata :: map(), Asteroid.Context.t()) ::
-  AttributeRepository.resource_id()
+          AttributeRepository.resource_id()
 
   def generate_client_resource_id(%{"client_id" => client_id}, _ctx), do: client_id
 

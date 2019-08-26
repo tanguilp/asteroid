@@ -93,18 +93,18 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Mnesia do
     case :mnesia.dirty_read(table_name, authentication_event_id) do
       [] ->
         Logger.debug(
-          "#{__MODULE__}: getting authentication event `#{authentication_event_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authentication event `#{authentication_event_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}
 
       [{^table_name, ^authentication_event_id, authenticated_session_id, data}] ->
-        authentication_event =
-          %AuthenticationEvent{
-            id: authentication_event_id,
-            authenticated_session_id: authenticated_session_id,
-            data: data
-          }
+        authentication_event = %AuthenticationEvent{
+          id: authentication_event_id,
+          authenticated_session_id: authenticated_session_id,
+          data: data
+        }
 
         Logger.debug(
           "#{__MODULE__}: getting authentication event `#{authentication_event_id}`, " <>
@@ -127,11 +127,10 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Mnesia do
     table_name = opts[:table_name] || :asteroid_authentication_event
 
     {:ok,
-      for {_table_name, authentication_event_id, _authenticated_session_id, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, authenticated_session_id, :_}) do
-        authentication_event_id
-      end
-    }
+     for {_table_name, authentication_event_id, _authenticated_session_id, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, authenticated_session_id, :_}) do
+       authentication_event_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}

@@ -12,12 +12,17 @@ defmodule Asteroid.Client do
   - those who can't: *public clients* (mobile applications, SPAs...). In this case there are
   multiple instances of the same client running, used by different subjects
 
-  # FIXME: update with fields from Dynamic Registration
-
   ## Field naming
   The following fields have standardised meaning:
   - `"client_id"`: the client identifier (as in OAuth2) (`String.t()`)
-  - `"client_secret"`: the client secret (`String.t()`)
+  - `"client_name"`: a map whose keys are the language code and the values the localized names
+  - `"client_uri"`: a map whose keys are the language code and the values the localized URIs
+  - `"logo_uri"`: a map whose keys are the language code and the values the localized logos
+  - `"tos_uri"`: a map whose keys are the language code and the values the localized TOS URIs
+  - `"policy_uri"`: a map whose keys are the language code and the values the localized policy
+  URIs
+  - `"client_secret"`: the client secret (`String.t()`). Can be the plain secret, or the
+  `t:Expwd.Hashed.Portable.t/0`
   - `"client_type"`: `"public"` or `"confidential"`, depending on the client's type
   - `"grant_types"`: the list of grant types (`t:Asteroid.OAuth2.grant_type_str/0`) that the
   client is allowed to use
@@ -29,6 +34,26 @@ defmodule Asteroid.Client do
   endpoints. See also []()
   - `"token_endpoint_auth_method"`: a `t:Asteroid.Oauth2.Endpoint.auth_method_str/0`
   as specified in RFC7591
+  - `"contacts"`: list of email addresses (`[String.t()]`)
+  - `"jwks_uri"`: the JWKs URI of the client (`String.t()`)
+  - `"jwks"`: the JWKs of the client (a list of JWKs)
+  - `"software_id"`: the software ID (`String.t()`). Not used by Asteroid
+  - `"software_version"`: the software version (`String.t()`). Not used by Asteroid
+  - `"application_type"`: the application type (either `nil`, `"web"` or `"native"`)
+  - `"sector_identifier_uri"`: the sector identifier URI (`String.t()`)
+  - `"subject_type"`: the subject type (either `nil`, `"public"` or `"pairwise"`))
+  - `"id_token_signed_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"id_token_encrypted_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"id_token_encrypted_response_enc"`: refer to the OpenID Connect Client Registration specification
+  - `"userinfo_signed_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"userinfo_encrypted_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"userinfo_encrypted_response_enc"`: refer to the OpenID Connect Client Registration specification
+  - `"request_object_signed_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"request_object_encrypted_response_alg"`: refer to the OpenID Connect Client Registration specification
+  - `"request_object_encrypted_response_enc"`: refer to the OpenID Connect Client Registration specification
+  - `"default_max_age"`: refer to the OpenID Connect Client Registration specification
+  - `"require_auth_time"`: refer to the OpenID Connect Client Registration specification
+  - `"default_acr_values"`: refer to the OpenID Connect Client Registration specification
   - `"__asteroid_created_by_client_id"`: the `String.t()` client id of the client that has
   initially created this client using the `/register` endpoint (may not have a value if the
   client was created by another mean)

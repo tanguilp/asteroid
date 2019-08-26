@@ -39,7 +39,6 @@ defmodule Asteroid.OAuth2.PKCE do
     end
   end
 
-
   defmodule UnsupportedCodeChallengeMethodError do
     @moduledoc """
     Exception returned when a code challenge method is not supported
@@ -86,29 +85,32 @@ defmodule Asteroid.OAuth2.PKCE do
   """
 
   @spec verify_code_verifier(code_verifier(), code_challenge(), code_challenge_method()) ::
-  :ok
-  | {:error, %OAuth2.InvalidGrantError{}}
+          :ok
+          | {:error, %OAuth2.InvalidGrantError{}}
 
   def verify_code_verifier(code_verifier, code_challenge, :plain) do
     if code_verifier == code_challenge do
       :ok
     else
-      {:error, OAuth2.InvalidGrantError.exception(
-        grant: "code_verifier",
-        reason: "invalid code verifier",
-        debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:plain`)}")}
+      {:error,
+       OAuth2.InvalidGrantError.exception(
+         grant: "code_verifier",
+         reason: "invalid code verifier",
+         debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:plain`)}"
+       )}
     end
   end
 
   def verify_code_verifier(code_verifier, code_challenge, :S256) do
-    if Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false) == code_challenge 
-    do
+    if Base.url_encode64(:crypto.hash(:sha256, code_verifier), padding: false) == code_challenge do
       :ok
     else
-      {:error, OAuth2.InvalidGrantError.exception(
-        grant: "code_verifier",
-        reason: "invalid code verifier",
-        debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:S256`)}")}
+      {:error,
+       OAuth2.InvalidGrantError.exception(
+         grant: "code_verifier",
+         reason: "invalid code verifier",
+         debug_details: "code_verifier: `#{code_verifier}, code_challenge_method: `:S256`)}"
+       )}
     end
   end
 end

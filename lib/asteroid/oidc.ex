@@ -19,8 +19,7 @@ defmodule Asteroid.OIDC do
 
     defexception []
 
-    @type t :: %__MODULE__{
-    }
+    @type t :: %__MODULE__{}
 
     @impl true
 
@@ -48,8 +47,7 @@ defmodule Asteroid.OIDC do
 
     defexception []
 
-    @type t :: %__MODULE__{
-    }
+    @type t :: %__MODULE__{}
 
     @impl true
 
@@ -77,8 +75,7 @@ defmodule Asteroid.OIDC do
 
     defexception []
 
-    @type t :: %__MODULE__{
-    }
+    @type t :: %__MODULE__{}
 
     @impl true
 
@@ -106,8 +103,7 @@ defmodule Asteroid.OIDC do
 
     defexception []
 
-    @type t :: %__MODULE__{
-    }
+    @type t :: %__MODULE__{}
 
     @impl true
 
@@ -174,8 +170,8 @@ defmodule Asteroid.OIDC do
 
   def enabled?() do
     "openid" in OAuth2.Scope.scopes_for_flow(:oidc_authorization_code) or
-    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
-    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
+      "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
+      "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
   end
 
   @doc """

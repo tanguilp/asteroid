@@ -20,8 +20,7 @@ defmodule Asteroid.Application do
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
          :ok <- ObjectStore.auto_start_from_config(),
-         :ok <- Crypto.Key.load_from_config!()
-    do
+         :ok <- Crypto.Key.load_from_config!() do
       # creating clients and subjects for the demo app
       create_clients()
       create_subjects()
@@ -51,7 +50,7 @@ defmodule Asteroid.Application do
       "implicit",
       "password",
       "client_credentials",
-      "refresh_token",
+      "refresh_token"
     ])
     |> Client.add("response_types", [
       "code",
@@ -91,12 +90,18 @@ defmodule Asteroid.Application do
       "interbank_transfer",
       "asteroid.introspect"
     ])
-    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_serialization_format",
-                  "jws")
-    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_signing_key",
-                  "key_auto")
-    |> Client.add("__asteroid_oauth2_flow_client_credentials_access_token_signing_alg",
-                  "PS256")
+    |> Client.add(
+      "__asteroid_oauth2_flow_client_credentials_access_token_serialization_format",
+      "jws"
+    )
+    |> Client.add(
+      "__asteroid_oauth2_flow_client_credentials_access_token_signing_key",
+      "key_auto"
+    )
+    |> Client.add(
+      "__asteroid_oauth2_flow_client_credentials_access_token_signing_alg",
+      "PS256"
+    )
     |> Client.store()
   end
 

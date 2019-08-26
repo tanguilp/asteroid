@@ -24,8 +24,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
          {:ok, client} <-
            Client.load_from_unique_attribute("client_id", access_token.data["client_id"]),
          {:ok, subject} <-
-           Subject.load_from_unique_attribute("sub", access_token.data["sub"], attributes: claims)
-    do
+           Subject.load_from_unique_attribute("sub", access_token.data["sub"], attributes: claims) do
       client = Client.fetch_attributes(client, @client_userinfo_crypto_fields)
 
       ctx =
@@ -90,7 +89,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
       "nonce",
       "acr",
       "amr",
-      "azp",
+      "azp"
     ]
 
     claims_from_param =
@@ -115,7 +114,6 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
 
   defp put_iss_aud_if_signed(claims, client) do
     if client.attrs["userinfo_signed_response_alg"] do
-
       claims
       |> Map.put("iss", OAuth2.issuer())
       |> Map.put("aud", client.attrs["client_id"])
@@ -132,19 +130,17 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
     if signing_alg do
       eligible_jwks =
         Crypto.Key.get_all()
-        |> Enum.filter(
-          fn
-            %JOSE.JWK{fields: fields} ->
-              fields["use"] == "sig" and
+        |> Enum.filter(fn
+          %JOSE.JWK{fields: fields} ->
+            fields["use"] == "sig" and
               (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
               (fields["alg"] == signing_alg or fields["alg"] == nil)
-          end
-        )
+        end)
 
       case eligible_jwks do
         [jwk | _] ->
           JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), claims)
-          |> JOSE.JWS.compact
+          |> JOSE.JWS.compact()
           |> elem(1)
 
         [] ->
@@ -166,14 +162,12 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
           eligible_jwks =
             keys
             |> Enum.map(&JOSE.JWK.from/1)
-            |> Enum.filter(
-              fn
-                %JOSE.JWK{fields: fields} ->
-                  (fields["use"] == "enc" or fields["use"] == nil) and
+            |> Enum.filter(fn
+              %JOSE.JWK{fields: fields} ->
+                (fields["use"] == "enc" or fields["use"] == nil) and
                   (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
                   (fields["alg"] == encryption_alg or fields["alg"] == nil)
-              end
-            )
+            end)
 
           case eligible_jwks do
             [jwk | _] ->
@@ -191,12 +185,13 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
               JOSE.JWE.block_encrypt(
                 jwk,
                 payload,
-                %{"alg" => encryption_alg, "enc" => encryption_enc})
+                %{"alg" => encryption_alg, "enc" => encryption_enc}
+              )
               |> JOSE.JWE.compact()
               |> elem(1)
 
-              [] ->
-                raise Crypto.Key.NoSuitableKeyError
+            [] ->
+              raise Crypto.Key.NoSuitableKeyError
           end
 
         {:error, _} ->
