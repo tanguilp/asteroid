@@ -48,11 +48,20 @@ defmodule Asteroid.Application do
     |> Client.add("client_secret", "clientpassword1")
     |> Client.add("grant_types", [
       "authorization_code",
+      "implicit",
       "password",
       "client_credentials",
       "refresh_token",
     ])
-    |> Client.add("response_types", ["code", "id_token"])
+    |> Client.add("response_types", [
+      "code",
+      "token",
+      "id_token",
+      "id_token token",
+      "code id_token",
+      "code token",
+      "code id_token token"
+    ])
     |> Client.add("scope", [
       "read_balance",
       "read_account_information",
