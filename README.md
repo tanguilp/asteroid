@@ -39,9 +39,9 @@ information.
 
 OAuth2 flow:
 
-[![OAuth2 demo flow](https://raw.githubusercontent.com/tanguilp/wax_demo/master/guides/media/oauth2_flow_video_screenshot.png)](https://vimeo.com/356037657)
+[![OAuth2 demo flow](https://raw.githubusercontent.com/tanguilp/asteroid/master/guides/media/oauth2_flow_video_screenshot.png)](https://vimeo.com/356037657)
 
-[![OpenID Connect demo flow](https://raw.githubusercontent.com/tanguilp/wax_demo/master/guides/media/oidc_flow_video_screenshot.png)](https://vimeo.com/356037941)
+[![OpenID Connect demo flow](https://raw.githubusercontent.com/tanguilp/asteroid/master/guides/media/oidc_flow_video_screenshot.png)](https://vimeo.com/356037941)
 
 ## Install from source
 
