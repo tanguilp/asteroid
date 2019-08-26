@@ -66,10 +66,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeController do
                      error_description: "Unrecognized `token_type_hint`")
       end
     else
-      {:error, %OAuth2.Client.AuthenticationError{} = e} ->
-        AsteroidWeb.Error.respond_api(conn, e)
-
-      {:error, %OAuth2.Request.MalformedParamError{} = e} ->
+      {:error, e} ->
         AsteroidWeb.Error.respond_api(conn, e)
 
     end

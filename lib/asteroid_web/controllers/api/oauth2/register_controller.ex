@@ -206,19 +206,13 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     |> astrenv(:oauth2_endpoint_register_before_send_conn_callback).(ctx)
     |> json(processed_metadata)
   rescue
-    e in Asteroid.OAuth2.Client.AuthenticationError ->
-      AsteroidWeb.Error.respond_api(conn, e)
-
-    e in Asteroid.OAuth2.Client.AuthorizationError ->
-      AsteroidWeb.Error.respond_api(conn, e)
-
-    e in InvalidClientMetadataFieldError ->
-      AsteroidWeb.Error.respond_api(conn, e)
-
-    e in InvalidRedirectURIError ->
-      AsteroidWeb.Error.respond_api(conn, e)
-
-    e in UnauthorizedRequestedScopesError ->
+    e in [
+      Asteroid.OAuth2.Client.AuthenticationError,
+      Asteroid.OAuth2.Client.AuthorizationError,
+      InvalidClientMetadataFieldError,
+      InvalidRedirectURIError,
+      UnauthorizedRequestedScopesError
+    ] ->
       AsteroidWeb.Error.respond_api(conn, e)
 
     _ in Scope.Set.InvalidScopeParam ->
