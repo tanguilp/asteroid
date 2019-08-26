@@ -13,12 +13,12 @@ defmodule Asteroid.Token do
     @enforce_keys [:sort, :id]
 
     defexception [:sort, :id, reason: ""]
-    
+
     @type t :: %__MODULE__{
-      sort: String.t(),
-      reason: String.t(),
-      id: String.t()
-    }
+            sort: String.t(),
+            reason: String.t(),
+            id: String.t()
+          }
 
     @impl true
 
@@ -54,11 +54,11 @@ defmodule Asteroid.Token do
   """
 
   @type serialization_format ::
-    :opaque
-    | :jws
-    | :jwe
-    | :saml1
-    | :saml2
+          :opaque
+          | :jws
+          | :jwe
+          | :saml1
+          | :saml2
 
   @typedoc """
   String representation of a `t:serialization_format/0`

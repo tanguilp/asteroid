@@ -37,7 +37,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
-  test ":authenticated_clients policy, unauthenticated client not authorized to create new clients", %{conn: conn} do
+  test ":authenticated_clients policy, unauthenticated client not authorized to create new clients",
+       %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number two",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -49,13 +50,16 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     response = json_response(conn, 401)
 
     assert response["error"] == "invalid_client"
+
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
+
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer realm="Asteroid")
+             ~s(Bearer realm="Asteroid")
   end
 
-  test ":authenticated_clients policy, client with bad credentials not authorized to create new clients", %{conn: conn} do
+  test ":authenticated_clients policy, client with bad credentials not authorized to create new clients",
+       %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number two",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -71,8 +75,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     response = json_response(conn, 401)
 
     assert response["error"] == "invalid_client"
+
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
   end
 
   test ":authenticated_client policy, client authorized to create new clients", %{conn: conn} do
@@ -96,7 +101,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
-  test ":authorized_clients policy, unauthenticated client not authorized to create new clients", %{conn: conn} do
+  test ":authorized_clients policy, unauthenticated client not authorized to create new clients",
+       %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number four",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -110,7 +116,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert response["error"] == "invalid_client"
   end
 
-  test ":authorized_clients policy, authenticated but unauthorized client not authorized to create new clients", %{conn: conn} do
+  test ":authorized_clients policy, authenticated but unauthorized client not authorized to create new clients",
+       %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number five",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -125,7 +132,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert response["error"] == "unauthorized_client"
   end
 
-  test ":authorized_clients policy, client authorized to create new clients, auth basic", %{conn: conn} do
+  test ":authorized_clients policy, client authorized to create new clients, auth basic", %{
+    conn: conn
+  } do
     req_body = %{
       "client_name" => "Example client number six",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -144,7 +153,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
 
-  test ":authorized_clients policy, client authorized to create new clients, auth bearer", %{conn: conn} do
+  test ":authorized_clients policy, client authorized to create new clients, auth bearer", %{
+    conn: conn
+  } do
     req_body = %{
       "client_name" => "Example client number six'",
       "redirect_uris" => ["https://www.example.com/redirect_uri"]
@@ -175,7 +186,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
         "https://www.example.com/redirect_uri",
         "https://www.example2.com/redirect_uri",
         "invalid uri",
-        "https://www.example3.com/redirect_uri",
+        "https://www.example3.com/redirect_uri"
       ]
     }
 
@@ -279,15 +290,14 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
       "client_name" => "Example client number fourteen",
       "redirect_uris" => ["https://www.example.com/redirect_uri"],
       "jwks_uri" => "https://appleid.apple.com/auth/keys",
-      "jwks" => %{"keys" => [%{
-         "e" => "AQAB",
-         "n" => "nj3YJwsLUFl9BmpAbkOswCNVx17Eh9wMO-_AReZwBqfaWFcfG
+      "jwks" => %{
+        "keys" => [%{"e" => "AQAB", "n" => "nj3YJwsLUFl9BmpAbkOswCNVx17Eh9wMO-_AReZwBqfaWFcfG
    HrZXsIV2VMCNVNU8Tpb4obUaSXcRcQ-VMsfQPJm9IzgtRdAY8NN8Xb7PEcYyk
    lBjvTtuPbpzIaqyiUepzUXNDFuAOOkrIol3WmflPUUgMKULBN0EUd1fpOD70p
    RM0rlp_gg_WNUKoW1V-3keYUJoXH9NztEDm_D2MQXj9eGOJJ8yPgGL8PAZMLe
    2R7jb9TxOCPDED7tY_TU4nFPlxptw59A42mldEmViXsKQt60s1SLboazxFKve
-   qXC_jpLUt22OC6GUG63p-REw-ZOr3r845z50wMuzifQrMI9bQ",
-         "kty" => "RSA"}]}
+   qXC_jpLUt22OC6GUG63p-REw-ZOr3r845z50wMuzifQrMI9bQ", "kty" => "RSA"}]
+      }
     }
 
     response =
@@ -432,12 +442,12 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
       "field_4" => "value 4"
     }
 
-    Process.put(:scope_config, [scopes: %{"scp1" => []}])
-    Process.put(:oauth2_scope_config, [scopes: %{"scp2" => []}])
-    Process.put(:oauth2_flow_ropc_scope_config, [scopes: %{"scp3" => []}])
-    Process.put(:oauth2_flow_client_credentials_scope_config, [scopes: %{"scp4" => []}])
-    Process.put(:oauth2_flow_implicit_scope_config, [scopes: %{"scp5" => []}])
-    Process.put(:oauth2_flow_authorization_code_scope_config, [scopes: %{"scp6" => []}])
+    Process.put(:scope_config, scopes: %{"scp1" => []})
+    Process.put(:oauth2_scope_config, scopes: %{"scp2" => []})
+    Process.put(:oauth2_flow_ropc_scope_config, scopes: %{"scp3" => []})
+    Process.put(:oauth2_flow_client_credentials_scope_config, scopes: %{"scp4" => []})
+    Process.put(:oauth2_flow_implicit_scope_config, scopes: %{"scp5" => []})
+    Process.put(:oauth2_flow_authorization_code_scope_config, scopes: %{"scp6" => []})
 
     response =
       conn
@@ -449,19 +459,27 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     assert response["client_name"] == "Example client number twenty one"
     assert response["client_name_i18n"]["fr"] == "Client d'exemple numéro un"
     assert response["client_name_i18n"]["ru"] == "Примерое приложение номер один"
-    assert Enum.sort(response["redirect_uris"]) == Enum.sort([
-        "https://www.example.com/auth",
-        "https://www.example.org/auth",
-        "com.example.app:/oauth2redirect/example-provider"
-      ])
+
+    assert Enum.sort(response["redirect_uris"]) ==
+             Enum.sort([
+               "https://www.example.com/auth",
+               "https://www.example.org/auth",
+               "com.example.app:/oauth2redirect/example-provider"
+             ])
+
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
-    assert Enum.sort(response["grant_types"]) == Enum.sort([
-      "authorization_code", "implicit", "client_credentials", "password"])
+
+    assert Enum.sort(response["grant_types"]) ==
+             Enum.sort(["authorization_code", "implicit", "client_credentials", "password"])
+
     assert Enum.sort(response["response_types"]) == ["code", "token"]
     assert response["client_uri"] == "https://www.example.com"
+
     assert Scope.Set.equal?(
-      Scope.Set.new(Scope.Set.from_scope_param!(response["scope"])),
-      Scope.Set.new(Scope.Set.from_scope_param!("scp1 scp2 scp3 scp4 scp5 scp6")))
+             Scope.Set.new(Scope.Set.from_scope_param!(response["scope"])),
+             Scope.Set.new(Scope.Set.from_scope_param!("scp1 scp2 scp3 scp4 scp5 scp6"))
+           )
+
     assert response["contacts"] == ["info@example.com"]
     assert response["tos_uri"] == "https://www.example.com/tos"
     assert response["policy_uri"] == "https://www.example.com/policy"
@@ -475,30 +493,54 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
-    client = Client.fetch_attributes(client, [
-      "client_name", "client_name_i18n", "redirect_uris", "token_endpoint_auth_method",
-      "grant_types", "response_types", "client_uri", "scope", "contacts",
-      "tos_uri", "policy_uri", "jwks_uri", "software_id", "software_version", "field_1",
-      "field_2", "field_3", "field_4", "client_secret"
-    ])
+    client =
+      Client.fetch_attributes(client, [
+        "client_name",
+        "client_name_i18n",
+        "redirect_uris",
+        "token_endpoint_auth_method",
+        "grant_types",
+        "response_types",
+        "client_uri",
+        "scope",
+        "contacts",
+        "tos_uri",
+        "policy_uri",
+        "jwks_uri",
+        "software_id",
+        "software_version",
+        "field_1",
+        "field_2",
+        "field_3",
+        "field_4",
+        "client_secret"
+      ])
 
     assert client.attrs["client_id"] == "example_client_number_twenty_one"
     assert client.attrs["client_name"] == "Example client number twenty one"
     assert client.attrs["client_name_i18n"]["fr"] == "Client d'exemple numéro un"
     assert client.attrs["client_name_i18n"]["ru"] == "Примерое приложение номер один"
-    assert Enum.sort(client.attrs["redirect_uris"]) == Enum.sort([
-        "https://www.example.com/auth",
-        "https://www.example.org/auth",
-        "com.example.app:/oauth2redirect/example-provider"
-      ])
+
+    assert Enum.sort(client.attrs["redirect_uris"]) ==
+             Enum.sort([
+               "https://www.example.com/auth",
+               "https://www.example.org/auth",
+               "com.example.app:/oauth2redirect/example-provider"
+             ])
+
     assert client.attrs["token_endpoint_auth_method"] == "client_secret_basic"
-    assert Enum.sort(client.attrs["grant_types"]) == Enum.sort([
-      "authorization_code", "implicit", "client_credentials", "password"])
+
+    assert Enum.sort(client.attrs["grant_types"]) ==
+             Enum.sort(["authorization_code", "implicit", "client_credentials", "password"])
+
     assert Enum.sort(client.attrs["response_types"]) == ["code", "token"]
     assert client.attrs["client_uri"] == "https://www.example.com"
+
     assert Scope.Set.equal?(
-      Scope.Set.new(client.attrs["scope"]),
-      Scope.Set.new(Scope.Set.from_scope_param!("scp1 scp2 scp3 scp4 scp5 scp6")))
+             Scope.Set.new(client.attrs["scope"]),
+             Scope.Set.new(Scope.Set.from_scope_param!("scp1 scp2 scp3 scp4 scp5 scp6"))
+           )
+
     assert client.attrs["contacts"] == ["info@example.com"]
     assert client.attrs["tos_uri"] == "https://www.example.com/tos"
     assert client.attrs["policy_uri"] == "https://www.example.com/policy"
@@ -518,7 +560,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
     req_body = %{
       "client_name" => "Example client number twenty two",
       "redirect_uris" => ["https://www.example.com/auth"],
-      "scope" => "scp11 scp13",
+      "scope" => "scp11 scp13"
     }
 
     response =
@@ -528,9 +570,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
       |> json_response(201)
 
     assert response["client_id"] == "example_client_number_twenty_two"
+
     assert Scope.Set.equal?(
-      Scope.Set.new(Scope.Set.from_scope_param!(response["scope"])),
-      Scope.Set.new(Scope.Set.from_scope_param!("scp11 scp13 scp19 scp17 scp18")))
+             Scope.Set.new(Scope.Set.from_scope_param!(response["scope"])),
+             Scope.Set.new(Scope.Set.from_scope_param!("scp11 scp13 scp19 scp17 scp18"))
+           )
 
     assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
@@ -538,28 +582,29 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     assert client.attrs["client_id"] == "example_client_number_twenty_two"
     assert client.attrs["client_name"] == "Example client number twenty two"
+
     assert Scope.Set.equal?(
-      Scope.Set.new(client.attrs["scope"]),
-      Scope.Set.new(Scope.Set.from_scope_param!("scp11 scp13 scp19 scp17 scp18")))
+             Scope.Set.new(client.attrs["scope"]),
+             Scope.Set.new(Scope.Set.from_scope_param!("scp11 scp13 scp19 scp17 scp18"))
+           )
   end
 
   test "valid jwks", %{conn: conn} do
-    key_1 = %{
-      "e" => "AQAB",
-      "n" => "nj3YJwsLUFl9BmpAbkOswCNVx17Eh9wMO-_AReZwBqfaWFcfG
+    key_1 = %{"e" => "AQAB", "n" => "nj3YJwsLUFl9BmpAbkOswCNVx17Eh9wMO-_AReZwBqfaWFcfG
       HrZXsIV2VMCNVNU8Tpb4obUaSXcRcQ-VMsfQPJm9IzgtRdAY8NN8Xb7PEcYyk
       lBjvTtuPbpzIaqyiUepzUXNDFuAOOkrIol3WmflPUUgMKULBN0EUd1fpOD70p
       RM0rlp_gg_WNUKoW1V-3keYUJoXH9NztEDm_D2MQXj9eGOJJ8yPgGL8PAZMLe
       2R7jb9TxOCPDED7tY_TU4nFPlxptw59A42mldEmViXsKQt60s1SLboazxFKve
-      qXC_jpLUt22OC6GUG63p-REw-ZOr3r845z50wMuzifQrMI9bQ",
-      "kty" => "RSA"}
+      qXC_jpLUt22OC6GUG63p-REw-ZOr3r845z50wMuzifQrMI9bQ", "kty" => "RSA"}
 
-    key_2 = %{"kty" => "EC",
+    key_2 = %{
+      "kty" => "EC",
       "crv" => "P-256",
       "x" => "MKBCTNIcKUSDii11ySs3526iDZ8AiTo7Tu6KPAqv7D4",
       "y" => "4Etl6SRW2YiLUrN5vfvVHuhp7x8PxltmWWlbbM4IFyM",
       "use" => "enc",
-      "kid" => "1"}
+      "kid" => "1"
+    }
 
     req_body = %{
       "client_name" => "Example client number twenty three",
@@ -589,7 +634,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
   test "client defaults grant type and auth method", %{conn: conn} do
     req_body = %{
       "client_name" => "Example client number twenty four",
-      "redirect_uris" => ["https://www.example.com/auth"],
+      "redirect_uris" => ["https://www.example.com/auth"]
     }
 
     response =
@@ -600,24 +645,32 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     assert response["client_id"] == "example_client_number_twenty_four"
     assert response["token_endpoint_auth_method"] == "client_secret_post"
+
     assert Enum.sort(response["grant_types"]) ==
-      Enum.sort(["authorization_code", "client_credentials", "password"])
+             Enum.sort(["authorization_code", "client_credentials", "password"])
+
     assert response["response_types"] == ["code"]
 
     assert {:ok, client} = Client.load_from_unique_attribute("client_id", response["client_id"])
 
-    client = Client.fetch_attributes(client, [
-      "client_id", "token_endpoint_auth_method", "grant_types", "response_types"])
+    client =
+      Client.fetch_attributes(client, [
+        "client_id",
+        "token_endpoint_auth_method",
+        "grant_types",
+        "response_types"
+      ])
 
     assert client.attrs["client_id"] == "example_client_number_twenty_four"
     assert client.attrs["token_endpoint_auth_method"] == "client_secret_post"
+
     assert Enum.sort(client.attrs["grant_types"]) ==
-      Enum.sort(["authorization_code", "client_credentials", "password"])
+             Enum.sort(["authorization_code", "client_credentials", "password"])
+
     assert client.attrs["response_types"] == ["code"]
   end
 
   defp basic_auth_header(client, secret) do
     "Basic " <> Base.encode64(client <> ":" <> secret)
   end
-
 end

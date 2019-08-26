@@ -11,15 +11,14 @@ defmodule Asteroid.Application do
 
   def start(_type, _args) do
     children = [
-      AsteroidWeb.Endpoint,
+      AsteroidWeb.Endpoint
     ]
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
          :ok <- ObjectStore.auto_start_from_config(),
-         :ok <- Crypto.Key.load_from_config!()
-    do
+         :ok <- Crypto.Key.load_from_config!() do
       if astrenv(:crypto_jws_none_alg_enabled, false) do
         JOSE.JWA.unsecured_signing(true)
       end

@@ -7,7 +7,7 @@ defmodule Asteroid.AttributeRepository do
 
   def auto_install_from_config() do
     conf_list = astrenv(:attribute_repositories)
-    
+
     do_auto_install_from_config(conf_list)
   end
 
@@ -37,7 +37,7 @@ defmodule Asteroid.AttributeRepository do
 
   def auto_start_from_config() do
     conf_list = astrenv(:attribute_repositories)
-    
+
     do_auto_start_from_config(conf_list)
   end
 
@@ -48,6 +48,7 @@ defmodule Asteroid.AttributeRepository do
       Logger.info("#{__MODULE__}: starting attribute repository `#{rep}`")
 
       impl = conf[:module]
+
       if {:start_link, 1} in impl.__info__(:functions) do
         case impl.start_link(conf[:init_opts] || []) do
           {:ok, _pid} ->

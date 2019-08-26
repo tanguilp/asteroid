@@ -43,7 +43,6 @@ defmodule Asteroid.OAuth2.RedirectUri do
       %URI{query: nil} = parsed_uri ->
         parsed_uri
         |> Map.put(:query, URI.encode_query(params))
-
     end
     |> URI.to_string()
   end

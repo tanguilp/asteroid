@@ -14,6 +14,7 @@ defmodule AsteroidWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+
     for {plug_module, plug_options} <- astrenv(:browser_plugs, []) do
       plug plug_module, plug_options
     end
@@ -90,7 +91,8 @@ defmodule AsteroidWeb.Router do
   end
 
   pipeline :oauth2_endpoint_device_authorization do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_device_authorization_plugs, []) do
+    for {plug_module, plug_options} <-
+          astrenv(:api_oauth2_endpoint_device_authorization_plugs, []) do
       plug plug_module, plug_options
     end
   end
@@ -177,7 +179,11 @@ defmodule AsteroidWeb.Router do
 
   def handle_errors(conn, %{kind: _kind, reason: reason, stack: stack}) do
     conn
-    |> AsteroidWeb.Error.respond_api(OAuth2.ServerError.exception(reason: inspect(reason),
-                                                                  stacktrace: stack))
+    |> AsteroidWeb.Error.respond_api(
+      OAuth2.ServerError.exception(
+        reason: inspect(reason),
+        stacktrace: stack
+      )
+    )
   end
 end

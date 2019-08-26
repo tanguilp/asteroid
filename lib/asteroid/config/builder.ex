@@ -50,21 +50,23 @@ defmodule Asteroid.Config.Builder do
         Module.put_attribute(
           __MODULE__,
           :moduledoc,
-          {line_number, existing_moduledoc <>
-            Asteroid.Config.Builder.__config_doc__(config_fields)})
+          {line_number,
+           existing_moduledoc <>
+             Asteroid.Config.Builder.__config_doc__(config_fields)}
+        )
 
-          # FIXME: dynamically generate types
-          # See: https://elixirforum.com/t/dynamically-generate-typespecs-from-module-attribute-list/7078/2
-          #
-          #Enum.each(
-          #  config_fields,
-          #  fn
-          #    %{options: options, name: name} ->
-          #      if options[:type] do
-          #        @type unquote(:name) :: non_neg_integer()
-          #      end
-          #  end
-          #)
+        # FIXME: dynamically generate types
+        # See: https://elixirforum.com/t/dynamically-generate-typespecs-from-module-attribute-list/7078/2
+        #
+        # Enum.each(
+        #  config_fields,
+        #  fn
+        #    %{options: options, name: name} ->
+        #      if options[:type] do
+        #        @type unquote(:name) :: non_neg_integer()
+        #      end
+        #  end
+        # )
       end
     end
   end
@@ -162,16 +164,16 @@ defmodule Asteroid.Config.Builder do
                 doc
               end
 
-            acc <> doc <>
-            """
-            ### Documentation
+            acc <>
+              doc <>
+              """
+              ### Documentation
 
-            #{documentation || "*No documentation*"}
-            
-            ***
+              #{documentation || "*No documentation*"}
 
-            """
+              ***
 
+              """
         end
       )
 
@@ -188,14 +190,14 @@ defmodule Asteroid.Config.Builder do
       f when is_function(f) ->
         case inspect(f) do
           "&" <> function_name ->
-            "`" <> function_name <>"`"
+            "`" <> function_name <> "`"
 
           val ->
             "`" <> val <> "`"
         end
 
       val ->
-        "`#{inspect val}`"
+        "`#{inspect(val)}`"
     end
   end
 end

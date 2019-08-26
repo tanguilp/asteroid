@@ -25,7 +25,9 @@ defmodule Asteroid.ObjectStore.GenericKV.Mnesia.Purge do
   end
 
   defp purge(opts) do
-    Logger.info("#{__MODULE__}: starting object purge process on #{node()} (#{opts[:table_name]})")
+    Logger.info(
+      "#{__MODULE__}: starting object purge process on #{node()} (#{opts[:table_name]})"
+    )
 
     matchspec = [
       {

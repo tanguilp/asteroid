@@ -93,14 +93,18 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession.Mnesia do
     case :mnesia.dirty_read(table_name, authenticated_session_id) do
       [] ->
         Logger.debug(
-          "#{__MODULE__}: getting authenticated session `#{authenticated_session_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authenticated session `#{authenticated_session_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}
 
       [{^table_name, ^authenticated_session_id, subject_id, data}] ->
-        authenticated_session =
-          %AuthenticatedSession{id: authenticated_session_id, subject_id: subject_id, data: data}
+        authenticated_session = %AuthenticatedSession{
+          id: authenticated_session_id,
+          subject_id: subject_id,
+          data: data
+        }
 
         Logger.debug(
           "#{__MODULE__}: getting authenticated session `#{authenticated_session_id}`, " <>
@@ -123,11 +127,10 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession.Mnesia do
     table_name = opts[:table_name] || :asteroid_authenticated_session
 
     {:ok,
-      for {_table_name, authenticated_session_id, _subject_id, _data} <-
-        :mnesia.dirty_match_object({table_name, :_, subject_id, :_}) do
-        authenticated_session_id
-      end
-    }
+     for {_table_name, authenticated_session_id, _subject_id, _data} <-
+           :mnesia.dirty_match_object({table_name, :_, subject_id, :_}) do
+       authenticated_session_id
+     end}
   catch
     :exit, reason ->
       {:error, reason}

@@ -113,7 +113,8 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession.Riak do
 
       nil ->
         Logger.debug(
-          "#{__MODULE__}: getting authenticated session `#{authenticated_session_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authenticated session `#{authenticated_session_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}
@@ -144,9 +145,11 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession.Riak do
       |> Riak.CRDT.Register.new()
 
     riak_map =
-      Riak.CRDT.Map.put(riak_map,
-                        "authenticated_session_data_binary",
-                        authenticated_session_data_binary)
+      Riak.CRDT.Map.put(
+        riak_map,
+        "authenticated_session_data_binary",
+        authenticated_session_data_binary
+      )
 
     riak_map =
       if authenticated_session.subject_id != nil do
@@ -168,7 +171,9 @@ defmodule Asteroid.ObjectStore.AuthenticatedSession.Riak do
         )
       else
         Logger.warn(
-          "Inserting authenticated session with no expiration: #{String.slice(authenticated_session.id, 1..5)}..."
+          "Inserting authenticated session with no expiration: #{
+            String.slice(authenticated_session.id, 1..5)
+          }..."
         )
 
         riak_map

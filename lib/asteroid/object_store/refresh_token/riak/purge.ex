@@ -33,7 +33,7 @@ defmodule Asteroid.ObjectStore.RefreshToken.Riak.Purge do
       {:ok, refresh_token_ids} ->
         for refresh_token_id <- refresh_token_ids do
           # this causes Riak connection exhaustion, to investigate further
-          #Task.start(Asteroid.ObjectStore.RefreshToken.Riak,
+          # Task.start(Asteroid.ObjectStore.RefreshToken.Riak,
           #           :delete,
           #           [refresh_token_id, opts, access_object_store_config])
           Asteroid.Token.RefreshToken.delete(refresh_token_id)

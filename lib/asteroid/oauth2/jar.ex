@@ -20,16 +20,16 @@ defmodule Asteroid.OAuth2.JAR do
     defexception [:request_object]
 
     @type t :: %__MODULE__{
-      request_object: String.t()
-    }
+            request_object: String.t()
+          }
 
     @impl true
 
     def message(_) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "use of JAR request objects is disabled"
-          <> " (current config: #{inspect astrenv(:oauth2_jar_enabled)})"
+          "use of JAR request objects is disabled" <>
+            " (current config: #{inspect(astrenv(:oauth2_jar_enabled))})"
 
         :normal ->
           "use of JAR request objects is disabled"
@@ -52,8 +52,8 @@ defmodule Asteroid.OAuth2.JAR do
     def message(_) do
       case astrenv(:api_error_response_verbosity) do
         :debug ->
-          "use of JAR request URIs is disabled"
-          <> " (current config: #{inspect astrenv(:oauth2_jar_enabled)})"
+          "use of JAR request URIs is disabled" <>
+            " (current config: #{inspect(astrenv(:oauth2_jar_enabled))})"
 
         :normal ->
           "use of JAR request object URIs is disabled"
@@ -72,8 +72,8 @@ defmodule Asteroid.OAuth2.JAR do
     defexception [:reason]
 
     @type t :: %__MODULE__{
-      reason: String.t()
-    }
+            reason: String.t()
+          }
 
     @impl true
 
@@ -101,9 +101,9 @@ defmodule Asteroid.OAuth2.JAR do
     defexception [:reason, :request_object]
 
     @type t :: %__MODULE__{
-      reason: String.t(),
-      request_object: String.t()
-    }
+            reason: String.t(),
+            request_object: String.t()
+          }
 
     @impl true
 
@@ -155,7 +155,8 @@ defmodule Asteroid.OAuth2.JAR do
   rescue
     _ ->
       raise InvalidRequestObjectError,
-        reason: "Invalid JWE header", request_object: request_object_str
+        reason: "Invalid JWE header",
+        request_object: request_object_str
   end
 
   @spec decrypt_jwe(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
@@ -166,15 +167,14 @@ defmodule Asteroid.OAuth2.JAR do
 
     eligible_jwks =
       Crypto.Key.get_all()
-      |> Enum.filter(
-        fn
-          %JOSE.JWK{fields: fields} ->
-            (fields["use"] == "enc" or fields["use"] == nil) and
+      |> Enum.filter(fn
+        %JOSE.JWK{fields: fields} ->
+          (fields["use"] == "enc" or fields["use"] == nil) and
             (fields["key_ops"] in ["encrypt", "deriveKey"] or fields["key_ops"] == nil) and
             (fields["alg"] in jwe_alg_supported or fields["alg"] == nil)
-        end
-      )
-      # as per https://mailarchive.ietf.org/arch/msg/oauth/pNMHnuBeBgF5zlea0RkA4bcmhz0
+      end)
+
+    # as per https://mailarchive.ietf.org/arch/msg/oauth/pNMHnuBeBgF5zlea0RkA4bcmhz0
 
     jwe_header = decode_jwe_header(jwe)
 
@@ -206,12 +206,18 @@ defmodule Asteroid.OAuth2.JAR do
           {:ok, payload}
 
         :decryption_failure ->
-          {:error, InvalidRequestObjectError.exception(
-            reason: "JWE decryption failure", request_object: jwe)}
+          {:error,
+           InvalidRequestObjectError.exception(
+             reason: "JWE decryption failure",
+             request_object: jwe
+           )}
       end
     else
-      {:error, InvalidRequestObjectError.exception(
-        reason: "Unsupported JWE `alg` or `enc`", request_object: jwe)}
+      {:error,
+       InvalidRequestObjectError.exception(
+         reason: "Unsupported JWE `alg` or `enc`",
+         request_object: jwe
+       )}
     end
   end
 
@@ -222,10 +228,12 @@ defmodule Asteroid.OAuth2.JAR do
       {:ok, unverified_params} ->
         case unverified_params do
           %{"client_id" => client_id} ->
-            {:ok, client} =  Client.load_from_unique_attribute(
-              "client_id",
-              client_id,
-              attributes: ["jwks", "jwks_uri", "request_object_signing_alg"])
+            {:ok, client} =
+              Client.load_from_unique_attribute(
+                "client_id",
+                client_id,
+                attributes: ["jwks", "jwks_uri", "request_object_signing_alg"]
+              )
 
             jws_alg_supported =
               if client.attrs["request_object_signing_alg"] do
@@ -238,19 +246,25 @@ defmodule Asteroid.OAuth2.JAR do
 
             if jws_alg == "none" and "none" in jws_alg_supported do
               case JOSE.JWS.verify_strict(%JOSE.JWK{}, ["none"], jws) do
-                {true, payload, %JOSE.JWS{alg: {:jose_jws_alg_none, :none}}}->
+                {true, payload, %JOSE.JWS{alg: {:jose_jws_alg_none, :none}}} ->
                   case Jason.decode(payload) do
                     {:ok, jwt} ->
                       {:ok, jwt}
 
                     {:error, _} ->
-                      {:error, InvalidRequestObjectError.exception(
-                        reason: "JWT parsing error", request_object: jws)}
+                      {:error,
+                       InvalidRequestObjectError.exception(
+                         reason: "JWT parsing error",
+                         request_object: jws
+                       )}
                   end
 
                 _ ->
-                  {:error, InvalidRequestObjectError.exception(
-                    reason: "JWS signature verification failed", request_object: jws)}
+                  {:error,
+                   InvalidRequestObjectError.exception(
+                     reason: "JWS signature verification failed",
+                     request_object: jws
+                   )}
               end
             else
               case Client.get_jwks(client) do
@@ -258,14 +272,12 @@ defmodule Asteroid.OAuth2.JAR do
                   eligible_jwks =
                     keys
                     |> Enum.map(&JOSE.JWK.from/1)
-                    |> Enum.filter(
-                      fn
-                        %JOSE.JWK{fields: fields} ->
-                          (fields["use"] == "sig" or fields["use"] == nil) and
+                    |> Enum.filter(fn
+                      %JOSE.JWK{fields: fields} ->
+                        (fields["use"] == "sig" or fields["use"] == nil) and
                           (fields["key_ops"] == "sign" or fields["key_ops"] == nil) and
                           (fields["alg"] in jws_alg_supported or fields["alg"] == nil)
-                      end
-                    )
+                    end)
 
                   maybe_payload =
                     Enum.find_value(
@@ -288,45 +300,61 @@ defmodule Asteroid.OAuth2.JAR do
                       case Jason.decode(payload) do
                         {:ok, jwt} ->
                           if request_object_issuer_valid?(jwt, client) and
-                            request_object_audience_valid?(jwt)
-                          do
+                               request_object_audience_valid?(jwt) do
                             {:ok, jwt}
                           else
-                            {:error, InvalidRequestObjectError.exception(
-                              reason: "invalid `aud` or `iss` JWT field", request_object: jws)}
+                            {:error,
+                             InvalidRequestObjectError.exception(
+                               reason: "invalid `aud` or `iss` JWT field",
+                               request_object: jws
+                             )}
                           end
 
                         {:error, _} ->
-                          {:error, InvalidRequestObjectError.exception(
-                            reason: "JWT parsing error", request_object: jws)}
+                          {:error,
+                           InvalidRequestObjectError.exception(
+                             reason: "JWT parsing error",
+                             request_object: jws
+                           )}
                       end
 
                     :signature_verification_failure ->
-                      {:error, InvalidRequestObjectError.exception(
-                        reason: "JWS signature verification failed", request_object: jws)}
+                      {:error,
+                       InvalidRequestObjectError.exception(
+                         reason: "JWS signature verification failed",
+                         request_object: jws
+                       )}
                   end
 
                 {:error, error} ->
-                  {:error, InvalidRequestObjectError.exception(
-                    reason: "client keys could not be retrieved (#{inspect(error)})",
-                    request_object: jws)}
+                  {:error,
+                   InvalidRequestObjectError.exception(
+                     reason: "client keys could not be retrieved (#{inspect(error)})",
+                     request_object: jws
+                   )}
               end
             end
 
           _ ->
-            {:error, InvalidRequestObjectError.exception(
-              reason: "missing `client_id` in object request", request_object: jws)}
+            {:error,
+             InvalidRequestObjectError.exception(
+               reason: "missing `client_id` in object request",
+               request_object: jws
+             )}
         end
 
       {:error, _} ->
-        {:error, InvalidRequestObjectError.exception(
-          reason: "invalid object request data", request_object: jws)}
+        {:error,
+         InvalidRequestObjectError.exception(
+           reason: "invalid object request data",
+           request_object: jws
+         )}
     end
   rescue
     # raised by JOSE.JWS.peek/1
     _ ->
-      {:error, InvalidRequestObjectError.exception(
-        reason: "invalid JWS format", request_object: jws)}
+      {:error,
+       InvalidRequestObjectError.exception(reason: "invalid JWS format", request_object: jws)}
   end
 
   @spec request_object_issuer_valid?(map(), Client.t()) :: boolean()
@@ -397,13 +425,17 @@ defmodule Asteroid.OAuth2.JAR do
           if headers_contain_content_type?(headers, "application", "jwt") do
             {:ok, body}
           else
-            {:error, InvalidRequestURIError.exception(
-              reason: "requesting the request uri resulted in incorrect `content-type`")}
+            {:error,
+             InvalidRequestURIError.exception(
+               reason: "requesting the request uri resulted in incorrect `content-type`"
+             )}
           end
 
         {:ok, %HTTPoison.Response{status_code: status_code}} ->
-          {:error, InvalidRequestURIError.exception(
-            reason: "requesting the request uri resulted in HTTP code #{status_code}")}
+          {:error,
+           InvalidRequestURIError.exception(
+             reason: "requesting the request uri resulted in HTTP code #{status_code}"
+           )}
 
         {:error, e} ->
           {:error, InvalidRequestURIError.exception(reason: Exception.message(e))}
@@ -418,8 +450,8 @@ defmodule Asteroid.OAuth2.JAR do
   """
 
   @spec get_stored_request_object(Asteroid.ObjectStore.GenericKV.key()) ::
-  {:ok, String.t()}
-  | {:error, Exception.t()}
+          {:ok, String.t()}
+          | {:error, Exception.t()}
 
   def get_stored_request_object(key) do
     module = astrenv(:object_store_request_object)[:module]
@@ -431,13 +463,13 @@ defmodule Asteroid.OAuth2.JAR do
 
     case module.get(key, opts) do
       {:ok, %{"exp" => exp}} when now + req_obj_lifetime > exp ->
-        {:error, InvalidRequestURIError.exception([reason: "object has expired"])}
+        {:error, InvalidRequestURIError.exception(reason: "object has expired")}
 
       {:ok, %{"request_object" => request_object}} ->
         {:ok, request_object}
 
       {:ok, nil} ->
-        {:error, InvalidRequestURIError.exception([reason: "object could not be found"])}
+        {:error, InvalidRequestURIError.exception(reason: "object could not be found")}
 
       {:error, _} = error ->
         error
@@ -448,10 +480,12 @@ defmodule Asteroid.OAuth2.JAR do
   Saves an object to Asteroid's request object store
   """
 
-  @spec put_request_object(Asteroid.ObjectStore.GenericKV.key(),
-                           Asteroid.ObjectStore.GenericKV.value()) ::
-  :ok
-  | {:error, any()}
+  @spec put_request_object(
+          Asteroid.ObjectStore.GenericKV.key(),
+          Asteroid.ObjectStore.GenericKV.value()
+        ) ::
+          :ok
+          | {:error, any()}
 
   def put_request_object(key, value) do
     module = astrenv(:object_store_request_object)[:module]

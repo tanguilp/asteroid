@@ -27,14 +27,22 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_introspection_endpoint_auth_method_supported()
       |> put_device_authorization_endpoint()
       |> put_code_challenge_methods_supported()
-      |> put_if_not_nil("service_documentation",
-                        astrenv(:oauth2_endpoint_metadata_service_documentation, nil))
-      |> put_if_not_nil("ui_locales_supported",
-                        astrenv(:oauth2_endpoint_metadata_ui_locales_supported, nil))
-      |> put_if_not_nil("op_policy_uri",
-                        astrenv(:oauth2_endpoint_metadata_op_policy_uri, nil))
-      |> put_if_not_nil("op_tos_uri",
-                        astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil))
+      |> put_if_not_nil(
+        "service_documentation",
+        astrenv(:oauth2_endpoint_metadata_service_documentation, nil)
+      )
+      |> put_if_not_nil(
+        "ui_locales_supported",
+        astrenv(:oauth2_endpoint_metadata_ui_locales_supported, nil)
+      )
+      |> put_if_not_nil(
+        "op_policy_uri",
+        astrenv(:oauth2_endpoint_metadata_op_policy_uri, nil)
+      )
+      |> put_if_not_nil(
+        "op_tos_uri",
+        astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil)
+      )
       |> put_jar_enabled()
       |> put_jar_metadata_values()
       |> put_oidc_metadata()
@@ -50,12 +58,14 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp maybe_put_authorization_endpoint(metadata) do
     if Enum.any?(
-      astrenv(:oauth2_grant_types_enabled, []),
-      fn grant_type -> OAuth2Utils.uses_authorization_endpoint?(to_string(grant_type)) end
-    ) do
-      Map.put(metadata,
-              "authorization_endpoint",
-              Routes.authorize_url(AsteroidWeb.Endpoint, :pre_authorize))
+         astrenv(:oauth2_grant_types_enabled, []),
+         fn grant_type -> OAuth2Utils.uses_authorization_endpoint?(to_string(grant_type)) end
+       ) do
+      Map.put(
+        metadata,
+        "authorization_endpoint",
+        Routes.authorize_url(AsteroidWeb.Endpoint, :pre_authorize)
+      )
     else
       metadata
     end
@@ -69,18 +79,22 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         metadata
 
       _ ->
-      Map.put(metadata,
-              "token_endpoint",
-              Routes.token_url(AsteroidWeb.Endpoint, :handle))
+        Map.put(
+          metadata,
+          "token_endpoint",
+          Routes.token_url(AsteroidWeb.Endpoint, :handle)
+        )
     end
   end
 
   @spec put_registration_endpoint(map()) :: map()
 
   defp put_registration_endpoint(metadata) do
-      Map.put(metadata,
-              "registration_endpoint",
-              Routes.register_url(AsteroidWeb.Endpoint, :handle))
+    Map.put(
+      metadata,
+      "registration_endpoint",
+      Routes.register_url(AsteroidWeb.Endpoint, :handle)
+    )
   end
 
   @spec put_scopes_supported(map()) :: map()
@@ -175,7 +189,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         metadata
 
       methods when is_list(methods) ->
-        Map.put(metadata, "token_endpoint_auth_methods_supported",methods)
+        Map.put(metadata, "token_endpoint_auth_methods_supported", methods)
     end
   end
 
@@ -183,9 +197,11 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp put_jwks_uri(metadata) do
     if astrenv(:crypto_keys) do
-      Map.put(metadata,
-              "jwks_uri",
-              Routes.keys_url(AsteroidWeb.Endpoint, :handle))
+      Map.put(
+        metadata,
+        "jwks_uri",
+        Routes.keys_url(AsteroidWeb.Endpoint, :handle)
+      )
     else
       metadata
     end
@@ -194,9 +210,11 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_revocation_endpoint(map()) :: map()
 
   defp put_revocation_endpoint(metadata) do
-      Map.put(metadata,
-              "revocation_endpoint",
-              Routes.revoke_url(AsteroidWeb.Endpoint, :handle))
+    Map.put(
+      metadata,
+      "revocation_endpoint",
+      Routes.revoke_url(AsteroidWeb.Endpoint, :handle)
+    )
   end
 
   @spec put_revocation_endpoint_auth_method_supported(map()) :: map()
@@ -218,9 +236,11 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_introspection_endpoint(map()) :: map()
 
   defp put_introspection_endpoint(metadata) do
-      Map.put(metadata,
-              "introspection_endpoint",
-              Routes.introspect_url(AsteroidWeb.Endpoint, :handle))
+    Map.put(
+      metadata,
+      "introspection_endpoint",
+      Routes.introspect_url(AsteroidWeb.Endpoint, :handle)
+    )
   end
 
   @spec put_introspection_endpoint_auth_method_supported(map()) :: map()
@@ -242,11 +262,12 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_device_authorization_endpoint(map()) :: map()
 
   defp put_device_authorization_endpoint(metadata) do
-    if :"urn:ietf:params:oauth:grant-type:device_code" in astrenv(:oauth2_grant_types_enabled, [])
-    do
-      Map.put(metadata,
-              "device_authorization_endpoint",
-              Routes.device_authorization_url(AsteroidWeb.Endpoint, :handle))
+    if :"urn:ietf:params:oauth:grant-type:device_code" in astrenv(:oauth2_grant_types_enabled, []) do
+      Map.put(
+        metadata,
+        "device_authorization_endpoint",
+        Routes.device_authorization_url(AsteroidWeb.Endpoint, :handle)
+      )
     else
       metadata
     end
@@ -256,7 +277,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp put_code_challenge_methods_supported(metadata) do
     case astrenv(:oauth2_pkce_policy, []) do
-      :disabled->
+      :disabled ->
         metadata
 
       _ ->
@@ -299,13 +320,16 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         metadata
         |> put_if_not_empty(
           "request_object_encryption_alg_values_supported",
-          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, []))
+          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, [])
+        )
         |> put_if_not_empty(
           "request_object_encryption_enc_values_supported",
-           astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, []))
+          astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, [])
+        )
         |> put_if_not_empty(
           "request_object_signing_alg_values_supported",
-          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, []))
+          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, [])
+        )
     end
   end
 
@@ -345,8 +369,10 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
       |> put_if_not_empty("acr_values_supported", acr_values)
       |> put_if_not_empty("claims_supported", astrenv(:oidc_claims_supported, []))
-      |> put_if_not_empty("display_values_supported",
-                          astrenv(:oidc_endpoint_metadata_display_values_supported, []))
+      |> put_if_not_empty(
+        "display_values_supported",
+        astrenv(:oidc_endpoint_metadata_display_values_supported, [])
+      )
     else
       metadata
     end
@@ -381,11 +407,11 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       jws = JOSE.JWS.from_map(%{"alg" => signing_alg})
 
       JOSE.JWT.sign(jwk, jws, to_be_signed)
-      |> JOSE.JWS.compact
+      |> JOSE.JWS.compact()
       |> elem(1)
     else
       JOSE.JWT.sign(jwk, to_be_signed)
-      |> JOSE.JWS.compact
+      |> JOSE.JWS.compact()
       |> elem(1)
     end
   end

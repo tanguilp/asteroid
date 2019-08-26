@@ -1,9 +1,9 @@
 defmodule AsteroidWeb.ErrorHelpers do
   @moduledoc false
 
-  #@moduledoc """
-  #Conveniences for translating and building error messages.
-  #"""
+  # @moduledoc """
+  # Conveniences for translating and building error messages.
+  # """
 
   use Phoenix.HTML
 

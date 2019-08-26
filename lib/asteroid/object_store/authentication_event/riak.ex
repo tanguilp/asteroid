@@ -113,7 +113,8 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Riak do
 
       nil ->
         Logger.debug(
-          "#{__MODULE__}: getting authentication event `#{authentication_event_id}`, " <> "value: `nil`"
+          "#{__MODULE__}: getting authentication event `#{authentication_event_id}`, " <>
+            "value: `nil`"
         )
 
         {:ok, nil}
@@ -126,7 +127,12 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Riak do
   @impl true
 
   def get_from_authenticated_session_id(authenticated_session_id, opts) do
-    search("authenticated_session_id_register:\"#{String.replace(authenticated_session_id, "\"", "\\\"")}\"", opts)
+    search(
+      "authenticated_session_id_register:\"#{
+        String.replace(authenticated_session_id, "\"", "\\\"")
+      }\"",
+      opts
+    )
   end
 
   @impl true
@@ -144,9 +150,11 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Riak do
       |> Riak.CRDT.Register.new()
 
     riak_map =
-      Riak.CRDT.Map.put(riak_map,
-                        "authentication_event_data_binary",
-                        authentication_event_data_binary)
+      Riak.CRDT.Map.put(
+        riak_map,
+        "authentication_event_data_binary",
+        authentication_event_data_binary
+      )
 
     riak_map =
       if authentication_event.authenticated_session_id != nil do
@@ -168,7 +176,9 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent.Riak do
         )
       else
         Logger.warn(
-          "Inserting authentication event with no expiration: #{String.slice(authentication_event.id, 1..5)}..."
+          "Inserting authentication event with no expiration: #{
+            String.slice(authentication_event.id, 1..5)
+          }..."
         )
 
         riak_map

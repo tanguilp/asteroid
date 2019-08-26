@@ -91,9 +91,7 @@ defmodule Asteroid.ObjectStore.DeviceCode.Mnesia do
 
     case :mnesia.dirty_read(table_name, device_code_id) do
       [] ->
-        Logger.debug(
-          "#{__MODULE__}: getting device code `#{device_code_id}`, " <> "value: `nil`"
-        )
+        Logger.debug("#{__MODULE__}: getting device code `#{device_code_id}`, " <> "value: `nil`")
 
         {:ok, nil}
 
@@ -127,7 +125,8 @@ defmodule Asteroid.ObjectStore.DeviceCode.Mnesia do
   def get_from_user_code(user_code, opts) do
     table_name = opts[:table_name] || :asteroid_device_code
 
-    [{_table_name, device_code_id, _user_code, _data}] = :mnesia.dirty_match_object({table_name, :_, user_code, :_})
+    [{_table_name, device_code_id, _user_code, _data}] =
+      :mnesia.dirty_match_object({table_name, :_, user_code, :_})
 
     get(device_code_id, opts)
   catch

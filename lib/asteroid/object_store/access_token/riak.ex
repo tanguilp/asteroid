@@ -274,7 +274,9 @@ defmodule Asteroid.ObjectStore.AccessToken.Riak do
   ## Example
 
   ```elixir
-  iex(13)> Asteroid.ObjectStore.AccessToken.Riak.search("sub_register:j* AND exp_int_register:[0 TO #{:os.system_time(:seconds)}]", opts)
+  iex(13)> Asteroid.ObjectStore.AccessToken.Riak.search("sub_register:j* AND exp_int_register:[0 TO #{
+    :os.system_time(:seconds)
+  }]", opts)
   {:ok, ["7WRQL4EAKW27C5BEFF3JDGXBTA", "WCJBCL7SC2THS7TSRXB2KZH7OQ"]}
   ```
   """

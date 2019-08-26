@@ -66,17 +66,17 @@ defmodule AsteroidWeb.API.OAuth2.RevokeControllerTest do
     req_body = %{
       "token" => "egxeghqearfza"
     }
-    conn =
-      post(conn, Routes.revoke_path(conn, :handle), req_body)
+
+    conn = post(conn, Routes.revoke_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="always erroneous client password")
+             ~s(Basic realm="always erroneous client password")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer realm="Asteroid")
+             ~s(Bearer realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -104,10 +104,10 @@ defmodule AsteroidWeb.API.OAuth2.RevokeControllerTest do
       |> post(Routes.revoke_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm=)
+             ~s(Basic realm=)
 
     refute Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer )
+             ~s(Bearer )
 
     response = json_response(conn, 401)
 
@@ -119,17 +119,16 @@ defmodule AsteroidWeb.API.OAuth2.RevokeControllerTest do
       "token" => "onetokenewxoqziurmfaiy"
     }
 
-    conn = post(conn, Routes.revoke_path(conn, :handle),
-                                                                          req_body)
+    conn = post(conn, Routes.revoke_path(conn, :handle), req_body)
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="always erroneous client password")
+             ~s(Basic realm="always erroneous client password")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Basic realm="Asteroid")
+             ~s(Basic realm="Asteroid")
 
     assert Plug.Conn.get_resp_header(conn, "www-authenticate") |> List.first() =~
-      ~s(Bearer realm="Asteroid")
+             ~s(Bearer realm="Asteroid")
 
     response = json_response(conn, 401)
 
@@ -313,5 +312,4 @@ defmodule AsteroidWeb.API.OAuth2.RevokeControllerTest do
   defp basic_auth_header(client, secret) do
     "Basic " <> Base.encode64(client <> ":" <> secret)
   end
-
 end

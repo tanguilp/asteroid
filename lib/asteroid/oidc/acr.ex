@@ -10,9 +10,9 @@ defmodule Asteroid.OIDC.ACR do
   """
 
   @type config_option ::
-  {:callback, AsteroidWeb.AuthorizeController.web_authorization_callback()}
-  | {:auth_event_set, [auth_event_set()]}
-  | {:default, boolean()}
+          {:callback, AsteroidWeb.AuthorizeController.web_authorization_callback()}
+          | {:auth_event_set, [auth_event_set()]}
+          | {:default, boolean()}
 
   @typedoc """
   An authentication event set, containing the names of the events

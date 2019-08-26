@@ -31,15 +31,15 @@ defmodule Asteroid.ObjectStore.AuthenticationEvent do
   """
 
   @callback get(Asteroid.OIDC.AuthenticationEvent.id(), opts()) ::
-  {:ok, Asteroid.OIDC.AuthenticationEvent.t() | nil}
-  | {:error, any()}
+              {:ok, Asteroid.OIDC.AuthenticationEvent.t() | nil}
+              | {:error, any()}
 
   @doc """
   Returns all the *authentication event ids* of a subject
   """
 
   @callback get_from_authenticated_session_id(Asteroid.Subject.id(), opts()) ::
-  {:ok, [Asteroid.OIDC.AuthenticationEvent.id()]} | {:error, any()}
+              {:ok, [Asteroid.OIDC.AuthenticationEvent.id()]} | {:error, any()}
 
   @doc """
   Stores an authentication event
