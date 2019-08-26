@@ -66,18 +66,14 @@ defmodule AsteroidWeb.RegisterWebauthnKeyController do
 
         case subject.attrs["webauthn_keys"] do
           l when is_list(l) ->
-            IO.inspect("============================= keys")
             subject
             |> Subject.add("webauthn_keys", %{"id" => raw_id_b64, "key" => cose_key})
             |> Subject.store()
-            |> IO.inspect()
 
           nil ->
-            IO.inspect("============================= nokeys")
             subject
             |> Subject.add("webauthn_keys", [%{"id" => raw_id_b64, "key" => cose_key}])
             |> Subject.store()
-            |> IO.inspect()
         end
 
         conn
