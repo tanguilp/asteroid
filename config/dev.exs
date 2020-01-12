@@ -23,6 +23,12 @@ config :asteroid, AsteroidWeb.Endpoint,
     ]
   ]
 
+config :asteroid, AsteroidWeb.EndpointMTLSAliases,
+  http: [port: 8443],
+  url: [scheme: "https", host: "mtls.example.com", path: "/mtls", port: 10443],
+  debug_errors: true,
+  check_origin: false
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed
@@ -192,7 +198,13 @@ config :asteroid, :api_oauth2_endpoint_token_plugs, [
    realm: "Asteroid",
    callback: &Asteroid.OAuth2.Client.get_client_secret/2,
    set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
-   error_response_verbosity: :debug}
+   error_response_verbosity: :debug},
+  {APIacAuthMTLS,
+    allowed_methods: :both,
+    pki_callback: &Asteroid.OAuth2.MTLS.pki_mutual_tls_method/1,
+    selfsigned_callback: &Asteroid.OAuth2.MTLS.self_signed_mutual_tls_method/1,
+    set_error_response: &APIacAuthMTLS.save_authentication_failure_response/3
+  }
   # uncomment the following lines to enable CORS on the /api/oauth2/token endpoint
   # {Corsica, [origins: "*"]},
   # uncomment the following line to enable throttling for public clients on the

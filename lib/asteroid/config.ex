@@ -2636,6 +2636,32 @@ defmodule Asteroid.Config do
       used_by: [:oidc_issue_id_token_on_refresh_callback]
     )
 
+    @doc """
+    When MTLS is used, determines if the native endpoint should be started
+
+    Possible values are:
+    - `true`: the endpoint is started
+    - `false`: the endpoint is not started
+    - `auto`: uses the result of `Asteroid.OAuth2.MTLS.in_use?/0`. Default value
+    """
+
+    @type oauth2_mtls_start_endpoint :: boolean() | :auto
+
+    field(:oauth2_mtls_start_endpoint,
+      config_time: :runtime
+    )
+    @doc """
+    When MTLS is used, determines if the endpoints using MTLS should be advertised
+
+    Defaults to `true`
+    """
+
+    @type oauth2_mtls_advertise_aliases :: boolean()
+
+    field(:oauth2_mtls_advertise_aliases,
+      config_time: :runtime
+    )
+
     ### end of configuration options
   end
 

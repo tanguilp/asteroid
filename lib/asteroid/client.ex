@@ -54,6 +54,17 @@ defmodule Asteroid.Client do
   - `"default_max_age"`: refer to the OpenID Connect Client Registration specification
   - `"require_auth_time"`: refer to the OpenID Connect Client Registration specification
   - `"default_acr_values"`: refer to the OpenID Connect Client Registration specification
+  - `"tls_client_auth_subject_dn"`: a `String.t()` representation of the expected subject
+  distinguished name of the certificate (for use with MTLS)
+  - `"tls_client_auth_san_dns"`: a `String.t()` containing the value of an expected dNSName SAN
+  entry in the certificate (for use with MTLS)
+  - `"tls_client_auth_san_uri"`: a `String.t()` containing the value of an expected
+  uniformResourceIdentifier SAN entry in the certificate (for use with MTLS)
+  - `"tls_client_auth_san_ip"`: a `String.t()` representation of an IP address in either dotted
+  decimal notation (for IPv4) or colon-delimited hexadecimal (for IPv6, as defined in RFC5952)
+  that is expected to be present as an iPAddress SAN entry in the certificate (for use with MTLS)
+  - `"tls_client_auth_san_email"`: a `String.t()` containing the value of an expected
+  rfc822Name SAN entry in the certificate (for use with MTLS)
   - `"__asteroid_created_by_client_id"`: the `String.t()` client id of the client that has
   initially created this client using the `/register` endpoint (may not have a value if the
   client was created by another mean)

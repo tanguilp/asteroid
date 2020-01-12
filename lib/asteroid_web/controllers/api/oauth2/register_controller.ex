@@ -122,6 +122,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       |> check_grant_response_type_consistency()
       |> process_redirect_uris(input_metadata)
       |> process_token_endpoint_auth_method(maybe_authenticated_client, input_metadata)
+      |> process_mtls_pki_method_parameter(input_metadata)
       |> process_i18n_field(input_metadata, "client_name")
       |> process_i18n_field(input_metadata, "client_uri")
       |> process_i18n_field(input_metadata, "logo_uri")
@@ -494,6 +495,42 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       nil ->
         Map.put(processed_metadata, "token_endpoint_auth_method", "client_secret_basic")
     end
+  end
+
+  @spec process_mtls_pki_method_parameter(map(), map()) :: map()
+
+  defp process_mtls_pki_method_parameter(
+    processed_metadata,
+    %{"token_endpoint_auth_method" => "tls_client_auth"} = input_metadata)
+  do
+    possible_params = [
+      "tls_client_auth_subject_dn",
+      "tls_client_auth_san_dns",
+      "tls_client_auth_san_uri",
+      "tls_client_auth_san_ip",
+      "tls_client_auth_san_email"
+    ]
+
+    param = Map.take(input_metadata, possible_params)
+
+    case Enum.count(param) do
+      0 ->
+        raise InvalidClientMetadataFieldError,
+          field: "token_endpoint_auth_method",
+          reason: "Missing one param of: `#{inspect(possible_params)}`"
+
+      1 ->
+        Map.merge(processed_metadata, input_metadata)
+
+      n ->
+        raise InvalidClientMetadataFieldError,
+          field: "token_endpoint_auth_method",
+          reason: "Maximum one param of: `#{inspect(possible_params)}` allowed, #{n} given"
+    end
+  end
+
+  defp process_mtls_pki_method_parameter(processed_metadata, _) do
+    processed_metadata
   end
 
   @spec process_scope(map(), Client.t() | nil, map()) :: map()

@@ -5,7 +5,12 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   import Asteroid.Utils
 
-  @type auth_method :: :none | :client_secret_basic | :tls_client_auth
+  @type auth_method ::
+  :none 
+  | :client_secret_basic
+  | :client_secret_post
+  | :tls_client_auth
+  | :self_signed_tls_client_auth
 
   @typedoc """
   String representation of an endpoint client authentication method
@@ -34,14 +39,10 @@ defmodule Asteroid.OAuth2.Endpoint do
       astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_token_plugs, []),
       MapSet.new([:none]),
       fn
-        {module, _options}, acc ->
-          case apiac_authenticator_to_auth_method(module) do
-            nil ->
-              acc
-
-            apiac_authenticator ->
-              MapSet.put(acc, apiac_authenticator)
-          end
+        {module, options}, acc ->
+          apiac_authenticator_to_auth_method(module, options)
+          |> MapSet.new()
+          |> MapSet.union(acc)
       end
     )
     |> MapSet.to_list()
@@ -63,14 +64,10 @@ defmodule Asteroid.OAuth2.Endpoint do
       astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_revoke_plugs, []),
       MapSet.new(),
       fn
-        {module, _options}, acc ->
-          case apiac_authenticator_to_auth_method(module) do
-            nil ->
-              acc
-
-            apiac_authenticator ->
-              MapSet.put(acc, apiac_authenticator)
-          end
+        {module, options}, acc ->
+          apiac_authenticator_to_auth_method(module, options)
+          |> MapSet.new()
+          |> MapSet.union(acc)
       end
     )
     |> MapSet.to_list()
@@ -92,14 +89,10 @@ defmodule Asteroid.OAuth2.Endpoint do
       astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_introspect_plugs, []),
       MapSet.new(),
       fn
-        {module, _options}, acc ->
-          case apiac_authenticator_to_auth_method(module) do
-            nil ->
-              acc
-
-            apiac_authenticator ->
-              MapSet.put(acc, apiac_authenticator)
-          end
+        {module, options}, acc ->
+          apiac_authenticator_to_auth_method(module, options)
+          |> MapSet.new()
+          |> MapSet.union(acc)
       end
     )
     |> MapSet.to_list()
@@ -113,10 +106,30 @@ defmodule Asteroid.OAuth2.Endpoint do
   - `APIacAuthMTLS`: `:tls_client_auth`
   """
 
-  @spec apiac_authenticator_to_auth_method(module()) :: auth_method | nil
+  @spec apiac_authenticator_to_auth_method(module(), Keyword.t()) :: [auth_method()]
 
-  def apiac_authenticator_to_auth_method(APIacAuthBasic), do: :client_secret_basic
-  def apiac_authenticator_to_auth_method(APIacAuthClientSecretPost), do: :client_secret_post
-  def apiac_authenticator_to_auth_method(APIacAuthMTLS), do: :tls_client_auth
-  def apiac_authenticator_to_auth_method(_), do: nil
+  def apiac_authenticator_to_auth_method(APIacAuthBasic, _) do
+    [:client_secret_basic]
+  end
+
+  def apiac_authenticator_to_auth_method(APIacAuthClientSecretPost, _) do
+    [:client_secret_post]
+  end
+
+  def apiac_authenticator_to_auth_method(APIacAuthMTLS, opts) do
+    case opts[:allowed_methods] do
+      :pki ->
+        [:tls_client_auth]
+
+      :selfsigned ->
+        [:self_signed_tls_client_auth]
+
+      :both ->
+        [:tls_client_auth, :self_signed_tls_client_auth]
+    end
+  end
+
+  def apiac_authenticator_to_auth_method(_, _) do
+    []
+  end
 end

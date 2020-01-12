@@ -40,7 +40,7 @@ defmodule Asteroid.MixProject do
       {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic"},
       {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer"},
       {:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
-      # {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
+      {:apiac_auth_mtls, github: "tanguilp/apiac_auth_mtls"},
       {:apiac_filter_ip_blacklist, github: "tanguilp/apiac_filter_ip_blacklist"},
       {:apiac_filter_ip_whitelist, github: "tanguilp/apiac_filter_ip_whitelist"},
       {:apiac_filter_throttler, github: "tanguilp/apiac_filter_throttler"},
@@ -145,6 +145,7 @@ defmodule Asteroid.MixProject do
         "guides/oauth2/device-flow.md",
         "guides/oauth2/server-metadata.md",
         "guides/oauth2/jar.md",
+        "guides/oauth2/mtls.md",
         "guides/openid-connect/sessions-loas.md",
         "guides/openid-connect/openid-connect-core.md",
         "guides/openid-connect/oidc-dynamic-client-registration.md",
@@ -163,7 +164,8 @@ defmodule Asteroid.MixProject do
           "guides/oauth2/dynamic-client-registration.md",
           "guides/oauth2/device-flow.md",
           "guides/oauth2/server-metadata.md",
-          "guides/oauth2/jar.md"
+          "guides/oauth2/jar.md",
+          "guides/oauth2/mtls.md"
         ],
         "OpenID Connect": [
           "guides/openid-connect/sessions-loas.md",

@@ -3,6 +3,7 @@
   "apiac_auth_basic": {:git, "https://github.com/tanguilp/apiac_auth_basic.git", "5ef32783185e672e1fcc44f276b94386b9bbecf2", []},
   "apiac_auth_bearer": {:git, "https://github.com/tanguilp/apiac_auth_bearer.git", "85bdb4b8173e64523618c68038aae471679b3a35", []},
   "apiac_auth_client_secret_post": {:git, "https://github.com/tanguilp/apiac_auth_client_secret_post.git", "f74ac3fc9c079e5415e9ef725146bd35869a9f70", []},
+  "apiac_auth_mtls": {:git, "https://github.com/tanguilp/apiac_auth_mtls.git", "9457d01ef40f11453b30da80fbf460a622c46919", []},
   "apiac_filter_ip_blacklist": {:git, "https://github.com/tanguilp/apiac_filter_ip_blacklist.git", "5f9f1f47ccb2e00efec4c818f3c0f3f653cd8f9e", []},
   "apiac_filter_ip_whitelist": {:git, "https://github.com/tanguilp/apiac_filter_ip_whitelist.git", "e941a70f11b72474293008bc433c126f5f4ab053", []},
   "apiac_filter_throttler": {:git, "https://github.com/tanguilp/apiac_filter_throttler.git", "1e9f7fb9bb5ba2751816af14f2186d3f0cf34f74", []},
@@ -58,4 +59,5 @@
   "telemetry": {:hex, :telemetry, "0.4.0", "8339bee3fa8b91cb84d14c2935f8ecf399ccd87301ad6da6b71c09553834b2ab", [:rebar3], [], "hexpm"},
   "tesla": {:hex, :tesla, "1.2.1", "864783cc27f71dd8c8969163704752476cec0f3a51eb3b06393b3971dc9733ff", [:mix], [{:exjsx, ">= 3.0.0", [hex: :exjsx, repo: "hexpm", optional: true]}, {:fuse, "~> 2.4", [hex: :fuse, repo: "hexpm", optional: true]}, {:hackney, "~> 1.6", [hex: :hackney, repo: "hexpm", optional: true]}, {:ibrowse, "~> 4.4.0", [hex: :ibrowse, repo: "hexpm", optional: true]}, {:jason, ">= 1.0.0", [hex: :jason, repo: "hexpm", optional: true]}, {:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}, {:poison, ">= 1.0.0", [hex: :poison, repo: "hexpm", optional: true]}], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.4.1", "d869e4c68901dd9531385bb0c8c40444ebf624e60b6962d95952775cac5e90cd", [:rebar3], [], "hexpm"},
+  "x509": {:hex, :x509, "0.8.0", "b286b9dbb32801f76f48bdea476304d280c64ce172ea330c23d8df7ea9e75ce6", [:mix], [], "hexpm"},
 }

@@ -8,6 +8,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   alias Asteroid.OAuth2
   alias Asteroid.OIDC
   alias AsteroidWeb.Router.Helpers, as: Routes
+  alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
 
   def handle(conn, _params) do
     metadata =
@@ -46,6 +47,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_jar_enabled()
       |> put_jar_metadata_values()
       |> put_oidc_metadata()
+      |> put_mtls_endpoint_aliases()
       |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
       |> sign_metadata()
 
@@ -373,6 +375,40 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         "display_values_supported",
         astrenv(:oidc_endpoint_metadata_display_values_supported, [])
       )
+    else
+      metadata
+    end
+  end
+
+  @spec put_mtls_endpoint_aliases(map()) :: map()
+  defp put_mtls_endpoint_aliases(metadata) do
+    if astrenv(:oauth2_mtls_advertise_aliases, true) and OAuth2.MTLS.in_use?() do
+      helpers = %{
+        token_url: "token_endpoint",
+        introspect_url: "introspection_endpoint",
+        revoke_url: "revocation_endpoint",
+        register_url: "registration_endpoint",
+        device_authorization_url: "device_authorization_endpoint"
+      }
+
+      aliases =
+        Enum.reduce(
+          helpers,
+          %{},
+          fn {helper, endpoint}, acc ->
+            if Kernel.function_exported?(RoutesMTLS, helper, 2) do
+              Map.put(
+                acc,
+                endpoint,
+                apply(RoutesMTLS, helper, [AsteroidWeb.EndpointMTLSAliases, :handle])
+              )
+            else
+              acc
+            end
+          end
+        )
+
+      Map.put(metadata, "mtls_endpoint_aliases", aliases)
     else
       metadata
     end
