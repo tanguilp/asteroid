@@ -6,7 +6,7 @@ defmodule Asteroid.OAuth2.Endpoint do
   import Asteroid.Utils
 
   @type auth_method ::
-  :none 
+  :none
   | :client_secret_basic
   | :client_secret_post
   | :tls_client_auth

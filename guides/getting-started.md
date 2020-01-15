@@ -4,9 +4,9 @@ Asteroid is an OAuth2 compliant server. Its name stands for "Authorization Serve
 
 ## Compatibility
 
-OTP21+
+**OTP22.1+**
 
-Elixir 17+
+Elixir 1.9+
 
 Mix 1.9
 

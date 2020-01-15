@@ -45,6 +45,12 @@ information.
 
 [![OpenID Connect demo flow](https://raw.githubusercontent.com/tanguilp/asteroid/master/guides/media/oidc_flow_video_screenshot.png)](https://vimeo.com/356037941)
 
+## Compatibility
+
+**OTP22.1+**
+
+Elixir 1.9
+
 ## Install from source
 
 First,
