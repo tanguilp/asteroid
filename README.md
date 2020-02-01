@@ -21,8 +21,11 @@ Asteroid supports the following specifications:
   - OAuth 2.0 Dynamic Client Registration Protocol ([RFC7591](https://tools.ietf.org/html/rfc7591))
   - OAuth 2.0 Authorization Server Metadata ([RFC8414](https://tools.ietf.org/html/rfc8414))
   - OAuth 2.0 Device Authorization Grant ([RFC8628](https://www.rfc-editor.org/rfc/rfc8628.html))
-  - JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00))
-  - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens [draft-ietf-oauth-mtls-17](https://tools.ietf.org/html/draft-ietf-oauth-mtls-17)
+  - JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens
+  ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00))
+  - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens
+  ([draft-ietf-oauth-mtls-17](https://tools.ietf.org/html/draft-ietf-oauth-mtls-17))
+  with [`APIacAuthMTLS`](https://github.com/tanguilp/apiac_auth_mtls)
 - OpenID Connect:
   - [OpenID Connect Core 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-core-1_0.html)
   - [OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-registration-1_0.html)
