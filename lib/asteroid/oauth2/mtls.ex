@@ -114,7 +114,7 @@ defmodule Asteroid.OAuth2.MTLS do
     Client.load_from_unique_attribute(
       "client_id",
       client_id,
-      ["token_endpoint_auth_method"] ++ attrs
+      attributes: ["token_endpoint_auth_method"] ++ attrs
     )
     |> case do
       {:ok, client} ->

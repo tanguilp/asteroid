@@ -12,8 +12,8 @@ Asteroid implements parts of [RFCXXXX](https://tools.ietf.org/html/draft-ietf-oa
 
 ## Native vs. remote TLS authentication termination
 
-Depending on the deployment scenario, TLS termination may happen either directly on Asteroid or
-upstream on a network authenticating reverse-proxy.
+Depending on the deployment scenario, TLS termination may take place either directly on Asteroid
+or upstream on a network authenticating reverse-proxy.
 
 Asteroid uses the `:oauth2_mtls_start_endpoint` configuration to determine whether to start
 and additional MTLS endpoint. When set to `:auto`, it uses the

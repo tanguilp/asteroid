@@ -22,7 +22,8 @@ defmodule Asteroid.Application do
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
          :ok <- ObjectStore.auto_start_from_config(),
-         :ok <- Crypto.Key.load_from_config!() do
+         :ok <- Crypto.Key.load_from_config!()
+    do
       if astrenv(:crypto_jws_none_alg_enabled, false) do
         JOSE.JWA.unsecured_signing(true)
       end
