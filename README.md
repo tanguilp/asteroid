@@ -23,8 +23,7 @@ Asteroid supports the following specifications:
   - OAuth 2.0 Device Authorization Grant ([RFC8628](https://www.rfc-editor.org/rfc/rfc8628.html))
   - JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens
   ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00))
-  - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens
-  ([draft-ietf-oauth-mtls-17](https://tools.ietf.org/html/draft-ietf-oauth-mtls-17))
+  - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens ([RFC8705](https://tools.ietf.org/html/rfc8705))
   with [`APIacAuthMTLS`](https://github.com/tanguilp/apiac_auth_mtls)
 - OpenID Connect:
   - [OpenID Connect Core 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-core-1_0.html)

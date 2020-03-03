@@ -1,6 +1,6 @@
-# Mutual-TLS Client Authentication (MTLS)
+# MTLS (RFC8705)
 
-Asteroid implements parts of [RFCXXXX](https://tools.ietf.org/html/draft-ietf-oauth-mtls-17).
+Asteroid implements parts of [RFC8705](https://tools.ietf.org/html/rfc8705).
 
 ## Support
 
