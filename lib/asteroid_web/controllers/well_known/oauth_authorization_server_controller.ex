@@ -341,7 +341,10 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       enc_alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
       enc_enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
 
-      id_token_sig_alg = astrenv(:oidc_id_token_signing_alg_values_supported, [])
+      id_token_sig_alg =
+        ["RS256" | astrenv(:oidc_id_token_signing_alg_values_supported, [])]
+        |> Enum.uniq()
+
       id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
       id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
 
