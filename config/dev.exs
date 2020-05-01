@@ -287,6 +287,8 @@ config :asteroid, :oauth2_response_types_enabled, [
   :token
 ]
 
+config :asteroid, :oauth2_response_mode_policy, :oidc_only
+
 config :asteroid, :api_error_response_verbosity, :normal
 
 config :asteroid, :oauth2_scope_callback, &Asteroid.OAuth2.Scope.grant_for_flow/2
