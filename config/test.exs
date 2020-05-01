@@ -193,6 +193,8 @@ config :asteroid, :oauth2_response_types_enabled, [
   :"code id_token token"
 ]
 
+config :asteroid, :oauth2_response_mode_policy, :oidc_only
+
 config :asteroid, :api_error_response_verbosity, :debug
 
 config :asteroid,
