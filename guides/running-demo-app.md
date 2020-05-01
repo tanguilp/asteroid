@@ -134,6 +134,9 @@ issuer (which happens to be the base URL):
 
 ![Metadata before load](../guides/media/oauth_tools_screenshots/metadata-before-load.png)
 
+A test instance is available with the `https://repentant-brief-fishingcat.gigalixirapp.com/`
+issuer.
+
 and then clic on "Discover". The OAuth2 parameters are automatically loaded:
 
 ![Metadata loaded](../guides/media/oauth_tools_screenshots/metadata-loaded.png)
