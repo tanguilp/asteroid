@@ -24,6 +24,9 @@ At compile-time, Asteroid loads from configuration a list of plugs to configure 
 of this routes. This plugs can be either [`APIac`](https://github.com/tanguilp/apiac) plugs, or
 any other plug.
 
+Only `APIacAuthBasic` and `APIacAuthBearer` are installed by default. Uncomment the related lines
+in `mix.exs` and run `mix deps.get` to enable more `APIac` authenticators or filters.
+
 The following schema lists the configuration keys used to install plugs:
 ```elixir
 authorize……………………………………………………………………………………………… :browser_plugs
