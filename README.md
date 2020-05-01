@@ -32,6 +32,19 @@ Asteroid supports the following specifications:
 Asteroid strives to fully implement the specifications. For specifics about support, refer to
 the documentation.
 
+## Demo flows
+
+The `demo_auth_workflow` branch implements two flows. Refer to the documentation for more
+information.
+
+### OAuth2 flow
+
+[![OAuth2 demo flow](https://raw.githubusercontent.com/tanguilp/asteroid/master/guides/media/oauth2_flow_video_screenshot.png)](https://vimeo.com/356037657)
+
+### OpenID Connect flow
+
+[![OpenID Connect demo flow](https://raw.githubusercontent.com/tanguilp/asteroid/master/guides/media/oidc_flow_video_screenshot.png)](https://vimeo.com/356037941)
+
 ## Install from source
 
 First,
