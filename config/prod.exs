@@ -304,7 +304,7 @@ config :asteroid,
 
 config :asteroid, :oauth2_issue_refresh_token_init, true
 
-config :asteroid, :oauth2_issue_refresh_token_init, false
+config :asteroid, :oauth2_issue_refresh_token_refresh, false
 
 config :asteroid,
        :oauth2_issue_refresh_token_callback,
