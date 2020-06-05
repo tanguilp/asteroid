@@ -54,6 +54,7 @@ defmodule Asteroid.MixProject do
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
+      {:hammer, "~> 6.0"},
       {:jwks_uri_updater, "~> 1.0"},
       {:oauth2_metadata_updater, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},
@@ -62,7 +63,8 @@ defmodule Asteroid.MixProject do
       {:plug_cowboy, "~> 2.0"},
       #{:poison, "~> 4.0", override: true},
       {:riak, github: "tanguilp/riak-elixir-client"},
-      {:singleton, "~> 1.2.0"}
+      {:singleton, "~> 1.2.0"},
+      {:specify, "~> 0.7.0"}
     ]
   end
 
