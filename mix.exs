@@ -38,7 +38,7 @@ defmodule Asteroid.MixProject do
     [
       {:apiac_auth_basic, "~> 1.0"},
       {:apiac_auth_bearer, "~> 1.0"},
-      #{:apiac_auth_mtls, "~> 1.0"},
+      {:apiac_auth_mtls, "~> 1.0"},
       #{:apiac_auth_client_jwt, "~> 1.0"},
       #{:apiac_auth_client_secret_post, "~> 1.0"},
       #{:apiac_filter_ip_whitelist, "~> 1.0"},
@@ -54,6 +54,7 @@ defmodule Asteroid.MixProject do
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
+      {:hammer, "~> 6.0"},
       {:jwks_uri_updater, "~> 1.0"},
       {:oauth2_metadata_updater, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},
