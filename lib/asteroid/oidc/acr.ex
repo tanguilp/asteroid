@@ -3,7 +3,7 @@ defmodule Asteroid.OIDC.ACR do
   Functions to work with OpenID Connect ACRs
   """
 
-  @type config :: [{atom(), [config_option()]}]
+  @type config :: [{String.t(), [config_option()]}]
 
   @typedoc """
   # FIXME

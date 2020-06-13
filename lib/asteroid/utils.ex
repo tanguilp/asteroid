@@ -75,9 +75,9 @@ defmodule Asteroid.Utils do
   Always returns nil
   """
 
-  @spec always_nil(any(), any()) :: nil
+  @spec always_nil(any(), any(), any()) :: nil
 
-  def always_nil(_, _ \\ nil), do: nil
+  def always_nil(_, _ \\ nil, _ \\ nil), do: nil
 
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
 

@@ -10,6 +10,10 @@ defmodule Asteroid.Config do
   alias Asteroid.OIDC
   alias Asteroid.Subject
 
+  defmodule NotAConfigurationOptionError do
+    defexception message: "the configuration option does not exist"
+  end
+
   @typedoc """
   A map describing scope configuration
 
@@ -55,7 +59,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_access_token :: Keyword.t()
-    field :object_store_access_token, {:list, :term}, config_time: :runtime
+    field :object_store_access_token, {:list, :term},
+      default: [module: Asteroid.ObjectStore.AccessToken.Mnesia],
+      config_time: :runtime
 
     @doc """
     Refresh token store configuration
@@ -79,7 +85,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_refresh_token :: Keyword.t()
-    field :object_store_refresh_token, {:list, :term}, config_time: :runtime
+    field :object_store_refresh_token, {:list, :term},
+      default: [module: Asteroid.ObjectStore.RefreshToken.Mnesia],
+      config_time: :runtime
 
     @doc """
     Authorization code store configuration
@@ -103,7 +111,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_authorization_code :: Keyword.t()
-    field :object_store_authorization_code, {:list, :term}, config_time: :runtime
+    field :object_store_authorization_code, {:list, :term},
+      default: [module: Asteroid.ObjectStore.AuthorizationCode.Mnesia],
+      config_time: :runtime
 
     @doc """
     Device code store configuration
@@ -127,7 +137,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_device_code :: Keyword.t()
-    field :object_store_device_code, {:list, :term}, config_time: :runtime
+    field :object_store_device_code, {:list, :term},
+      default: [module: Asteroid.ObjectStore.DeviceCode.Mnesia],
+      config_time: :runtime
 
     @doc """
     Request object store configuration
@@ -151,7 +163,12 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_request_object :: Keyword.t()
-    field :object_store_request_object, {:list, :term}, config_time: :runtime
+    field :object_store_request_object, {:list, :term},
+      default: [
+        module: Asteroid.ObjectStore.GenericKV.Mnesia,
+        opts: [table_name: :request_object]
+      ],
+      config_time: :runtime
 
     @doc """
     Authenticated session store configuration
@@ -175,7 +192,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_authenticated_session :: Keyword.t()
-    field :object_store_authenticated_session, {:list, :term}, config_time: :runtime
+    field :object_store_authenticated_session, {:list, :term},
+      default: [module: Asteroid.ObjectStore.AuthenticatedSession.Mnesia],
+      config_time: :runtime
 
     @doc """
     Authentication event store configuration
@@ -199,7 +218,9 @@ defmodule Asteroid.Config do
     ```
     """
     @type object_store_authentication_event :: Keyword.t()
-    field :object_store_authentication_event, {:list, :term}, config_time: :runtime
+    field :object_store_authentication_event, {:list, :term},
+      default: [module: Asteroid.ObjectStore.AuthenticationEvent.Mnesia],
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing a refresh token
@@ -207,7 +228,9 @@ defmodule Asteroid.Config do
     @type object_store_refresh_token_before_store_callback ::
             (Asteroid.Token.RefreshToken.t(), Asteroid.Context.t() ->
                Asteroid.Token.RefreshToken.t())
-    field :object_store_refresh_token_before_store_callback, :function, config_time: :runtime
+    field :object_store_refresh_token_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing an access token
@@ -215,7 +238,9 @@ defmodule Asteroid.Config do
     @type object_store_access_token_before_store_callback ::
             (Asteroid.Token.AccessToken.t(), Asteroid.Context.t() ->
                Asteroid.Token.RefreshToken.t())
-    field :object_store_access_token_before_store_callback, :function, config_time: :runtime
+    field :object_store_access_token_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing an authorization code
@@ -223,7 +248,9 @@ defmodule Asteroid.Config do
     @type object_store_authorization_code_before_store_callback ::
             (Asteroid.Token.AuthorizationCode.t(), Asteroid.Context.t() ->
                Asteroid.Token.AuthorizationCode.t())
-    field :object_store_authorization_code_before_store_callback, :function, config_time: :runtime
+    field :object_store_authorization_code_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing a device code
@@ -231,7 +258,9 @@ defmodule Asteroid.Config do
     @type object_store_device_code_before_store_callback ::
             (Asteroid.Token.DeviceCode.t(), Asteroid.Context.t() ->
                Asteroid.Token.DeviceCode.t())
-    field :object_store_device_code_before_store_callback, :function, config_time: :runtime
+    field :object_store_device_code_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing authenticated session
@@ -239,7 +268,9 @@ defmodule Asteroid.Config do
     @type object_store_authenticated_session_before_store_callback ::
             (Asteroid.OIDC.AuthenticatedSession.t(), Asteroid.Context.t() ->
                Asteroid.OIDC.AuthenticatedSession.t())
-    field :object_store_authenticated_session_before_store_callback, :function, config_time: :runtime
+    field :object_store_authenticated_session_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Callback invoked before storing authentication event
@@ -247,7 +278,9 @@ defmodule Asteroid.Config do
     @type object_store_authentication_event_before_store_callback ::
             (Asteroid.OIDC.AuthenticationEvent.t(), Asteroid.Context.t() ->
                Asteroid.OIDC.AuthenticationEvent.t())
-    field :object_store_authentication_event_before_store_callback, :function, config_time: :runtime
+    field :object_store_authentication_event_before_store_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
+      config_time: :runtime
 
     @doc """
     Plugs installed on `"/api/oauth2"`
@@ -255,7 +288,17 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_plugs, {:list, :option},
+      default: [
+        {
+          APIacAuthBasic,
+          realm: "Asteroid",
+          callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+          set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+          error_response_verbosity: :debug
+        }
+      ],
+      config_time: :compile
 
     @doc """
     Plugs installed on `"/api/oauth2/token"`
@@ -263,7 +306,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_endpoint_token_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_endpoint_token_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_endpoint_token_plugs, {:list, :option},
+      default: [{Corsica, origins: "*"}],
+      config_time: :compile
 
     @doc """
     Plugs installed on `"/api/oauth2/introspect"`
@@ -271,7 +316,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_endpoint_introspect_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_endpoint_introspect_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_endpoint_introspect_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     Plugs installed on `"/api/oauth2/revoke"`
@@ -279,7 +326,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_endpoint_revoke_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_endpoint_revoke_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_endpoint_revoke_plugs, {:list, :option},
+      default: [{Corsica, origins: "*"}],
+      config_time: :compile
 
     @doc """
     Plugs installed on `"/api/oauth2/register"`
@@ -287,7 +336,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_endpoint_register_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_endpoint_register_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_endpoint_register_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     Plugs installed on `"/api/oauth2/device_authorization"`
@@ -295,7 +346,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oauth2_endpoint_device_authorization_plugs :: [{module(), Keyword.t()}]
-    field :api_oauth2_endpoint_device_authorization_plugs, {:list, :term}, config_time: :compile
+    field :api_oauth2_endpoint_device_authorization_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     Plugs installed on `/.well-known/`
@@ -303,7 +356,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type well_known_plugs :: [{module(), Keyword.t()}]
-    field :well_known_plugs, {:list, :term}, config_time: :compile
+    field :well_known_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     Plugs installed on `/discovery/`
@@ -311,7 +366,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type discovery_plugs :: [{module(), Keyword.t()}]
-    field :discovery_plugs, {:list, :term}, config_time: :compile
+    field :discovery_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     Plugs installed on browser pathes
@@ -319,7 +376,9 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type browser_plugs :: [{module(), Keyword.t()}]
-    field :browser_plugs, {:list, :term}, config_time: :compile
+    field :browser_plugs, {:list, :option},
+      default: [],
+      config_time: :compile
 
     @doc """
     List of enabled grant types
@@ -328,7 +387,9 @@ defmodule Asteroid.Config do
     generation.
     """
     @type oauth2_grant_types_enabled :: [Asteroid.OAuth2.grant_type()]
-    field :oauth2_grant_types_enabled, {:list, :atom}, config_time: :runtime
+    field :oauth2_grant_types_enabled, {:list, :atom},
+      default: [:auhtorization_code, :refresh_token],
+      config_time: :runtime
 
     @doc """
     List of enabled response types
@@ -337,7 +398,9 @@ defmodule Asteroid.Config do
     and for metadata generation.
     """
     @type oauth2_response_types_enabled :: [Asteroid.OAuth2.response_type()]
-    field :oauth2_response_types_enabled, {:list, :atom}, config_time: :runtime
+    field :oauth2_response_types_enabled, {:list, :atom},
+      default: [:code],
+      config_time: :runtime
 
     @doc """
     Callback to verify username and password in the ROPC flow.
@@ -351,7 +414,9 @@ defmodule Asteroid.Config do
     @type oauth2_ropc_username_password_verify_callback ::
             (Plug.Conn.t(), String.t(), String.t() ->
                {:ok, Asteroid.Subject.t()} | {:error, Exception.t()})
-    field :oauth2_flow_ropc_username_password_verify_callback, :function, config_time: :runtime
+    field :oauth2_flow_ropc_username_password_verify_callback, :function,
+      default: &Asteroid.Utils.always_nil/3,
+      config_time: :runtime
 
     @doc """
     Verbosity level for the API's error messages
@@ -360,13 +425,16 @@ defmodule Asteroid.Config do
     break the specification's support.
     """
     @type api_error_response_verbosity :: :debug | :normal | :minimal
-    field :api_error_response_verbosity, :atom, config_time: :runtime
+    field :api_error_response_verbosity, {:one_of_atoms, [:debug, :normal, :minimal]},
+      default: :normal,
+      config_time: :runtime
 
     @doc """
     Scope configuration for the ROPC flow
     """
     @type oauth2_flow_ropc_scope_config :: scope_config()
     field :oauth2_flow_ropc_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -376,6 +444,7 @@ defmodule Asteroid.Config do
     @type oauth2_scope_callback ::
             (OAuth2Utils.Scope.Set.t(), Asteroid.Context.t() -> OAuth2Utils.Scope.Set.t())
     field :oauth2_scope_callback, :function,
+      default: &Asteroid.OAuth2.Scope.grant_for_flow/2,
       config_time: :runtime,
       uses: [
         :oauth2_flow_ropc_scope_config,
@@ -390,7 +459,8 @@ defmodule Asteroid.Config do
     Defines whether a refresh token should be issued when initiating an ROPC flow
     """
     @type oauth2_flow_ropc_issue_refresh_token_init :: boolean()
-    field :oauth2_flow_ropc_issue_refresh_token_init, :boolean,
+    field :oauth2_flow_ropc_issue_refresh_token_init, [:boolean, {:one_of_atoms, [nil]}],
+      default: true,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -398,7 +468,8 @@ defmodule Asteroid.Config do
     Defines whether a refresh token should be issued when refreshing tokens in the ROPC flow
     """
     @type oauth2_flow_ropc_issue_refresh_token_refresh :: boolean()
-    field :oauth2_flow_ropc_issue_refresh_token_refresh, :boolean,
+    field :oauth2_flow_ropc_issue_refresh_token_refresh, [:boolean, {:one_of_atoms, [nil]}],
+      default: false,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -410,6 +481,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_issue_refresh_token_callback :: (Asteroid.Context.t() -> boolean())
     field :oauth2_issue_refresh_token_callback, :function,
+      default: &Asteroid.Token.RefreshToken.issue_refresh_token?/1,
       config_time: :runtime,
       uses: [
         :oauth2_issue_refresh_token_init,
@@ -432,7 +504,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the ROPC flow
     """
     @type oauth2_flow_ropc_refresh_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_ropc_refresh_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_ropc_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -445,6 +519,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_refresh_token_lifetime_callback :: (Asteroid.Context.t() -> non_neg_integer())
     field :oauth2_refresh_token_lifetime_callback, :function,
+      default: &Asteroid.Token.RefreshToken.lifetime/1,
       config_time: :runtime,
       uses: [
         :oauth2_refresh_token_lifetime,
@@ -460,7 +535,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the ROPC flow
     """
     @type oauth2_flow_ropc_access_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_ropc_access_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_ropc_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -470,7 +547,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_ropc_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_flow_ropc_access_token_serialization_format, :atom,
+    field :oauth2_flow_ropc_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -479,6 +558,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_ropc_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_flow_ropc_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -487,6 +567,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_ropc_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_flow_ropc_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -498,6 +579,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_access_token_lifetime_callback :: (Asteroid.Context.t() -> non_neg_integer())
     field :oauth2_access_token_lifetime_callback, :function,
+    default: &Asteroid.Token.AccessToken.lifetime/1,
       config_time: :runtime,
       uses: [
         :oauth2_access_token_lifetime,
@@ -520,6 +602,7 @@ defmodule Asteroid.Config do
     @type oauth2_access_token_serialization_format_callback ::
             (Asteroid.Context.t() -> Asteroid.Token.serialization_format())
     field :oauth2_access_token_serialization_format_callback, :function,
+      default: &Asteroid.Token.AccessToken.serialization_format/1,
       config_time: :runtime,
       uses: [
         :oauth2_access_token_serialization_format,
@@ -542,6 +625,7 @@ defmodule Asteroid.Config do
     @type oauth2_access_token_signing_key_callback ::
             (Asteroid.Context.t() -> Crypto.Key.name())
     field :oauth2_access_token_signing_key_callback, :function,
+      default: &Asteroid.Token.AccessToken.signing_key/1,
       config_time: :runtime,
       uses: [
         :oauth2_access_token_signing_key,
@@ -564,6 +648,7 @@ defmodule Asteroid.Config do
     @type oauth2_access_token_signing_alg_callback ::
             (Asteroid.Context.t() -> Crypto.Key.jws_alg())
     field :oauth2_access_token_signing_alg_callback, :function,
+      default: &Asteroid.Token.AccessToken.signing_alg/1,
       config_time: :runtime,
       uses: [
         :oauth2_access_token_signing_alg,
@@ -586,6 +671,7 @@ defmodule Asteroid.Config do
     @type oauth2_authorization_code_lifetime_callback ::
             (Asteroid.Context.t() -> non_neg_integer())
     field :oauth2_authorization_code_lifetime_callback, :function,
+      default: &Asteroid.Token.AuthorizationCode.lifetime/1,
       config_time: :runtime,
       uses: [
         :oauth2_authorization_code_lifetime,
@@ -598,7 +684,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an authorization code in the code flow
     """
     @type oauth2_flow_authorization_code_authorization_code_lifetime :: non_neg_integer()
-    field :oauth2_flow_authorization_code_authorization_code_lifetime, :nonnegative_integer,
+    field :oauth2_flow_authorization_code_authorization_code_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_authorization_code_lifetime_callback],
       unit: "seconds"
@@ -609,6 +697,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_password_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_token_grant_type_password_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -617,6 +706,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_password_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_token_grant_type_password_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -625,6 +715,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -633,6 +724,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -642,6 +734,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_introspect_client_authorized ::
             (Asteroid.Client.t() -> boolean())
     field :oauth2_endpoint_introspect_client_authorized, :function,
+      default: &Asteroid.OAuth2.Client.endpoint_introspect_authorized?/1,
       config_time: :runtime
 
     @doc """
@@ -651,6 +744,19 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_introspect_claims_resp :: [String.t()]
     field :oauth2_endpoint_introspect_claims_resp, {:list, :string},
+      default: [
+        "scope",
+        "client_id",
+        "username",
+        "token_type",
+        "exp",
+        "iat",
+        "nbf",
+        "sub",
+        "aud",
+        "iss",
+        "jti"
+      ],
       config_time: :runtime,
       used_by: [:oauth2_endpoint_introspect_claims_resp_callback]
 
@@ -660,6 +766,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_introspect_claims_resp_callback ::
             (Asteroid.Client.t() -> [String.t()])
     field :oauth2_endpoint_introspect_claims_resp_callback, :function,
+      default: &Asteroid.OAuth2.Introspect.endpoint_introspect_claims_resp/1,
       config_time: :runtime,
       uses: [:oauth2_endpoint_introspect_claims_resp]
 
@@ -669,6 +776,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_introspect_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_introspect_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -677,6 +785,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_introspect_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_introspect_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -684,6 +793,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_client_credentials_scope_config :: scope_config()
     field :oauth2_flow_client_credentials_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -695,7 +805,9 @@ defmodule Asteroid.Config do
     this flow.
     """
     @type oauth2_flow_client_credentials_issue_refresh_token_init :: boolean()
-    field :oauth2_flow_client_credentials_issue_refresh_token_init, :boolean,
+    field :oauth2_flow_client_credentials_issue_refresh_token_init,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: false,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -703,7 +815,9 @@ defmodule Asteroid.Config do
     Defines whether a refresh token should be issued when refreshing tokens
     """
     @type oauth2_flow_client_credentials_issue_refresh_token_refresh :: boolean()
-    field :oauth2_flow_client_credentials_issue_refresh_token_refresh, :boolean,
+    field :oauth2_flow_client_credentials_issue_refresh_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: false,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -711,7 +825,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the client credentials flow
     """
     @type oauth2_flow_client_credentials_refresh_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_client_credentials_refresh_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_client_credentials_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -720,7 +836,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the client credentials flow
     """
     @type oauth2_flow_client_credentials_access_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_client_credentials_access_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_client_credentials_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -730,7 +848,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_client_credentials_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_flow_client_credentials_access_token_serialization_format, :atom,
+    field :oauth2_flow_client_credentials_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: :opaque,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -739,6 +859,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_client_credentials_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_flow_client_credentials_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -747,6 +868,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_client_credentials_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_flow_client_credentials_access_token_signing_alg, :string,
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -756,6 +878,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -765,6 +888,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -781,6 +905,7 @@ defmodule Asteroid.Config do
     @type oauth2_flow_authorization_code_web_authorization_callback ::
             AsteroidWeb.AuthorizeController.web_authorization_callback()
     field :oauth2_flow_authorization_code_web_authorization_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime,
       used_by: [:web_authorization_callback]
 
@@ -792,6 +917,7 @@ defmodule Asteroid.Config do
             (Asteroid.OAuth2.RedirectUri.t(), Asteroid.Context.t() ->
                Asteroid.OAuth2.RedirectUri.t())
     field :oauth2_endpoint_authorize_before_send_redirect_uri_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -802,6 +928,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_authorize_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_authorize_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -809,7 +936,9 @@ defmodule Asteroid.Config do
     in the authorization code flow
     """
     @type oauth2_flow_authorization_code_issue_refresh_token_init :: boolean()
-    field :oauth2_flow_authorization_code_issue_refresh_token_init, :boolean,
+    field :oauth2_flow_authorization_code_issue_refresh_token_init,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -818,7 +947,9 @@ defmodule Asteroid.Config do
     code flow
     """
     @type oauth2_flow_authorization_code_issue_refresh_token_refresh :: boolean()
-    field :oauth2_flow_authorization_code_issue_refresh_token_refresh, :boolean,
+    field :oauth2_flow_authorization_code_issue_refresh_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -826,7 +957,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the authorization code flow
     """
     @type oauth2_flow_authorization_code_refresh_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_authorization_code_refresh_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_authorization_code_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: 60 * 60 * 24 * 7,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -835,7 +968,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the authorization code flow
     """
     @type oauth2_flow_authorization_code_access_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_authorization_code_access_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_authorization_code_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -845,7 +980,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_authorization_code_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_flow_authorization_code_access_token_serialization_format, :atom,
+    field :oauth2_flow_authorization_code_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -854,6 +991,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_flow_authorization_code_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -862,6 +1000,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_flow_authorization_code_access_token_signing_alg, :string,
+    default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -871,6 +1010,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -880,6 +1020,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -890,6 +1031,7 @@ defmodule Asteroid.Config do
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
 
     field :oauth2_endpoint_revoke_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -906,6 +1048,7 @@ defmodule Asteroid.Config do
     @type oauth2_flow_implicit_web_authorization_callback ::
             (Plug.Conn.t(), AsteroidWeb.AuthorizeController.Request.t() -> Plug.Conn.t())
     field :oauth2_flow_implicit_web_authorization_callback, :function,
+      default: &Asteroid.Utils.always_nil/2,
       config_time: :runtime,
       used_by: [
         :web_authorization_callback
@@ -915,7 +1058,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the implicit flow
     """
     @type oauth2_flow_implicit_access_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_implicit_access_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_implicit_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -925,7 +1070,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_implicit_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_flow_implicit_access_token_serialization_format, :atom,
+    field :oauth2_flow_implicit_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: :opaque,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -934,6 +1081,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_implicit_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_flow_implicit_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -942,6 +1090,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_flow_implicit_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -954,7 +1103,8 @@ defmodule Asteroid.Config do
     - `:optional`: use of PKCE is optional, except for clients marked as forced to use it
     """
     @type oauth2_pkce_policy :: :disabled | :optional | :mandatory
-    field :oauth2_pkce_policy, :atom,
+    field :oauth2_pkce_policy, {:one_of_atoms, [:disabled, :optional, :mandatory]},
+      default: :optional,
       config_time: :runtime
 
     @doc """
@@ -965,8 +1115,8 @@ defmodule Asteroid.Config do
     - `:S256`
     """
     @type oauth2_pkce_allowed_methods :: [atom()]
-
     field :oauth2_pkce_allowed_methods, {:list, :atom},
+      default: [:S256],
       config_time: :runtime
 
     @doc """
@@ -976,7 +1126,8 @@ defmodule Asteroid.Config do
     """
     @type oauth2_pkce_must_use_callback ::
             (Client.t() -> boolean())
-    field :oauth2_pkce_must_use_callback, :boolean,
+    field :oauth2_pkce_must_use_callback, :function,
+      default: &Asteroid.OAuth2.Client.must_use_pkce?/1,
       config_time: :runtime
 
     @doc """
@@ -987,6 +1138,7 @@ defmodule Asteroid.Config do
             (Plug.Conn.t(), Asteroid.Client.t() ->
                :ok | {:error, Exception.t()})
     field :oauth2_endpoint_register_authorization_callback, :function,
+      default: &Asteroid.OAuth2.Register.request_authorized?/2,
       config_time: :runtime,
       uses: [:oauth2_endpoint_register_authorization_policy]
 
@@ -1007,7 +1159,9 @@ defmodule Asteroid.Config do
             | :authenticated_clients
             | :authorized_clients
 
-    field :oauth2_endpoint_register_authorization_policy, :atom,
+    field :oauth2_endpoint_register_authorization_policy,
+      {:one_of_atoms, [:all, :authenticated_clients, :authorized_clients]},
+      default: :authorized_clients,
       config_time: :runtime,
       used_by: [:oauth2_endpoint_register_authorization_callback]
 
@@ -1018,6 +1172,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_register_additional_metadata_field :: [String.t()]
     field :oauth2_endpoint_register_additional_metadata_field, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1026,6 +1181,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_register_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1034,6 +1190,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_register_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1042,6 +1199,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_client_before_save_callback ::
             (Client.t(), Asteroid.Context.t() -> Client.t())
     field :oauth2_endpoint_register_client_before_save_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1052,6 +1210,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_gen_client_id_callback ::
             (map(), Asteroid.Context.t() -> String.t())
     field :oauth2_endpoint_register_gen_client_id_callback, :function,
+      default: &Asteroid.OAuth2.Register.generate_client_id/2,
       config_time: :runtime
 
     @doc """
@@ -1060,6 +1219,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_gen_client_resource_id_callback ::
             (map(), Asteroid.Context.t() -> AttributeRepository.resource_id())
     field :oauth2_endpoint_register_gen_client_resource_id_callback, :function,
+      default: &Asteroid.OAuth2.Register.generate_client_resource_id/2,
       config_time: :runtime
 
     @doc """
@@ -1068,6 +1228,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_client_type_callback ::
             (Client.t() -> Asteroid.OAuth2.Client.type())
     field :oauth2_endpoint_register_client_type_callback, :function,
+      default: &Asteroid.OAuth2.Register.client_type/1,
       config_time: :runtime
 
     @doc """
@@ -1076,13 +1237,16 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_auth_methods_supported_callback ::
             (() -> [Asteroid.OAuth2.Endpoint.auth_method()])
     field :oauth2_endpoint_token_auth_methods_supported_callback, :function,
+      default: &Asteroid.OAuth2.Endpoint.token_endpoint_auth_methods_supported/0,
       config_time: :runtime
 
     @doc """
     OAuth2 metadata service documentation URL
     """
     @type oauth2_endpoint_metadata_service_documentation :: String.t()
-    field :oauth2_endpoint_metadata_service_documentation, :string,
+    field :oauth2_endpoint_metadata_service_documentation,
+      [:string, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime
 
     @doc """
@@ -1090,20 +1254,25 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_ui_locales_supported :: [String.t()]
     field :oauth2_endpoint_metadata_ui_locales_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
     OAuth2 metadata OP policy URL
     """
     @type oauth2_endpoint_metadata_op_policy_uri :: String.t()
-    field :oauth2_endpoint_metadata_op_policy_uri, :string,
+    field :oauth2_endpoint_metadata_op_policy_uri,
+      [:string, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime
 
     @doc """
     OAuth2 metadata OP tos URL
     """
     @type oauth2_endpoint_metadata_op_tos_uri :: String.t()
-    field :oauth2_endpoint_metadata_op_tos_uri, :string,
+    field :oauth2_endpoint_metadata_op_tos_uri,
+      [:string, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime
 
     @doc """
@@ -1115,7 +1284,9 @@ defmodule Asteroid.Config do
     - `[String.t()]`: a list of fields to be included in the signed statement
     """
     @type oauth2_endpoint_metadata_signed_fields :: :disabled | :all | [String.t()]
-    field :oauth2_endpoint_metadata_signed_fields, :term,
+    field :oauth2_endpoint_metadata_signed_fields,
+      [{:list, :string}, {:one_of_atoms, [:disabled, :all]}],
+      default: :disabled, #FIXME: :all
       config_time: :runtime
 
     @doc """
@@ -1123,6 +1294,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_signing_key :: Crypto.Key.name()
     field :oauth2_endpoint_metadata_signing_key, :string,
+      default: "",
       config_time: :runtime
 
     @doc """
@@ -1130,6 +1302,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_endpoint_metadata_signing_alg, :string,
+      default: "",
       config_time: :runtime
 
     @doc """
@@ -1141,6 +1314,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_before_send_resp_callback :: (map() -> map())
     field :oauth2_endpoint_metadata_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id/1,
       config_time: :runtime
 
     @doc """
@@ -1150,6 +1324,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_metadata_before_send_conn_callback ::
             (Plug.Conn.t() -> Plug.Conn.t())
     field :oauth2_endpoint_metadata_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id/1,
       config_time: :runtime
 
     @doc """
@@ -1157,6 +1332,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_discovery_keys_before_send_resp_callback :: (map() -> map())
     field :oauth2_endpoint_discovery_keys_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id/1,
       config_time: :runtime
 
     @doc """
@@ -1165,6 +1341,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_discovery_keys_before_send_conn_callback ::
             (Plug.Conn.t() -> Plug.Conn.t())
     field :oauth2_endpoint_discovery_keys_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id/1,
       config_time: :runtime
 
     @doc """
@@ -1177,6 +1354,7 @@ defmodule Asteroid.Config do
     """
     @type crypto_keys :: Crypto.Key.key_config()
     field :crypto_keys, :term,
+      default: "",
       config_time: :runtime
 
     @doc """
@@ -1186,7 +1364,8 @@ defmodule Asteroid.Config do
     the second element are the module's options.
     """
     @type crypto_keys_cache :: {module(), Crypto.Key.Cache.opts()}
-    field :crypto_keys_cache, :term,
+    field :crypto_keys_cache, :option,
+      default: {Asteroid.Crypto.Key.Cache.ETS, []},
       config_time: :runtime
 
     @doc """
@@ -1197,6 +1376,7 @@ defmodule Asteroid.Config do
     """
     @type crypto_jws_none_alg_enabled :: boolean()
     field :crypto_jws_none_alg_enabled, :boolean,
+      default: false,
       config_time: :runtime
 
     @doc """
@@ -1204,6 +1384,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_scope_config :: scope_config()
     field :oauth2_flow_device_authorization_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -1214,6 +1395,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_device_authorization_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_device_authorization_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1223,13 +1405,16 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_device_authorization_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_device_authorization_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
     Defines the lifetime of a device code in the device authorization flow
     """
     @type oauth2_flow_device_authorization_device_code_lifetime :: non_neg_integer()
-    field :oauth2_flow_device_authorization_device_code_lifetime, :nonnegative_integer,
+    field :oauth2_flow_device_authorization_device_code_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: 60 * 15,
       config_time: :runtime,
       unit: "seconds"
 
@@ -1239,6 +1424,7 @@ defmodule Asteroid.Config do
     @type oauth2_flow_device_authorization_user_code_callback ::
             (Asteroid.Context.t() -> String.t())
     field :oauth2_flow_device_authorization_user_code_callback, :function,
+      default: &Asteroid.OAuth2.DeviceAuthorization.user_code/1,
       config_time: :runtime,
       unit: "seconds"
 
@@ -1257,6 +1443,7 @@ defmodule Asteroid.Config do
     @type oauth2_flow_device_authorization_web_authorization_callback ::
             (Plug.Conn.t(), AsteroidWeb.DeviceController.Request.t() -> Plug.Conn.t())
     field :oauth2_flow_device_authorization_web_authorization_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1264,7 +1451,9 @@ defmodule Asteroid.Config do
     flow
     """
     @type oauth2_flow_device_authorization_issue_refresh_token_init :: boolean()
-    field :oauth2_flow_device_authorization_issue_refresh_token_init, :boolean,
+    field :oauth2_flow_device_authorization_issue_refresh_token_init,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1273,7 +1462,9 @@ defmodule Asteroid.Config do
     authorization flow
     """
     @type oauth2_flow_device_authorization_issue_refresh_token_refresh :: boolean()
-    field :oauth2_flow_device_authorization_issue_refresh_token_refresh, :boolean,
+    field :oauth2_flow_device_authorization_issue_refresh_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: false,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1281,7 +1472,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the device authorization flow
     """
     @type oauth2_flow_device_authorization_refresh_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_device_authorization_refresh_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_device_authorization_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: 10 * 365 * 24 * 3600,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -1291,7 +1484,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_flow_device_authorization_access_token_serialization_format, :atom,
+    field :oauth2_flow_device_authorization_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: :opaque,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -1300,6 +1495,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_flow_device_authorization_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -1308,6 +1504,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_flow_device_authorization_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -1315,7 +1512,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the device authorization flow
     """
     @type oauth2_flow_device_authorization_access_token_lifetime :: non_neg_integer()
-    field :oauth2_flow_device_authorization_access_token_lifetime, :nonnegative_integer,
+    field :oauth2_flow_device_authorization_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -1327,6 +1526,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1336,6 +1536,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1346,7 +1547,8 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_rate_limiter ::
             {module(), Asteroid.OAuth2.DeviceAuthorization.RateLimiter.opts()}
-            field :oauth2_flow_device_authorization_rate_limiter, :term,
+    field :oauth2_flow_device_authorization_rate_limiter, :option,
+      default: {Asteroid.OAuth2.DeviceAuthorization.RateLimiter.Hammer, []},
       config_time: :runtime
 
     @doc """
@@ -1355,6 +1557,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_device_authorization_rate_limiter_interval :: non_neg_integer()
     field :oauth2_flow_device_authorization_rate_limiter_interval, :nonnegative_integer,
+      default: 5,
       config_time: :runtime,
       unit: "seconds"
 
@@ -1368,7 +1571,9 @@ defmodule Asteroid.Config do
     - `:enabled`: both the `"request"` and `"request_uri"` parameters are enabled
     """
     @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
-    field :oauth2_jar_enabled, :atom,
+    field :oauth2_jar_enabled,
+      {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled]},
+      default: :disabled,
       config_time: :runtime
 
     @doc """
@@ -1377,7 +1582,8 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_request_object_plugs :: [{module(), Keyword.t()}]
-    field :api_request_object_plugs, {:list, :term},
+    field :api_request_object_plugs, {:list, :option},
+      default: [],
       config_time: :compile
 
     @doc """
@@ -1385,6 +1591,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_lifetime :: non_neg_integer()
     field :oauth2_jar_request_object_lifetime, :nonnegative_integer,
+      default: 60,
       config_time: :runtime,
       unit: "seconds"
 
@@ -1394,7 +1601,8 @@ defmodule Asteroid.Config do
     The options are request options of `HTTPoison.Request`
     """
     @type oauth2_jar_request_uri_get_opts :: Keyword.t()
-    field :oauth2_jar_request_uri_get_opts, {:list, :term},
+    field :oauth2_jar_request_uri_get_opts, {:list, :option},
+      default: [follow_redirect: false, max_body_length: 1024 * 20, timeout: 1000],
       config_time: :runtime
 
     @doc """
@@ -1402,6 +1610,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
     field :oauth2_jar_request_object_signing_alg_values_supported, {:list, :string},
+      default: ["RS256"],
       config_time: :runtime
 
     @doc """
@@ -1409,6 +1618,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
     field :oauth2_jar_request_object_encryption_alg_values_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1416,6 +1626,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
     field :oauth2_jar_request_object_encryption_enc_values_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1429,6 +1640,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_verify_audience :: boolean()
     field :oauth2_jar_request_object_verify_audience, :boolean,
+      default: true,
       config_time: :runtime
 
     @doc """
@@ -1439,6 +1651,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_verify_issuer :: boolean()
     field :oauth2_jar_request_object_verify_issuer, :boolean,
+      default: true,
       config_time: :runtime
 
     @doc """
@@ -1446,6 +1659,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_acr_config :: OIDC.ACR.config()
     field :oidc_acr_config, :term,
+      default: [],
       config_time: :runtime,
       used_by: [:web_authorization_callback]
 
@@ -1454,6 +1668,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_authorization_code_scope_config :: scope_config()
     field :oidc_flow_authorization_code_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -1462,6 +1677,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_implicit_scope_config :: scope_config()
     field :oidc_flow_implicit_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -1470,6 +1686,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_hybrid_scope_config :: scope_config()
     field :oidc_flow_hybrid_scope_config, :term,
+      default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
@@ -1488,6 +1705,7 @@ defmodule Asteroid.Config do
     @type web_authorization_callback ::
             AsteroidWeb.AuthorizeController.web_authorization_callback()
     field :web_authorization_callback, :function,
+      default: &Asteroid.WebFlow.web_authorization_callback/2,
       config_time: :runtime,
       uses: [
         :oauth2_flow_authorization_code_web_authorization_callback,
@@ -1512,7 +1730,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_authorization_code_web_authorization_callback ::
             AsteroidWeb.AuthorizeController.web_authorization_callback()
-    field :oidc_flow_authorization_code_web_authorization_callback, :function,
+    field :oidc_flow_authorization_code_web_authorization_callback,
+      [:function, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:web_authorization_callback]
 
@@ -1530,7 +1750,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_implicit_web_authorization_callback ::
             AsteroidWeb.AuthorizeController.web_authorization_callback()
-    field :oidc_flow_implicit_web_authorization_callback, :function,
+    field :oidc_flow_implicit_web_authorization_callback,
+      [:function, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:web_authorization_callback]
 
@@ -1548,7 +1770,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_hybrid_web_authorization_callback ::
             AsteroidWeb.AuthorizeController.web_authorization_callback()
-    field :oidc_flow_hybrid_web_authorization_callback, :function,
+    field :oidc_flow_hybrid_web_authorization_callback,
+      [:function, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:web_authorization_callback]
 
@@ -1557,7 +1781,9 @@ defmodule Asteroid.Config do
     in the OIDC authorization code flow
     """
     @type oidc_flow_authorization_code_issue_refresh_token_init :: boolean()
-    field :oidc_flow_authorization_code_issue_refresh_token_init, :boolean,
+    field :oidc_flow_authorization_code_issue_refresh_token_init,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1566,7 +1792,9 @@ defmodule Asteroid.Config do
     authorization code flow
     """
     @type oidc_flow_authorization_code_issue_refresh_token_refresh :: boolean()
-    field :oidc_flow_authorization_code_issue_refresh_token_refresh, :boolean,
+    field :oidc_flow_authorization_code_issue_refresh_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1575,7 +1803,9 @@ defmodule Asteroid.Config do
     in the OIDC hybrid flow
     """
     @type oidc_flow_hybrid_issue_refresh_token_init :: boolean()
-    field :oidc_flow_hybrid_issue_refresh_token_init, :boolean,
+    field :oidc_flow_hybrid_issue_refresh_token_init,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1584,7 +1814,9 @@ defmodule Asteroid.Config do
     hybrid flow
     """
     @type oidc_flow_hybrid_issue_refresh_token_refresh :: boolean()
-    field :oidc_flow_hybrid_issue_refresh_token_refresh, :boolean,
+    field :oidc_flow_hybrid_issue_refresh_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -1592,7 +1824,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the OIDC authorization code flow
     """
     @type oidc_flow_authorization_code_refresh_token_lifetime :: non_neg_integer()
-    field :oidc_flow_authorization_code_refresh_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_authorization_code_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -1601,7 +1835,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of a refresh token in the OIDC hybrid flow
     """
     @type oidc_flow_hybrid_refresh_token_lifetime :: non_neg_integer()
-    field :oidc_flow_hybrid_refresh_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_hybrid_refresh_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -1610,7 +1846,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the OIDC authorization code flow
     """
     @type oidc_flow_authorization_code_access_token_lifetime :: non_neg_integer()
-    field :oidc_flow_authorization_code_access_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_authorization_code_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -1619,7 +1857,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the OIDC implicit flow
     """
     @type oidc_flow_implicit_access_token_lifetime :: non_neg_integer()
-    field :oidc_flow_implicit_access_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_implicit_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -1628,7 +1868,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an access token in the OIDC hybrid flow
     """
     @type oidc_flow_hybrid_access_token_lifetime :: non_neg_integer()
-    field :oidc_flow_hybrid_access_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_hybrid_access_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -1640,7 +1882,8 @@ defmodule Asteroid.Config do
     `Asteroid.Client` fields.
     """
     @type oidc_id_token_lifetime_callback :: (Asteroid.Context.t() -> non_neg_integer())
-    field :oauth2_access_token_lifetime_callback, :function,
+    field :oidc_id_token_lifetime_callback, :function,
+      default: &Asteroid.Token.IDToken.lifetime/1,
       config_time: :runtime,
       uses: [
         :oidc_id_token_lifetime,
@@ -1653,7 +1896,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an ID token in the OIDC authorization code flow
     """
     @type oidc_flow_authorization_code_id_token_lifetime :: non_neg_integer()
-    field :oidc_flow_authorization_code_id_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_authorization_code_id_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oidc_id_token_lifetime_callback],
       unit: "seconds"
@@ -1662,7 +1907,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an ID token in the OIDC implicit flow
     """
     @type oidc_flow_implicit_id_token_lifetime :: non_neg_integer()
-    field :oidc_flow_implicit_id_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_implicit_id_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oidc_id_token_lifetime_callback],
       unit: "seconds"
@@ -1671,7 +1918,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an ID token in the OIDC hybrid flow
     """
     @type oidc_flow_hybrid_id_token_lifetime :: non_neg_integer()
-    field :oidc_flow_hybrid_id_token_lifetime, :nonnegative_integer,
+    field :oidc_flow_hybrid_id_token_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oidc_id_token_lifetime_callback],
       unit: "seconds"
@@ -1681,6 +1930,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_id_token_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
     field :oidc_id_token_signing_alg_values_supported, {:list, :string},
+      default: ["RS256"],
       config_time: :runtime
 
     @doc """
@@ -1688,6 +1938,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_id_token_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
     field :oidc_id_token_encryption_alg_values_supported, {:list, :string},
+      default: ["RSA1_5"],
       config_time: :runtime
 
     @doc """
@@ -1695,6 +1946,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_id_token_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
     field :oidc_id_token_encryption_enc_values_supported, {:list, :string},
+      default: ["A128GCM"],
       config_time: :runtime
 
     @doc """
@@ -1703,6 +1955,7 @@ defmodule Asteroid.Config do
     @type token_id_token_before_serialize_callback ::
             (Asteroid.Token.IDToken.t(), Asteroid.Context.t() -> Asteroid.Token.IDToken.t())
     field :token_id_token_before_serialize_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1714,6 +1967,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_issue_id_token_on_refresh_callback :: (Asteroid.Context.t() -> boolean())
     field :oidc_issue_id_token_on_refresh_callback, :function,
+      default: &Asteroid.Token.IDToken.issue_id_token?/1,
       config_time: :runtime,
       uses: [
         :oidc_issue_id_token_refresh,
@@ -1722,20 +1976,24 @@ defmodule Asteroid.Config do
       ]
 
     @doc """
-      Defines whether an ID token should be issued when refreshing tokens in the OIDC
-      authorization code flow
+    Defines whether an ID token should be issued when refreshing tokens in the OIDC
+    authorization code flow
     """
     @type oidc_flow_authorization_code_issue_id_token_refresh :: boolean()
-    field :oidc_flow_authorization_code_issue_id_token_refresh, :boolean,
+    field :oidc_flow_authorization_code_issue_id_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oidc_issue_id_token_on_refresh_callback]
 
     @doc """
-      Defines whether an ID token should be issued when refreshing tokens in the OIDC
-      hybrid flow
+    Defines whether an ID token should be issued when refreshing tokens in the OIDC
+    hybrid flow
     """
     @type oidc_flow_hybrid_issue_id_token_refresh :: boolean()
-    field :oidc_flow_hybrid_issue_id_token_refresh, :boolean,
+    field :oidc_flow_hybrid_issue_id_token_refresh,
+      [:boolean, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oidc_issue_id_token_on_refresh_callback]
 
@@ -1743,7 +2001,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an authorization code in the OIDC authorization code flow
     """
     @type oidc_flow_authorization_code_authorization_code_lifetime :: non_neg_integer()
-    field :oidc_flow_authorization_code_authorization_code_lifetime, :nonnegative_integer,
+    field :oidc_flow_authorization_code_authorization_code_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_authorization_code_lifetime_callback],
       unit: "seconds"
@@ -1752,7 +2012,9 @@ defmodule Asteroid.Config do
     Defines the lifetime of an authorization code in the OIDC hybrid code flow
     """
     @type oidc_flow_hybrid_authorization_code_lifetime :: non_neg_integer()
-    field :oidc_flow_hybrid_authorization_code_lifetime, :nonnegative_integer,
+    field :oidc_flow_hybrid_authorization_code_lifetime,
+      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_authorization_code_lifetime_callback],
       unit: "seconds"
@@ -1762,7 +2024,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_authorization_code_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oidc_flow_authorization_code_access_token_serialization_format, :atom,
+    field :oidc_flow_authorization_code_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -1771,7 +2035,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_implicit_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oidc_flow_implicit_access_token_serialization_format, :atom,
+    field :oidc_flow_implicit_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -1780,7 +2046,9 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_hybrid_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oidc_flow_hybrid_access_token_serialization_format, :atom,
+    field :oidc_flow_hybrid_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt, nil]},
+      default: nil,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -1789,6 +2057,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
     field :oidc_flow_authorization_code_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -1797,6 +2066,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_implicit_access_token_signing_key :: Crypto.Key.name()
     field :oidc_flow_implicit_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -1805,6 +2075,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_hybrid_access_token_signing_key :: Crypto.Key.name()
     field :oidc_flow_hybrid_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -1813,6 +2084,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oidc_flow_authorization_code_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -1821,6 +2093,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oidc_flow_implicit_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -1829,16 +2102,18 @@ defmodule Asteroid.Config do
     """
     @type oidc_flow_hybrid_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oidc_flow_hybrid_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
-    Plugs installed on `"/api/ooidc"`
+    Plugs installed on `"/api/oidc"`
 
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oidc_plugs :: [{module(), Keyword.t()}]
-    field :api_oidc_plugs, {:list, :term},
+    field :api_oidc_plugs, {:list, :option},
+      default: [],
       config_time: :compile
 
     @doc """
@@ -1847,7 +2122,16 @@ defmodule Asteroid.Config do
     See also [protecting APIs](protecting-apis.html)
     """
     @type api_oidc_endpoint_userinfo_plugs :: [{module(), Keyword.t()}]
-    field :api_oidc_endpoint_userinfo_plugs, {:list, :term},
+    field :api_oidc_endpoint_userinfo_plugs, {:list, :option},
+      default: [
+        {Corsica, [origins: "*"]},
+        {APIacAuthBearer,
+         realm: "Asteroid",
+         bearer_validator: {Asteroid.OAuth2.APIacAuthBearer.Validator, []},
+         bearer_extract_methods: [:header, :body],
+         forward_bearer: true,
+         error_response_verbosity: :normal}
+      ],
       config_time: :compile
 
     @doc """
@@ -1856,6 +2140,7 @@ defmodule Asteroid.Config do
     @type oidc_endpoint_userinfo_before_send_resp_callback ::
             (map(), Asteroid.Context.t() -> map())
     field :oidc_endpoint_userinfo_before_send_resp_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1864,6 +2149,7 @@ defmodule Asteroid.Config do
     @type oidc_endpoint_userinfo_before_send_conn_callback ::
             (Plug.Conn.t(), Asteroid.Context.t() -> Plug.Conn.t())
     field :oidc_endpoint_userinfo_before_send_conn_callback, :function,
+      default: &Asteroid.Utils.id_first_param/2,
       config_time: :runtime
 
     @doc """
@@ -1872,6 +2158,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_endpoint_userinfo_signature_alg_values_supported :: [Crypto.Key.jws_alg()]
     field :oidc_endpoint_userinfo_signature_alg_values_supported, {:list, :string},
+      default: ["RS256"],
       config_time: :runtime
 
     @doc """
@@ -1880,6 +2167,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
     field :oidc_endpoint_userinfo_encryption_alg_values_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1888,6 +2176,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
     field :oidc_endpoint_userinfo_encryption_enc_values_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1897,6 +2186,28 @@ defmodule Asteroid.Config do
     """
     @type oidc_claims_supported :: [OIDC.claim_name()]
     field :oidc_claims_supported, {:list, :string},
+      default: [
+        "sub",
+        "name",
+        "given_name",
+        "family_name",
+        "middle_name",
+        "nickname",
+        "preferred_username",
+        "profile",
+        "picture",
+        "website",
+        "email",
+        "email_verified",
+        "gender",
+        "birthdate",
+        "zoneinfo",
+        "locale",
+        "phone_number",
+        "phone_number_verified",
+        "address",
+        "updated_at"
+      ],
       config_time: :runtime
 
     @doc """
@@ -1909,7 +2220,8 @@ defmodule Asteroid.Config do
     - `:enabled`: the `"response_mode"` param is used for all flows
     """
     @type oauth2_response_mode_policy :: :disabled | :oidc_only | :enabled
-    field :oauth2_response_mode_policy, :atom,
+    field :oauth2_response_mode_policy, {:one_of_atoms, [:disabled, :oidc_only, :enabled]},
+      default: :oidc_only,
       config_time: :runtime
 
     @doc """
@@ -1919,6 +2231,7 @@ defmodule Asteroid.Config do
     @type oidc_subject_identifier_callback ::
             (Subject.t(), Client.t() -> String.t())
     field :oidc_subject_identifier_callback, :function,
+      default: &Asteroid.OIDC.subject_identifier/2,
       config_time: :runtime
 
     @doc """
@@ -1936,6 +2249,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_subject_identifier_pairwise_salt :: String.t()
     field :oidc_subject_identifier_pairwise_salt, :string,
+      default: Base.encode64(:crypto.strong_rand_bytes(24)),
       config_time: :runtime
 
     @doc """
@@ -1945,6 +2259,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_endpoint_metadata_display_values_supported :: [String.t()]
     field :oidc_endpoint_metadata_display_values_supported, {:list, :string},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1952,6 +2267,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_access_token_lifetime :: non_neg_integer()
     field :oauth2_access_token_lifetime, :nonnegative_integer,
+      default: 60 * 10,
       config_time: :runtime,
       used_by: [:oauth2_access_token_lifetime_callback],
       unit: "seconds"
@@ -1961,7 +2277,9 @@ defmodule Asteroid.Config do
     """
     @type oauth2_access_token_serialization_format ::
             Asteroid.Token.serialization_format()
-    field :oauth2_access_token_serialization_format, :atom,
+    field :oauth2_access_token_serialization_format,
+      {:one_of_atoms, [:opaque, :jwt]},
+      default: :opaque,
       config_time: :runtime,
       used_by: [:oauth2_access_token_serialization_format_callback]
 
@@ -1970,6 +2288,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_access_token_signing_alg :: Crypto.Key.jws_alg()
     field :oauth2_access_token_signing_alg, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_alg_callback]
 
@@ -1978,6 +2297,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_access_token_signing_key :: Crypto.Key.name()
     field :oauth2_access_token_signing_key, :string,
+      default: "",
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -1986,15 +2306,17 @@ defmodule Asteroid.Config do
     """
     @type oauth2_authorization_code_lifetime :: non_neg_integer()
     field :oauth2_authorization_code_lifetime, :nonnegative_integer,
+      default: 60,
       config_time: :runtime,
       used_by: [:oauth2_authorization_code_lifetime_callback],
       unit: "seconds"
 
     @doc """
-    Defines whether a refresh token should be issued
+    Defines whether a refresh token should be issued upon first request
     """
     @type oauth2_issue_refresh_token_init :: boolean()
     field :oauth2_issue_refresh_token_init, :boolean,
+      default: true,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -2003,6 +2325,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_issue_refresh_token_refresh :: boolean()
     field :oauth2_issue_refresh_token_refresh, :boolean,
+      default: false,
       config_time: :runtime,
       used_by: [:oauth2_issue_refresh_token_callback]
 
@@ -2011,6 +2334,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_refresh_token_lifetime :: non_neg_integer()
     field :oauth2_refresh_token_lifetime, :nonnegative_integer,
+      default: 60 * 60,
       config_time: :runtime,
       used_by: [:oauth2_refresh_token_lifetime_callback],
       unit: "seconds"
@@ -2020,6 +2344,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_id_token_lifetime :: non_neg_integer()
     field :oidc_id_token_lifetime, :nonnegative_integer,
+      default: 60,
       config_time: :runtime,
       used_by: [:oidc_id_token_lifetime_callback],
       unit: "seconds"
@@ -2029,6 +2354,7 @@ defmodule Asteroid.Config do
     """
     @type oidc_issue_id_token_refresh :: boolean()
     field :oidc_issue_id_token_refresh, :boolean,
+      default: true,
       config_time: :runtime,
       used_by: [:oidc_issue_id_token_on_refresh_callback]
 
@@ -2041,7 +2367,9 @@ defmodule Asteroid.Config do
     - `auto`: uses the result of `Asteroid.OAuth2.MTLS.in_use?/0`. Default value
     """
     @type oauth2_mtls_start_endpoint :: boolean() | :auto
-    field :oauth2_mtls_start_endpoint, :atom,
+    field :oauth2_mtls_start_endpoint,
+      [:boolean, {:one_of_atoms, [:auto]}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
@@ -2051,9 +2379,37 @@ defmodule Asteroid.Config do
     """
     @type oauth2_mtls_advertise_aliases :: boolean()
     field :oauth2_mtls_advertise_aliases, :boolean,
+      default: true,
       config_time: :runtime
 
     ### end of configuration options
+  end
+
+  @doc """
+  Loads the configuration from the configured sources and saves it on the local node
+  """
+  @spec load_and_save() :: {:ok, %__MODULE__{}} | {:error, Exception.t()}
+  def load_and_save() do
+    conf = load()
+
+    :persistent_term.put(__MODULE__, conf)
+
+    {:ok, conf}
+  rescue
+    e ->
+      {:error, e}
+  end
+
+  @doc """
+  Returns a configuration option. Raises if it doesn't exist
+  """
+  @spec opt(atom()) :: any() | no_return()
+  def opt(configuration_option) do
+    if configuration_option in __MODULE__.__specify__(:field_names) do
+      :persistent_term.get(__MODULE__) |> Map.fetch!(configuration_option)
+    else
+      raise NotAConfigurationOptionError
+    end
   end
 
   @doc """
