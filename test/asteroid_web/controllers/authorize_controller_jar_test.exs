@@ -1,6 +1,7 @@
 defmodule AsteroidWeb.AuthorizeControllerJARTest do
   use AsteroidWeb.ConnCase, async: true
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Client
@@ -46,7 +47,7 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
       |> Crypto.Key.set_key_use(:enc)
       |> Crypto.Key.set_key_enc_alg("RSA-OAEP")
 
-    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+    {cache_module, cache_opts} = opt(:crypto_keys_cache)
 
     :ok = cache_module.put("rsa_enc_alg_all", rsa_enc_alg_all, cache_opts)
     :ok = cache_module.put("rsa_enc_alg_key_ops_decrypt", rsa_enc_alg_key_ops_decrypt, cache_opts)

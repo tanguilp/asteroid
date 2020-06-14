@@ -3,7 +3,7 @@ defmodule Asteroid.OAuth2.Endpoint do
   Util functions to work with OAuth2 endpoints
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   @type auth_method ::
   :none
@@ -36,7 +36,7 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   def token_endpoint_auth_methods_supported() do
     Enum.reduce(
-      astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_token_plugs, []),
+      opt(:api_oauth2_plugs) ++ opt(:api_oauth2_endpoint_token_plugs),
       MapSet.new([:none]),
       fn
         {module, options}, acc ->
@@ -61,7 +61,7 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   def revoke_endpoint_auth_methods_supported() do
     Enum.reduce(
-      astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_revoke_plugs, []),
+      opt(:api_oauth2_plugs) ++ opt(:api_oauth2_endpoint_revoke_plugs),
       MapSet.new(),
       fn
         {module, options}, acc ->
@@ -86,7 +86,7 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   def introspect_endpoint_auth_methods_supported() do
     Enum.reduce(
-      astrenv(:api_oauth2_plugs, []) ++ astrenv(:api_oauth2_endpoint_introspect_plugs, []),
+      opt(:api_oauth2_plugs) ++ opt(:api_oauth2_endpoint_introspect_plugs),
       MapSet.new(),
       fn
         {module, options}, acc ->

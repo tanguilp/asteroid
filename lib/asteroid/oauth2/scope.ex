@@ -3,11 +3,11 @@ defmodule Asteroid.OAuth2.Scope do
   Scope helper functions and default callbacks
   """
 
+  import Asteroid.Config, only: [opt: 1]
+
   alias OAuth2Utils.Scope
   alias Asteroid.Context
   alias Asteroid.OAuth2
-
-  import Asteroid.Utils
 
   defmodule UnknownRequestedScopeError do
     @moduledoc """
@@ -21,7 +21,7 @@ defmodule Asteroid.OAuth2.Scope do
           }
 
     def message(%{unknown_scopes: unknown_scopes}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Unknown requested scope(s)" <>
             if unknown_scopes do
@@ -101,34 +101,34 @@ defmodule Asteroid.OAuth2.Scope do
              :oidc_implicit,
              :oidc_hybrid
            ] do
-    scope_config = astrenv(:scope_config)
-    oauth2_scope_config = astrenv(:oauth2_scope_config)
+    scope_config = opt(:scope_config)
+    oauth2_scope_config = opt(:oauth2_scope_config)
 
     oauth2_flow_scope_config =
       case flow do
         :ropc ->
-          astrenv(:oauth2_flow_ropc_scope_config, [])
+          opt(:oauth2_flow_ropc_scope_config)
 
         :client_credentials ->
-          astrenv(:oauth2_flow_client_credentials_scope_config, [])
+          opt(:oauth2_flow_client_credentials_scope_config)
 
         :authorization_code ->
-          astrenv(:oauth2_flow_authorization_code_scope_config, [])
+          opt(:oauth2_flow_authorization_code_scope_config)
 
         :implicit ->
-          astrenv(:oauth2_flow_implicit_scope_config, [])
+          opt(:oauth2_flow_implicit_scope_config)
 
         :device_authorization ->
-          astrenv(:oauth2_flow_device_authorization_scope_config, [])
+          opt(:oauth2_flow_device_authorization_scope_config)
 
         :oidc_authorization_code ->
-          astrenv(:oidc_flow_authorization_code_scope_config, [])
+          opt(:oidc_flow_authorization_code_scope_config)
 
         :oidc_implicit ->
-          astrenv(:oidc_flow_implicit_scope_config, [])
+          opt(:oidc_flow_implicit_scope_config)
 
         :oidc_hybrid ->
-          astrenv(:oidc_flow_hybrid_scope_config, [])
+          opt(:oidc_flow_hybrid_scope_config)
       end
 
     merged_individual_scope_config =
@@ -299,7 +299,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{flow: :ropc, grant_type: :password}) do
     Enum.reduce(
-      astrenv(:oauth2_flow_ropc_scope_config) || [],
+      opt(:oauth2_flow_ropc_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -314,7 +314,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{flow: :client_credentials, grant_type: :client_credentials}) do
     Enum.reduce(
-      astrenv(:oauth2_flow_client_credentials_scope_config) || [],
+      opt(:oauth2_flow_client_credentials_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -329,7 +329,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{endpoint: :authorize, flow: :authorization_code}) do
     Enum.reduce(
-      astrenv(:oauth2_flow_authorization_code_scope_config) || [],
+      opt(:oauth2_flow_authorization_code_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -344,7 +344,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{endpoint: :authorize, flow: :implicit}) do
     Enum.reduce(
-      astrenv(:oauth2_flow_implicit_scope_config) || [],
+      opt(:oauth2_flow_implicit_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -363,7 +363,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{flow: :device_authorization, endpoint: :device}) do
     Enum.reduce(
-      astrenv(:oauth2_flow_device_authorization_scope_config) || [],
+      opt(:oauth2_flow_device_authorization_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -378,7 +378,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_authorization_code}) do
     Enum.reduce(
-      astrenv(:oidc_flow_authorization_code_scope_config) || [],
+      opt(:oidc_flow_authorization_code_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -393,7 +393,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_implicit}) do
     Enum.reduce(
-      astrenv(:oidc_flow_implicit_scope_config) || [],
+      opt(:oidc_flow_implicit_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->
@@ -408,7 +408,7 @@ defmodule Asteroid.OAuth2.Scope do
 
   def grant_for_flow(scopes, %{endpoint: :authorize, flow: :oidc_hybrid}) do
     Enum.reduce(
-      astrenv(:oidc_flow_hybrid_scope_config) || [],
+      opt(:oidc_flow_hybrid_scope_config),
       scopes,
       fn
         {scope, scope_config}, acc ->

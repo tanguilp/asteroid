@@ -11,7 +11,10 @@ defmodule Asteroid.Config do
   alias Asteroid.Subject
 
   defmodule NotAConfigurationOptionError do
-    defexception message: "the configuration option does not exist"
+    defexception [:opt]
+
+    @impl true
+    def message(%{opt: opt}), do: "the `#{inspect(opt)}` configuration option does not exist"
   end
 
   @typedoc """
@@ -35,7 +38,29 @@ defmodule Asteroid.Config do
 
   @type scope_config :: map()
 
-  Specify.defconfig do
+  Specify.defconfig sources: [Specify.Provider.MixEnv.new(:asteroid)] do
+    @doc """
+    """
+    field :attribute_repositories, {:list, :option},
+      default: [
+        subject: [
+          module: AttributeRepositoryMnesia,
+          init_opts: [instance: :subject],
+          run_opts: [instance: :subject]
+        ],
+        client: [
+          module: AttributeRepositoryMnesia,
+          init_opts: [instance: :client],
+          run_opts: [instance: :client]
+        ],
+        device: [
+          module: AttributeRepositoryMnesia,
+          init_opts: [instance: :device],
+          run_opts: [instance: :device]
+        ]
+      ],
+      config_time: :runtime
+
     @doc """
     Access token store configuration
 
@@ -388,7 +413,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_grant_types_enabled :: [Asteroid.OAuth2.grant_type()]
     field :oauth2_grant_types_enabled, {:list, :atom},
-      default: [:auhtorization_code, :refresh_token],
+      default: [:authorization_code, :refresh_token],
       config_time: :runtime
 
     @doc """
@@ -434,6 +459,24 @@ defmodule Asteroid.Config do
     """
     @type oauth2_flow_ropc_scope_config :: scope_config()
     field :oauth2_flow_ropc_scope_config, :term,
+      default: %{},
+      config_time: :runtime,
+      used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OAuth2 implicit flow
+    """
+    @type oauth2_flow_implicit_scope_config :: scope_config()
+    field :oauth2_flow_implicit_scope_config, :term,
+      default: %{},
+      config_time: :runtime,
+      used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Scope configuration for the OAuth2 authorization code flow
+    """
+    @type oauth2_flow_authorization_code_scope_config :: scope_config()
+    field :oauth2_flow_authorization_code_scope_config, :term,
       default: %{},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
@@ -1245,7 +1288,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_service_documentation :: String.t()
     field :oauth2_endpoint_metadata_service_documentation,
-      [:string, {:one_of_atoms, [nil]}],
+      [{:one_of_atoms, [nil]}, :string],
       default: nil,
       config_time: :runtime
 
@@ -1253,8 +1296,9 @@ defmodule Asteroid.Config do
     OAuth2 metadata UI locales supported
     """
     @type oauth2_endpoint_metadata_ui_locales_supported :: [String.t()]
-    field :oauth2_endpoint_metadata_ui_locales_supported, {:list, :string},
-      default: [],
+    field :oauth2_endpoint_metadata_ui_locales_supported,
+      [{:one_of_atoms, [nil]}, {:list, :string}],
+      default: nil,
       config_time: :runtime
 
     @doc """
@@ -1262,7 +1306,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_op_policy_uri :: String.t()
     field :oauth2_endpoint_metadata_op_policy_uri,
-      [:string, {:one_of_atoms, [nil]}],
+      [{:one_of_atoms, [nil]}, :string],
       default: nil,
       config_time: :runtime
 
@@ -1271,7 +1315,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_endpoint_metadata_op_tos_uri :: String.t()
     field :oauth2_endpoint_metadata_op_tos_uri,
-      [:string, {:one_of_atoms, [nil]}],
+      [{:one_of_atoms, [nil]}, :string],
       default: nil,
       config_time: :runtime
 
@@ -1354,7 +1398,9 @@ defmodule Asteroid.Config do
     """
     @type crypto_keys :: Crypto.Key.key_config()
     field :crypto_keys, :term,
-      default: "",
+      default: %{
+        "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig, advertise: false]}
+      },
       config_time: :runtime
 
     @doc """
@@ -1412,8 +1458,7 @@ defmodule Asteroid.Config do
     Defines the lifetime of a device code in the device authorization flow
     """
     @type oauth2_flow_device_authorization_device_code_lifetime :: non_neg_integer()
-    field :oauth2_flow_device_authorization_device_code_lifetime,
-      [:nonnegative_integer, {:one_of_atoms, [nil]}],
+    field :oauth2_flow_device_authorization_device_code_lifetime, :nonnegative_integer,
       default: 60 * 15,
       config_time: :runtime,
       unit: "seconds"
@@ -1583,7 +1628,15 @@ defmodule Asteroid.Config do
     """
     @type api_request_object_plugs :: [{module(), Keyword.t()}]
     field :api_request_object_plugs, {:list, :option},
-      default: [],
+      default: [
+        {
+          APIacAuthBasic,
+          realm: "Asteroid",
+          callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+          set_error_response: &APIacAuthBasic.send_error_response/3,
+          error_response_verbosity: :debug
+        }
+      ],
       config_time: :compile
 
     @doc """
@@ -2382,6 +2435,23 @@ defmodule Asteroid.Config do
       default: true,
       config_time: :runtime
 
+    @doc """
+    Global OAuth2 scope configuration
+    """
+    @type oauth2_scope_config :: scope_config()
+    field :oauth2_scope_config, :term,
+      default: %{},
+      config_time: :runtime,
+      used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Global scope configuration
+    """
+    field :scope_config, :term,
+      default: %{scopes: %{"openid" => []}},
+      config_time: :runtime,
+      used_by: [:oauth2_scope_callback]
+
     ### end of configuration options
   end
 
@@ -2402,13 +2472,28 @@ defmodule Asteroid.Config do
 
   @doc """
   Returns a configuration option. Raises if it doesn't exist
+
+  In tests, checks first the process dictionary for the value and fall backs to the standard
+  configuration, so that one can set configuration at the testing process level using:
+
+      Process.put(:configuration_option, value)
   """
   @spec opt(atom()) :: any() | no_return()
-  def opt(configuration_option) do
-    if configuration_option in __MODULE__.__specify__(:field_names) do
-      :persistent_term.get(__MODULE__) |> Map.fetch!(configuration_option)
-    else
-      raise NotAConfigurationOptionError
+  if Mix.env() == :test do
+    def opt(configuration_option) do
+      if configuration_option in Keyword.keys(Process.get()) do
+        Process.get(configuration_option)
+      else
+        if configuration_option in __MODULE__.__specify__(:field_names),
+          do: :persistent_term.get(__MODULE__) |> Map.fetch!(configuration_option),
+          else: raise NotAConfigurationOptionError, opt: configuration_option
+      end
+    end
+  else
+    def opt(configuration_option) do
+      if configuration_option in __MODULE__.__specify__(:field_names),
+        do: :persistent_term.get(__MODULE__) |> Map.fetch!(configuration_option),
+        else: raise NotAConfigurationOptionError, opt: configuration_option
     end
   end
 

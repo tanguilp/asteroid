@@ -3,6 +3,7 @@ defmodule Asteroid.OAuth2.JAR do
   Functions to work with JWT Secured Authorization Request (JAR)
   """
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Client
@@ -26,10 +27,10 @@ defmodule Asteroid.OAuth2.JAR do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "use of JAR request objects is disabled" <>
-            " (current config: #{inspect(astrenv(:oauth2_jar_enabled))})"
+            " (current config: #{inspect(opt(:oauth2_jar_enabled))})"
 
         :normal ->
           "use of JAR request objects is disabled"
@@ -50,10 +51,10 @@ defmodule Asteroid.OAuth2.JAR do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "use of JAR request URIs is disabled" <>
-            " (current config: #{inspect(astrenv(:oauth2_jar_enabled))})"
+            " (current config: #{inspect(opt(:oauth2_jar_enabled))})"
 
         :normal ->
           "use of JAR request object URIs is disabled"
@@ -78,7 +79,7 @@ defmodule Asteroid.OAuth2.JAR do
     @impl true
 
     def message(%{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           reason
 
@@ -108,7 +109,7 @@ defmodule Asteroid.OAuth2.JAR do
     @impl true
 
     def message(%{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           reason
 
@@ -162,8 +163,8 @@ defmodule Asteroid.OAuth2.JAR do
   @spec decrypt_jwe(String.t()) :: {:ok, String.t()} | {:error, Exception.t()}
 
   defp decrypt_jwe(jwe) do
-    jwe_alg_supported = astrenv(:oauth2_jar_request_object_encryption_alg_values_supported) || []
-    jwe_enc_supported = astrenv(:oauth2_jar_request_object_encryption_enc_values_supported) || []
+    jwe_alg_supported = opt(:oauth2_jar_request_object_encryption_alg_values_supported)
+    jwe_enc_supported = opt(:oauth2_jar_request_object_encryption_enc_values_supported)
 
     eligible_jwks =
       Crypto.Key.get_all()
@@ -239,7 +240,7 @@ defmodule Asteroid.OAuth2.JAR do
               if client.attrs["request_object_signing_alg"] do
                 [client.attrs["request_object_signing_alg"]]
               else
-                astrenv(:oauth2_jar_request_object_signing_alg_values_supported) || []
+                opt(:oauth2_jar_request_object_signing_alg_values_supported)
               end
 
             jws_alg = Jason.decode!(JOSE.JWS.peek_protected(jws))["alg"]
@@ -360,7 +361,7 @@ defmodule Asteroid.OAuth2.JAR do
   @spec request_object_issuer_valid?(map(), Client.t()) :: boolean()
 
   defp request_object_issuer_valid?(request_object, client) do
-    if astrenv(:oauth2_jar_request_object_verify_issuer, true) do
+    if opt(:oauth2_jar_request_object_verify_issuer) do
       client = Client.fetch_attributes(client, ["client_id"])
 
       request_object["iss"] == client.attrs["client_id"]
@@ -372,7 +373,7 @@ defmodule Asteroid.OAuth2.JAR do
   @spec request_object_audience_valid?(map()) :: boolean()
 
   defp request_object_audience_valid?(request_object) do
-    if astrenv(:oauth2_jar_request_object_verify_audience, true) do
+    if opt(:oauth2_jar_request_object_verify_audience) do
       case request_object["aud"] do
         aud when is_list(aud) ->
           OAuth2.issuer() in aud
@@ -418,7 +419,7 @@ defmodule Asteroid.OAuth2.JAR do
     parsed_uri = URI.parse(uri)
 
     if parsed_uri.scheme == "https" do
-      jar_request_uri_get_opts = astrenv(:oauth2_jar_request_uri_get_opts, [])
+      jar_request_uri_get_opts = opt(:oauth2_jar_request_uri_get_opts)
 
       case HTTPoison.get(uri, [], jar_request_uri_get_opts) do
         {:ok, %HTTPoison.Response{status_code: 200, headers: headers, body: body}} ->
@@ -454,15 +455,15 @@ defmodule Asteroid.OAuth2.JAR do
           | {:error, Exception.t()}
 
   def get_stored_request_object(key) do
-    module = astrenv(:object_store_request_object)[:module]
-    opts = astrenv(:object_store_request_object)[:opts] || []
+    module = opt(:object_store_request_object)[:module]
+    opts = opt(:object_store_request_object)[:opts] || []
 
-    req_obj_lifetime = astrenv(:oauth2_jar_request_object_lifetime, 0)
+    req_obj_lifetime = opt(:oauth2_jar_request_object_lifetime)
 
     now = now()
 
     case module.get(key, opts) do
-      {:ok, %{"exp" => exp}} when now + req_obj_lifetime > exp ->
+      {:ok, %{"exp" => exp}} when now + req_obj_lifetime < exp ->
         {:error, InvalidRequestURIError.exception(reason: "object has expired")}
 
       {:ok, %{"request_object" => request_object}} ->
@@ -488,8 +489,8 @@ defmodule Asteroid.OAuth2.JAR do
           | {:error, any()}
 
   def put_request_object(key, value) do
-    module = astrenv(:object_store_request_object)[:module]
-    opts = astrenv(:object_store_request_object)[:opts] || []
+    module = opt(:object_store_request_object)[:module]
+    opts = opt(:object_store_request_object)[:opts] || []
 
     module.put(key, value, opts)
   end

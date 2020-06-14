@@ -1,8 +1,8 @@
 defmodule Asteroid.OAuth2.Introspect do
+  import Asteroid.Config, only: [opt: 1]
+
   alias Asteroid.Context
   alias Asteroid.Client
-
-  import Asteroid.Utils
 
   @doc """
   Callback invoked to determine which claims to return from the `"/introspect"` endpoint
@@ -28,6 +28,6 @@ defmodule Asteroid.OAuth2.Introspect do
   end
 
   def endpoint_introspect_claims_resp(_) do
-    astrenv(:oauth2_endpoint_introspect_claims_resp, [])
+    opt(:oauth2_endpoint_introspect_claims_resp)
   end
 end

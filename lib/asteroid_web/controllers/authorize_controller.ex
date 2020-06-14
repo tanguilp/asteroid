@@ -3,6 +3,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
   require Logger
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
@@ -171,7 +172,7 @@ defmodule AsteroidWeb.AuthorizeController do
             params: params
           }
 
-          case astrenv(:web_authorization_callback).(conn, req) do
+          case opt(:web_authorization_callback).(conn, req) do
             {:ok, callback} ->
               callback.(conn, req)
 
@@ -208,7 +209,7 @@ defmodule AsteroidWeb.AuthorizeController do
               params: params
             }
 
-            case astrenv(:web_authorization_callback).(conn, req) do
+            case opt(:web_authorization_callback).(conn, req) do
               {:ok, callback} ->
                 callback.(conn, req)
 
@@ -366,7 +367,7 @@ defmodule AsteroidWeb.AuthorizeController do
       |> Map.put(:flow_result, opts)
       |> Map.put(:conn, conn)
 
-    granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
+    granted_scopes = opt(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
     maybe_authorization_code_serialized =
       if authz_request.response_type in [
@@ -380,7 +381,7 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AuthorizationCode.put_value("iat", now())
           |> AuthorizationCode.put_value(
             "exp",
-            now() + astrenv(:oauth2_authorization_code_lifetime_callback).(ctx)
+            now() + opt(:oauth2_authorization_code_lifetime_callback).(ctx)
           )
           |> AuthorizationCode.put_value("client_id", client.attrs["client_id"])
           |> AuthorizationCode.put_value("redirect_uri", authz_request.redirect_uri)
@@ -435,7 +436,7 @@ defmodule AsteroidWeb.AuthorizeController do
           |> AccessToken.put_value("iat", now())
           |> AccessToken.put_value(
             "exp",
-            now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+            now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
           )
           |> AccessToken.put_value("client_id", client.attrs["client_id"])
           |> AccessToken.put_value("redirect_uri", authz_request.redirect_uri)
@@ -474,9 +475,9 @@ defmodule AsteroidWeb.AuthorizeController do
 
         %IDToken{
           iss: OAuth2.issuer(),
-          sub: astrenv(:oidc_subject_identifier_callback).(subject, client),
+          sub: opt(:oidc_subject_identifier_callback).(subject, client),
           aud: client.attrs["client_id"],
-          exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
+          exp: now() + opt(:oidc_id_token_lifetime_callback).(ctx),
           iat: now(),
           auth_time: session_info[:auth_time],
           acr: session_info[:acr],
@@ -487,7 +488,7 @@ defmodule AsteroidWeb.AuthorizeController do
           associated_authorization_code_serialized: maybe_authorization_code_serialized
         }
         |> IDToken.add_sub_claims(additional_claims, subject)
-        |> astrenv(:token_id_token_before_serialize_callback).(ctx)
+        |> opt(:token_id_token_before_serialize_callback).(ctx)
         |> IDToken.serialize()
       else
         nil
@@ -512,10 +513,10 @@ defmodule AsteroidWeb.AuthorizeController do
         redirect_uri =
           authz_request.redirect_uri
           |> OAuth2.RedirectUri.add_params(params)
-          |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
+          |> opt(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
 
         conn
-        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> opt(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
         |> redirect(external: redirect_uri)
 
       :fragment ->
@@ -523,10 +524,10 @@ defmodule AsteroidWeb.AuthorizeController do
           authz_request.redirect_uri
           |> Kernel.<>("#")
           |> Kernel.<>(URI.encode_query(params))
-          |> astrenv(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
+          |> opt(:oauth2_endpoint_authorize_before_send_redirect_uri_callback).(ctx)
 
         conn
-        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> opt(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
         |> redirect(external: redirect_uri)
 
       :form_post ->
@@ -537,7 +538,7 @@ defmodule AsteroidWeb.AuthorizeController do
         |> Plug.Conn.put_private(:plug_skip_csrf_protection, true)
         |> Phoenix.Controller.put_layout({AsteroidWeb.LayoutView, "app.html"})
         |> put_view(AsteroidWeb.AuthorizeView)
-        |> astrenv(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
+        |> opt(:oauth2_endpoint_authorize_before_send_conn_callback).(ctx)
         |> render("authorization_form_post_response.html",
           params: params,
           target: authz_request.redirect_uri
@@ -583,7 +584,7 @@ defmodule AsteroidWeb.AuthorizeController do
   @spec jar_pre_authorize_oauth2(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
   defp jar_pre_authorize_oauth2(conn, %{"request" => request_object} = params) do
-    if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
+    if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
       case OAuth2.JAR.verify_and_parse(request_object) do
         {:ok, jar_req_params} ->
           req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
@@ -602,7 +603,7 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   defp jar_pre_authorize_oauth2(conn, %{"request_uri" => request_uri} = params) do
-    if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+    if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
       with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
            {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
         req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
@@ -633,7 +634,7 @@ defmodule AsteroidWeb.AuthorizeController do
        ) do
     scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
-    if astrenv(:oauth2_jar_enabled) in [:request_only, :enabled] do
+    if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
       case OAuth2.JAR.verify_and_parse(request_object) do
         {:ok, jar_req_params} ->
           if jar_req_params["response_type"] in [response_type, nil] and
@@ -670,7 +671,7 @@ defmodule AsteroidWeb.AuthorizeController do
        ) do
     scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
-    if astrenv(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+    if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
       with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
            {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
         if jar_req_params["response_type"] in [response_type, nil] and
@@ -886,7 +887,7 @@ defmodule AsteroidWeb.AuthorizeController do
 
           {:ok, nil} ->
             acrs_config =
-              Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+              Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
             client = Client.fetch_attributes(client, ["default_acr_values"])
 
@@ -905,7 +906,7 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   defp preferred_acr_from_claims_param(claims_param) do
-    acrs_config = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+    acrs_config = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
     case claims_param["id_token"]["acr"] do
       %{"values" => [acr | _]} ->
@@ -945,7 +946,7 @@ defmodule AsteroidWeb.AuthorizeController do
   end
 
   defp preferred_acr_from_acr_values_param([acr | _]) do
-    acrs_config = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+    acrs_config = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
     if acr in acrs_config do
       {:ok, acr}
@@ -993,7 +994,7 @@ defmodule AsteroidWeb.AuthorizeController do
             :form_post
         end
 
-      case astrenv(:oauth2_response_mode_policy, :oidc_only) do
+      case opt(:oauth2_response_mode_policy) do
         :disabled ->
           {:ok, OAuth2.default_response_mode(flow)}
 
@@ -1067,12 +1068,12 @@ defmodule AsteroidWeb.AuthorizeController do
               :oidc_authorization_code,
               :oidc_hybrid
             ] do
-    case astrenv(:oauth2_pkce_policy, :optional) do
+    case opt(:oauth2_pkce_policy) do
       :disabled ->
         {:ok, {nil, nil}}
 
       :optional ->
-        if astrenv(:oauth2_pkce_must_use_callback).(client) do
+        if opt(:oauth2_pkce_must_use_callback).(client) do
           if params["code_challenge"] != nil do
             pkce_params_when_mandatory(params)
           else
@@ -1120,7 +1121,7 @@ defmodule AsteroidWeb.AuthorizeController do
            )}
 
         code_challenge_method when is_atom(code_challenge_method) ->
-          if code_challenge_method in astrenv(:oauth2_pkce_allowed_methods) do
+          if code_challenge_method in opt(:oauth2_pkce_allowed_methods) do
             {:ok, {code_challenge, code_challenge_method}}
           else
             {:error,
@@ -1147,15 +1148,15 @@ defmodule AsteroidWeb.AuthorizeController do
   @spec new_access_token(Context.t(), Keyword.t()) :: AccessToken.t()
 
   defp new_access_token(ctx, access_token_opts \\ []) do
-    serialization_format = astrenv(:oauth2_access_token_serialization_format_callback).(ctx)
+    serialization_format = opt(:oauth2_access_token_serialization_format_callback).(ctx)
 
     case serialization_format do
       :opaque ->
         AccessToken.gen_new(access_token_opts)
 
       :jws ->
-        signing_key = astrenv(:oauth2_access_token_signing_key_callback).(ctx)
-        signing_alg = astrenv(:oauth2_access_token_signing_alg_callback).(ctx)
+        signing_key = opt(:oauth2_access_token_signing_key_callback).(ctx)
+        signing_alg = opt(:oauth2_access_token_signing_alg_callback).(ctx)
 
         access_token_opts =
           access_token_opts

@@ -3,7 +3,7 @@ defmodule Asteroid.Crypto.Key do
   Convenience module to work with cryptographic keys
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias JOSE.JWK
 
@@ -203,7 +203,7 @@ defmodule Asteroid.Crypto.Key do
   @spec load_from_config!() :: :ok
 
   def load_from_config!() do
-    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+    {cache_module, cache_opts} = opt(:crypto_keys_cache)
 
     if function_exported?(cache_module, :start_link, 1) do
       cache_module.start_link(cache_opts)
@@ -219,7 +219,7 @@ defmodule Asteroid.Crypto.Key do
       end
 
     inserted_keys =
-      for {key_name, key_config} <- astrenv(:crypto_keys, []) do
+      for {key_name, key_config} <- opt(:crypto_keys) do
         jwk = prepare!(key_config)
 
         :ok = cache_module.put(key_name, jwk, cache_opts)
@@ -279,7 +279,7 @@ defmodule Asteroid.Crypto.Key do
   @spec get(name()) :: {:ok, %JOSE.JWK{}} | {:error, Exception.t()}
 
   def get(key_name) do
-    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+    {cache_module, cache_opts} = opt(:crypto_keys_cache)
 
     cache_module.get(key_name, cache_opts)
   end
@@ -293,7 +293,7 @@ defmodule Asteroid.Crypto.Key do
   @spec get_all() :: [%JOSE.JWK{}]
 
   def get_all() do
-    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+    {cache_module, cache_opts} = opt(:crypto_keys_cache)
 
     for {_key_name, jwk} <- cache_module.get_all(cache_opts) do
       JOSE.JWK.from(jwk)
@@ -307,7 +307,7 @@ defmodule Asteroid.Crypto.Key do
   @spec get_all_public() :: [%JOSE.JWK{}]
 
   def get_all_public() do
-    {cache_module, cache_opts} = astrenv(:crypto_keys_cache)
+    {cache_module, cache_opts} = opt(:crypto_keys_cache)
 
     for {_key_name, jwk} <- cache_module.get_all(cache_opts) do
       JOSE.JWK.to_public(jwk)

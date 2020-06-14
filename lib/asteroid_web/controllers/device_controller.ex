@@ -3,7 +3,7 @@ defmodule AsteroidWeb.DeviceController do
 
   require Logger
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias OAuth2Utils.Scope
   alias Asteroid.OAuth2
@@ -32,7 +32,7 @@ defmodule AsteroidWeb.DeviceController do
   def pre_authorize(conn, params) do
     authz_request = %Request{params: params}
 
-    astrenv(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
+    opt(:oauth2_flow_authorization_code_web_authorization_callback).(conn, authz_request)
   end
 
   @doc """
@@ -68,7 +68,7 @@ defmodule AsteroidWeb.DeviceController do
           |> Map.put(:flow_result, opts)
           |> Map.put(:conn, conn)
 
-        granted_scopes = astrenv(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
+        granted_scopes = opt(:oauth2_scope_callback).(opts[:granted_scopes], ctx)
 
         device_code
         |> DeviceCode.put_value("sjid", opts[:sjid])

@@ -1,7 +1,7 @@
 defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
   use AsteroidWeb.ConnCase, async: true
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias OAuth2Utils.Scope
   alias AsteroidWeb.Router.Helpers, as: Routes
@@ -123,8 +123,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
 
-    assert response["interval"] ==
-             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+    assert response["interval"] == opt(:oauth2_flow_device_authorization_rate_limiter_interval)
 
     {:ok, device_code} = DeviceCode.get(response["device_code"])
 
@@ -151,8 +150,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
 
-    assert response["interval"] ==
-             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+    assert response["interval"] == opt(:oauth2_flow_device_authorization_rate_limiter_interval)
 
     # there is not such an attribute returned
     assert response["scope"] == nil
@@ -189,8 +187,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationControllerTest do
     assert is_binary(response["verification_uri_complete"])
     assert is_integer(response["expires_in"])
 
-    assert response["interval"] ==
-             astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+    assert response["interval"] == opt(:oauth2_flow_device_authorization_rate_limiter_interval)
 
     # there is not such an attribute returned
     assert response["scope"] == nil
