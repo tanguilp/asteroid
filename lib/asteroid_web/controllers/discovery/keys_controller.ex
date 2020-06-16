@@ -3,7 +3,7 @@ defmodule AsteroidWeb.Discovery.KeysController do
 
   use AsteroidWeb, :controller
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias Asteroid.Crypto
 
@@ -25,10 +25,10 @@ defmodule AsteroidWeb.Discovery.KeysController do
         end
       )
       |> put_keys()
-      |> astrenv(:oauth2_endpoint_discovery_keys_before_send_resp_callback).()
+      |> opt(:oauth2_endpoint_discovery_keys_before_send_resp_callback).()
 
     conn
-    |> astrenv(:oauth2_endpoint_discovery_keys_before_send_conn_callback).()
+    |> opt(:oauth2_endpoint_discovery_keys_before_send_conn_callback).()
     |> json(key_list)
   end
 

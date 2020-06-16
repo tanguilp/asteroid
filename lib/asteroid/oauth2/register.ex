@@ -3,6 +3,7 @@ defmodule Asteroid.OAuth2.Register do
   Utils fnuction related to client registration
   """
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Client
@@ -28,7 +29,7 @@ defmodule Asteroid.OAuth2.Register do
           | {:error, %OAuth2.Client.AuthorizationError{}}
 
   def request_authorized?(conn, maybe_authenticated_client) do
-    case astrenv(:oauth2_endpoint_register_authorization_policy) do
+    case opt(:oauth2_endpoint_register_authorization_policy) do
       :all ->
         :ok
 

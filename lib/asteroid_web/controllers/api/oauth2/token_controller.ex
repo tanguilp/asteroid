@@ -3,6 +3,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
@@ -29,7 +30,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
     @impl true
 
     def message(%{granted_scopes: granted_scopes, requested_scopes: requested_scopes}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Requested scopes exceed granted scope " <>
             "(granted scopes: #{Scope.Set.to_list(granted_scopes)}, " <>
@@ -64,7 +65,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
          :ok <- OAuth2.Scope.scopes_enabled?(requested_scopes, :ropc),
          :ok <- OAuth2.Client.scopes_authorized?(client, requested_scopes),
          {:ok, subject} <-
-           astrenv(:oauth2_flow_ropc_username_password_verify_callback).(conn, username, password) do
+           opt(:oauth2_flow_ropc_username_password_verify_callback).(conn, username, password) do
       ctx =
         %{}
         |> Map.put(:endpoint, :token)
@@ -75,19 +76,19 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> Map.put(:client, client)
         |> Map.put(:conn, conn)
 
-      granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
+      granted_scopes = opt(:oauth2_scope_callback).(requested_scopes, ctx)
 
       ctx = Map.put(ctx, :granted_scopes, granted_scopes)
 
       maybe_refresh_token =
-        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+        if opt(:oauth2_issue_refresh_token_callback).(ctx) do
           # FIXME: handle {:error, reason} failure case?
           {:ok, refresh_token} =
             RefreshToken.gen_new()
             |> RefreshToken.put_value("iat", now())
             |> RefreshToken.put_value(
               "exp",
-              now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx)
+              now() + opt(:oauth2_refresh_token_lifetime_callback).(ctx)
             )
             |> RefreshToken.put_value("client_id", client.id)
             |> RefreshToken.put_value("sub", subject.id)
@@ -110,7 +111,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value(
           "exp",
-          now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+          now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
         )
         |> AccessToken.put_value("client_id", client.id)
         |> AccessToken.put_value("sub", subject.id)
@@ -128,13 +129,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
-        |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
+        |> opt(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
 
       conn
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_conn_callback).(ctx)
+      |> opt(:oauth2_endpoint_token_grant_type_password_before_send_conn_callback).(ctx)
       |> json(resp)
     else
       {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
@@ -179,19 +180,19 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> Map.put(:client, client)
         |> Map.put(:conn, conn)
 
-      granted_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
+      granted_scopes = opt(:oauth2_scope_callback).(requested_scopes, ctx)
 
       ctx = Map.put(ctx, :granted_scopes, granted_scopes)
 
       maybe_refresh_token =
-        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+        if opt(:oauth2_issue_refresh_token_callback).(ctx) do
           # FIXME: handle {:error, reason} failure case?
           {:ok, refresh_token} =
             RefreshToken.gen_new()
             |> RefreshToken.put_value("iat", now())
             |> RefreshToken.put_value(
               "exp",
-              now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx)
+              now() + opt(:oauth2_refresh_token_lifetime_callback).(ctx)
             )
             |> RefreshToken.put_value("client_id", client.id)
             |> RefreshToken.put_value("scope", Scope.Set.to_list(granted_scopes))
@@ -213,7 +214,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value(
           "exp",
-          now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+          now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
         )
         |> AccessToken.put_value("client_id", client.id)
         |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
@@ -230,7 +231,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
-        |> astrenv(:oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback).(
+        |> opt(:oauth2_endpoint_token_grant_type_client_credentials_before_send_resp_callback).(
           ctx
         )
 
@@ -238,7 +239,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback).(
+      |> opt(:oauth2_endpoint_token_grant_type_client_credentials_before_send_conn_callback).(
         ctx
       )
       |> json(resp)
@@ -303,7 +304,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           |> Map.put(:conn, conn)
 
         maybe_new_refresh_token =
-          if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+          if opt(:oauth2_issue_refresh_token_callback).(ctx) do
             :ok = RefreshToken.delete(refresh_token)
 
             # FIXME: handle {:error, reason} failure case?
@@ -319,7 +320,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
               |> RefreshToken.put_value("iat", now())
               |> RefreshToken.put_value(
                 "exp",
-                now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx)
+                now() + opt(:oauth2_refresh_token_lifetime_callback).(ctx)
               )
               |> RefreshToken.store(ctx)
 
@@ -335,7 +336,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           |> AccessToken.put_value("iat", now())
           |> AccessToken.put_value(
             "exp",
-            now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+            now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
           )
           |> AccessToken.put_value("client_id", client.id)
           |> AccessToken.put_value("sub", if(maybe_subject, do: maybe_subject.attrs["sub"]))
@@ -368,13 +369,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
         maybe_id_token_serialized =
           if maybe_initial_flow in [:oidc_authorization_code, :oidc_hybrid] and
-               astrenv(:oidc_issue_id_token_on_refresh_callback).(ctx) do
+               opt(:oidc_issue_id_token_on_refresh_callback).(ctx) do
             %IDToken{
               iss: OAuth2.issuer(),
               # should be nil, crashes if so
               sub: maybe_subject.attrs["sub"],
               aud: refresh_token.data["client_id"],
-              exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
+              exp: now() + opt(:oidc_id_token_lifetime_callback).(ctx),
               iat: now(),
               auth_time: refresh_token.data["__asteroid_oidc_initial_auth_time"],
               acr: refresh_token.data["__asteroid_oidc_initial_acr"],
@@ -385,7 +386,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
               refresh_token.data["__asteroid_oidc_claims"] || [],
               maybe_subject
             )
-            |> astrenv(:token_id_token_before_serialize_callback).(ctx)
+            |> opt(:token_id_token_before_serialize_callback).(ctx)
             |> IDToken.serialize()
           else
             nil
@@ -400,7 +401,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
           |> maybe_put_refresh_token(maybe_new_refresh_token)
           |> put_if_not_nil("id_token", maybe_id_token_serialized)
           |> put_scope_if_changed(requested_scopes, granted_scopes)
-          |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback).(
+          |> opt(:oauth2_endpoint_token_grant_type_refresh_token_before_send_resp_callback).(
             ctx
           )
 
@@ -408,7 +409,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> put_status(200)
         |> put_resp_header("cache-control", "no-store")
         |> put_resp_header("pragma", "no-cache")
-        |> astrenv(:oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback).(
+        |> opt(:oauth2_endpoint_token_grant_type_refresh_token_before_send_conn_callback).(
           ctx
         )
         |> json(resp)
@@ -478,7 +479,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> Map.put(:conn, conn)
 
       maybe_refresh_token =
-        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+        if opt(:oauth2_issue_refresh_token_callback).(ctx) do
           {:ok, refresh_token} =
             Enum.reduce(
               authz_code.data,
@@ -516,7 +517,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
             |> RefreshToken.put_value("iat", now())
             |> RefreshToken.put_value(
               "exp",
-              now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx)
+              now() + opt(:oauth2_refresh_token_lifetime_callback).(ctx)
             )
             |> RefreshToken.put_value("scope", Scope.Set.to_list(granted_scopes))
             |> RefreshToken.store(ctx)
@@ -564,7 +565,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value(
           "exp",
-          now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+          now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
         )
         |> AccessToken.put_value("scope", Scope.Set.to_list(granted_scopes))
 
@@ -579,7 +580,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
             iss: OAuth2.issuer(),
             sub: authz_code.data["sub"],
             aud: client.attrs["client_id"],
-            exp: now() + astrenv(:oidc_id_token_lifetime_callback).(ctx),
+            exp: now() + opt(:oidc_id_token_lifetime_callback).(ctx),
             iat: now(),
             auth_time: authz_code.data["__asteroid_oidc_initial_auth_time"],
             acr: authz_code.data["__asteroid_oidc_initial_acr"],
@@ -592,7 +593,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
               end
           }
           |> IDToken.add_sub_claims(authz_code.data["__asteroid_oidc_claims"] || [], subject)
-          |> astrenv(:token_id_token_before_serialize_callback).(ctx)
+          |> opt(:token_id_token_before_serialize_callback).(ctx)
           |> IDToken.serialize()
         else
           nil
@@ -607,7 +608,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> maybe_put_refresh_token(maybe_refresh_token)
         |> put_if_not_nil("id_token", maybe_id_token_serialized)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
-        |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback).(
+        |> opt(:oauth2_endpoint_token_grant_type_authorization_code_before_send_resp_callback).(
           ctx
         )
 
@@ -615,7 +616,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback).(
+      |> opt(:oauth2_endpoint_token_grant_type_authorization_code_before_send_conn_callback).(
         ctx
       )
       |> json(resp)
@@ -683,14 +684,14 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> Map.put(:conn, conn)
 
       maybe_refresh_token =
-        if astrenv(:oauth2_issue_refresh_token_callback).(ctx) do
+        if opt(:oauth2_issue_refresh_token_callback).(ctx) do
           # FIXME: handle {:error, reason} failure case?
           {:ok, refresh_token} =
             RefreshToken.gen_new()
             |> RefreshToken.put_value("iat", now())
             |> RefreshToken.put_value(
               "exp",
-              now() + astrenv(:oauth2_refresh_token_lifetime_callback).(ctx)
+              now() + opt(:oauth2_refresh_token_lifetime_callback).(ctx)
             )
             |> RefreshToken.put_value("client_id", client.attrs["client_id"])
             |> RefreshToken.put_value("sub", subject.attrs["sub"])
@@ -713,7 +714,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         |> AccessToken.put_value("iat", now())
         |> AccessToken.put_value(
           "exp",
-          now() + astrenv(:oauth2_access_token_lifetime_callback).(ctx)
+          now() + opt(:oauth2_access_token_lifetime_callback).(ctx)
         )
         |> AccessToken.put_value("client_id", client.attrs["client_id"])
         |> AccessToken.put_value("sub", subject.attrs["sub"])
@@ -729,13 +730,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
         }
         |> maybe_put_refresh_token(maybe_refresh_token)
         |> put_scope_if_changed(requested_scopes, granted_scopes)
-        |> astrenv(:oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback).(ctx)
+        |> opt(:oauth2_endpoint_token_grant_type_device_code_before_send_resp_callback).(ctx)
 
       conn
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback).(ctx)
+      |> opt(:oauth2_endpoint_token_grant_type_device_code_before_send_conn_callback).(ctx)
       |> json(resp)
     else
       {:error, %Token.InvalidTokenError{reason: "expired code"}} ->
@@ -972,15 +973,15 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
   @spec new_access_token(Context.t(), Keyword.t()) :: AccessToken.t()
 
   defp new_access_token(ctx, access_token_opts \\ []) do
-    serialization_format = astrenv(:oauth2_access_token_serialization_format_callback).(ctx)
+    serialization_format = opt(:oauth2_access_token_serialization_format_callback).(ctx)
 
     case serialization_format do
       :opaque ->
         AccessToken.gen_new(access_token_opts)
 
       :jws ->
-        signing_key = astrenv(:oauth2_access_token_signing_key_callback).(ctx)
-        signing_alg = astrenv(:oauth2_access_token_signing_alg_callback).(ctx)
+        signing_key = opt(:oauth2_access_token_signing_key_callback).(ctx)
+        signing_alg = opt(:oauth2_access_token_signing_alg_callback).(ctx)
 
         access_token_opts =
           access_token_opts

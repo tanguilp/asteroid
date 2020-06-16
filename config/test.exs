@@ -71,10 +71,6 @@ config :asteroid, :attribute_repositories,
     init_opts: [instance: :device]
   ]
 
-config :asteroid, :api_oauth2_plugs, [
-  {APIacFilterIPWhitelist, [whitelist: ["127.0.0.1/32"], error_response_verbosity: :debug]}
-]
-
 config :asteroid, :api_oauth2_endpoint_token_plugs, [
   {Corsica, [origins: "*"]},
   {APIacAuthBasic,

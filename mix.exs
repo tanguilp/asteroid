@@ -63,7 +63,8 @@ defmodule Asteroid.MixProject do
       {:plug_cowboy, "~> 2.0"},
       #{:poison, "~> 4.0", override: true},
       {:riak, github: "tanguilp/riak-elixir-client"},
-      {:singleton, "~> 1.2.0"}
+      {:singleton, "~> 1.2.0"},
+      {:specify, path: "../elixir-specify"}
     ]
   end
 

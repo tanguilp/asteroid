@@ -1,4 +1,5 @@
 defmodule Asteroid.Token.AuthorizationCode do
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -99,8 +100,8 @@ defmodule Asteroid.Token.AuthorizationCode do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authorization_code_id, opts \\ [check_active: true]) do
-    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
-    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
+    azcode_store_module = opt(:object_store_authorization_code)[:module]
+    azcode_store_opts = opt(:object_store_authorization_code)[:opts] || []
 
     case azcode_store_module.get(authorization_code_id, azcode_store_opts) do
       {:ok, authorization_code} when not is_nil(authorization_code) ->
@@ -135,11 +136,11 @@ defmodule Asteroid.Token.AuthorizationCode do
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(authorization_code, ctx \\ %{}) do
-    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
-    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
+    azcode_store_module = opt(:object_store_authorization_code)[:module]
+    azcode_store_opts = opt(:object_store_authorization_code)[:opts] || []
 
     authorization_code =
-      astrenv(:object_store_authorization_code_before_store_callback).(authorization_code, ctx)
+      opt(:object_store_authorization_code_before_store_callback).(authorization_code, ctx)
 
     case azcode_store_module.put(authorization_code, azcode_store_opts) do
       :ok ->
@@ -161,8 +162,8 @@ defmodule Asteroid.Token.AuthorizationCode do
   end
 
   def delete(authorization_code_id) do
-    azcode_store_module = astrenv(:object_store_authorization_code)[:module]
-    azcode_store_opts = astrenv(:object_store_authorization_code)[:opts] || []
+    azcode_store_module = opt(:object_store_authorization_code)[:module]
+    azcode_store_opts = opt(:object_store_authorization_code)[:opts] || []
 
     azcode_store_module.delete(authorization_code_id, azcode_store_opts)
   end
@@ -265,7 +266,7 @@ defmodule Asteroid.Token.AuthorizationCode do
         lifetime
 
       _ ->
-        astrenv(conf_opt, astrenv(:oauth2_authorization_code_lifetime, 0))
+        opt(conf_opt) || opt(:oauth2_authorization_code_lifetime)
     end
   end
 

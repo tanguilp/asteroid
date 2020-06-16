@@ -3,7 +3,7 @@ defmodule Asteroid.OAuth2 do
   Types and helper functions for OAuth2
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   defmodule UnsupportedGrantTypeError do
     @moduledoc """
@@ -19,10 +19,10 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{grant_type: grant_type}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Unsupported grant type `#{grant_type}` (enabled grant types are: " <>
-            "#{inspect(astrenv(:oauth2_grant_types_enabled, []))})"
+            "#{inspect(opt(:oauth2_grant_types_enabled))})"
 
         :normal ->
           "Unsupported grant type `#{grant_type}`"
@@ -47,10 +47,10 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{response_type: response_type}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Unsupported response type `#{response_type} (enabled grant types are: " <>
-            "#{inspect(astrenv(:oauth2_response_types_enabled, []))})"
+            "#{inspect(opt(:oauth2_response_types_enabled))})"
 
         :normal ->
           "Unsupported response type `#{response_type}`"
@@ -80,7 +80,7 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{grant: grant, reason: reason, debug_details: debug_details}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug when not is_nil(debug_details) ->
           "Invalid grant `#{grant}`: #{reason} (#{debug_details})"
 
@@ -113,7 +113,7 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Access denied: " <> reason
 
@@ -143,7 +143,7 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{reason: reason} = e) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Server error: #{reason} (stacktrace: #{inspect(e.stacktrace)})"
 
@@ -172,7 +172,7 @@ defmodule Asteroid.OAuth2 do
     @impl true
 
     def message(%{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Temporary unavailable: " <> reason
 
@@ -442,7 +442,7 @@ defmodule Asteroid.OAuth2 do
           | {:error, %UnsupportedGrantTypeError{}}
 
   def grant_type_enabled?(grant_type) do
-    if grant_type in astrenv(:oauth2_grant_types_enabled, []) do
+    if grant_type in opt(:oauth2_grant_types_enabled) do
       :ok
     else
       {:error, UnsupportedGrantTypeError.exception(grant_type: Atom.to_string(grant_type))}
@@ -462,7 +462,7 @@ defmodule Asteroid.OAuth2 do
           | {:error, %UnsupportedResponseTypeError{}}
 
   def response_type_enabled?(response_type) do
-    if response_type in astrenv(:oauth2_response_types_enabled, []) do
+    if response_type in opt(:oauth2_response_types_enabled) do
       :ok
     else
       {:error,

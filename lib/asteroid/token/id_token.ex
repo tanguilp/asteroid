@@ -1,4 +1,5 @@
 defmodule Asteroid.Token.IDToken do
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -269,7 +270,7 @@ defmodule Asteroid.Token.IDToken do
               :oidc_flow_hybrid_id_token_lifetime
           end
 
-        astrenv(conf_opt, astrenv(:oidc_id_token_lifetime, 0))
+        opt(conf_opt) || opt(:oidc_id_token_lifetime)
     end
   end
 
@@ -318,7 +319,7 @@ defmodule Asteroid.Token.IDToken do
             :oidc_flow_hybrid_issue_id_token_refresh
         end
 
-      astrenv(conf_opt, astrenv(:oidc_issue_id_token_refresh, false))
+      opt(conf_opt) || opt(:oidc_issue_id_token_refresh)
     end
   end
 

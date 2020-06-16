@@ -3,16 +3,19 @@ defmodule Asteroid.Application do
 
   use Application
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias Asteroid.{
     AttributeRepository,
+    Config,
     Crypto,
     OAuth2,
     ObjectStore
   }
 
   def start(_type, _args) do
+    {:ok, _conf} = Config.load_and_save()
+
     children = [
       AsteroidWeb.Endpoint
     ]
@@ -24,7 +27,7 @@ defmodule Asteroid.Application do
          :ok <- ObjectStore.auto_start_from_config(),
          :ok <- Crypto.Key.load_from_config!()
     do
-      if astrenv(:crypto_jws_none_alg_enabled, false) do
+      if opt(:crypto_jws_none_alg_enabled) do
         JOSE.JWA.unsecured_signing(true)
       end
 

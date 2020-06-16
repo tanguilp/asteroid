@@ -1,12 +1,12 @@
 defmodule Asteroid.AttributeRepository do
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   require Logger
 
   @spec auto_install_from_config() :: :ok | {:error, any()}
 
   def auto_install_from_config() do
-    conf_list = astrenv(:attribute_repositories)
+    conf_list = opt(:attribute_repositories)
 
     do_auto_install_from_config(conf_list)
   end
@@ -36,7 +36,7 @@ defmodule Asteroid.AttributeRepository do
   @spec auto_start_from_config() :: :ok | {:error, any()}
 
   def auto_start_from_config() do
-    conf_list = astrenv(:attribute_repositories)
+    conf_list = opt(:attribute_repositories)
 
     do_auto_start_from_config(conf_list)
   end

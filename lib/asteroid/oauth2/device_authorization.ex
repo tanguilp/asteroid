@@ -3,7 +3,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
   Types and convenience functions to work with the device flow
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   defmodule ExpiredTokenError do
     @moduledoc """
@@ -15,7 +15,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
     @type t :: %__MODULE__{}
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "The device code has expired"
 
@@ -38,7 +38,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
     @type t :: %__MODULE__{}
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "The device code authorization is pending"
 
@@ -65,7 +65,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
           }
 
     def message(%{retry_after: retry_after}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           if is_integer(retry_after) do
             "Too many requests (retry after #{to_string(retry_after)} seconds)"
@@ -111,7 +111,7 @@ defmodule Asteroid.OAuth2.DeviceAuthorization do
   @spec rate_limited?(device_code) :: :ok | {:error, RateLimitedError.t()}
 
   def rate_limited?(device_code) do
-    case astrenv(:oauth2_flow_device_authorization_rate_limiter) do
+    case opt(:oauth2_flow_device_authorization_rate_limiter) do
       {module, opts} ->
         case module.check(device_code, opts) do
           :ok ->

@@ -55,10 +55,7 @@ defmodule Asteroid.Token do
 
   @type serialization_format ::
           :opaque
-          | :jws
-          | :jwe
-          | :saml1
-          | :saml2
+          | :jwt #FIXME: was renamed from :jws, modify everywhere
 
   @typedoc """
   String representation of a `t:serialization_format/0`
