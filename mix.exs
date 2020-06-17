@@ -55,6 +55,7 @@ defmodule Asteroid.MixProject do
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:gettext, "~> 0.11"},
       {:hammer, "~> 6.0"},
+      {:jose_virtual_hsm, path: "../jose_virtual_hsm"},
       {:jwks_uri_updater, "~> 1.0"},
       {:oauth2_metadata_updater, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},

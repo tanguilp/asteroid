@@ -2452,6 +2452,14 @@ defmodule Asteroid.Config do
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
 
+    @doc """
+    JOSEVirtualHSM keys' configuration
+
+    Note that RSA is mandatory for an OpenID Connect server
+    """
+    field :jose_virtual_hsm_keys_config, {:list, :term},
+      default: [{:auto_gen, {:rsa, 2048}}]
+
     ### end of configuration options
   end
 
