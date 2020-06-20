@@ -6,8 +6,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
-  alias Asteroid.OAuth2
-  alias Asteroid.OIDC
+  alias Asteroid.{Crypto, OAuth2, OIDC}
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
 
@@ -430,30 +429,20 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         Map.put(metadata, "signed_metadata", signed_statement(metadata))
 
       fields when is_list(fields) ->
-        fields_to_be_signed = Map.take(metadata, fields ++ ["issuer"])
+        fields_to_be_signed = Map.take(metadata, ["issuer" | fields])
 
         Map.put(metadata, "signed_metadata", signed_statement(fields_to_be_signed))
     end
   end
 
   @spec signed_statement(map()) :: String.t()
-
   defp signed_statement(to_be_signed) do
-    signing_key = opt(:oauth2_endpoint_metadata_signing_key)
     signing_alg = opt(:oauth2_endpoint_metadata_signing_alg)
+    signing_key_selector =
+      Keyword.merge([use: "sig"], opt(:oauth2_endpoint_metadata_signing_key_selector))
 
-    {:ok, jwk} = Asteroid.Crypto.Key.get(signing_key)
+    {:ok, {signed, _}} = Crypto.JOSE.sign(to_be_signed, signing_alg, nil, signing_key_selector)
 
-    if signing_alg do
-      jws = JOSE.JWS.from_map(%{"alg" => signing_alg})
-
-      JOSE.JWT.sign(jwk, jws, to_be_signed)
-      |> JOSE.JWS.compact()
-      |> elem(1)
-    else
-      JOSE.JWT.sign(jwk, to_be_signed)
-      |> JOSE.JWS.compact()
-      |> elem(1)
-    end
+    signed
   end
 end

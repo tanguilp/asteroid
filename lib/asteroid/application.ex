@@ -8,7 +8,6 @@ defmodule Asteroid.Application do
   alias Asteroid.{
     AttributeRepository,
     Config,
-    Crypto,
     OAuth2,
     ObjectStore
   }
@@ -22,11 +21,13 @@ defmodule Asteroid.Application do
     ]
     |> maybe_add_mtls_aliases_endpoint()
 
+    #FIXME: remove
+    JOSE.crypto_fallback(true)
+
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
-         :ok <- ObjectStore.auto_start_from_config(),
-         :ok <- Crypto.Key.load_from_config!()
+         :ok <- ObjectStore.auto_start_from_config()
     do
       if opt(:crypto_jws_none_alg_enabled) do
         JOSE.JWA.unsecured_signing(true)

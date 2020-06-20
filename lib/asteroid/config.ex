@@ -1334,19 +1334,19 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Key name for the signed metadata fields
+    Signature algorithm for signed metadata
     """
-    @type oauth2_endpoint_metadata_signing_key :: Crypto.Key.name()
-    field :oauth2_endpoint_metadata_signing_key, :string,
-      default: "",
+    @type oauth2_endpoint_metadata_signing_alg :: JOSEUtils.JWA.sig_alg()
+    field :oauth2_endpoint_metadata_signing_alg, :string,
+      default: "RSA",
       config_time: :runtime
 
     @doc """
-    Key algorithm for the signed metadata fields
+    Key selector for OAuth2 metadata signing
     """
-    @type oauth2_endpoint_metadata_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_endpoint_metadata_signing_alg, :string,
-      default: "",
+    @type oauth2_endpoint_metadata_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_endpoint_metadata_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1671,7 +1671,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
     field :oauth2_jar_request_object_encryption_alg_values_supported, {:list, :string},
-      default: [],
+      default: ["RSA-OAEP"],
       config_time: :runtime
 
     @doc """
@@ -1679,7 +1679,7 @@ defmodule Asteroid.Config do
     """
     @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
     field :oauth2_jar_request_object_encryption_enc_values_supported, {:list, :string},
-      default: [],
+      default: ["A128CBC-HS256", "A256CBC-HS512"],
       config_time: :runtime
 
     @doc """

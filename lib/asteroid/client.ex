@@ -1,6 +1,8 @@
 defmodule Asteroid.Client do
   use AttributeRepository.Resource, otp_app: :asteroid
 
+  import Asteroid.Config, only: [opt: 1]
+
   @moduledoc """
   `AttributeRepository.Resource` for clients
 
@@ -263,8 +265,23 @@ defmodule Asteroid.Client do
   instead.
   """
 
-  @spec get_jwks(t()) :: {:ok, [Asteroid.Crypto.Key.t()]} | {:error, any()}
+  defmodule MissingClientConfigError do
+    @type t :: %__MODULE__{
+      field: String.t()
+    }
 
+    defexception [:field]
+
+    def message(%{field: field}) do
+      case opt(:api_error_response_verbosity) do
+        :debug   -> "missing `" <> field <> "` client configuration"
+        :normal  -> "missing required client configuration"
+        :minimal -> ""
+      end
+    end
+  end
+
+  @spec get_jwks(t()) :: {:ok, [Asteroid.Crypto.Key.t()]} | {:error, any()}
   def get_jwks(client) do
     client = fetch_attributes(client, ["jwks", "jwks_uri"])
 

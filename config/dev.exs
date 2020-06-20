@@ -66,7 +66,8 @@ config :asteroid, AsteroidWeb.Endpoint,
 
 config :asteroid, :jose_virtual_hsm_keys_config,  [
   {:auto_gen, {:rsa, 2048}},
-  {:auto_gen, {:ec, "P-256"}}
+  {:auto_gen, {:ec, "P-256"}},
+  {:auto_gen, {:okp, :Ed25519}}
 ]
 
 # Do not include metadata nor timestamps in development logs
