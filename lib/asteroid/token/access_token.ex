@@ -32,7 +32,7 @@ defmodule Asteroid.Token.AccessToken do
 
   @enforce_keys [:id, :serialization_format, :data]
 
-  defstruct [:id, :refresh_token_id, :serialization_format, :signing_key, :signing_alg, :data]
+  defstruct [:id, :refresh_token_id, :serialization_format, :signing_key_selector, :data]
 
   @type id :: binary()
 
@@ -40,8 +40,7 @@ defmodule Asteroid.Token.AccessToken do
           id: __MODULE__.id(),
           refresh_token_id: binary() | nil,
           serialization_format: Asteroid.Token.serialization_format(),
-          signing_key: Asteroid.Crypto.Key.name() | nil,
-          signing_alg: Asteroid.Crypto.Key.jws_alg() | nil,
+          signing_key_selector: JOSEUtils.JWK.key_selector() | nil,
           data: map()
         }
 
@@ -66,7 +65,7 @@ defmodule Asteroid.Token.AccessToken do
       refresh_token_id: opts[:refresh_token_id] || nil,
       data: opts[:data] || %{},
       serialization_format: opts[:serialization_format] || :opaque,
-      signing_key: opts[:signing_key]
+      signing_key_selector: opts[:signing_key_selector]
     }
   end
 
@@ -89,8 +88,7 @@ defmodule Asteroid.Token.AccessToken do
       data: %{},
       serialization_format:
         if(opts[:serialization_format], do: opts[:serialization_format], else: :opaque),
-      signing_key: opts[:signing_key],
-      signing_alg: opts[:signing_alg]
+      signing_key_selector: opts[:signing_key_selector]
     }
   end
 
@@ -214,20 +212,15 @@ defmodule Asteroid.Token.AccessToken do
   Serializes the access token, using its inner `t:Asteroid.Token.serialization_format/0`
   information
 
-  Supports serialization to `:opaque` and `:jws` serialization formats.
-
-  In case of the serialization to the `jws` format:
-  - if the signing algorithm was set, uses this algorithm
-  - otherwise uses the default signer of `JOSE.JWT.sign/2`
+  Supports serialization to `:opaque` and `:jwt` serialization formats.
   """
 
-  @spec serialize(t()) :: String.t()
-
-  def serialize(%__MODULE__{id: id, serialization_format: :opaque}) do
+  @spec serialize(t(), Client.t()) :: String.t()
+  def serialize(%__MODULE__{id: id, serialization_format: :opaque}, _client) do
     id
   end
 
-  def serialize(%__MODULE__{serialization_format: :jws} = access_token) do
+  def serialize(%__MODULE__{serialization_format: :jwt} = access_token, client) do
     jwt =
       Enum.reduce(
         access_token.data,
@@ -241,18 +234,12 @@ defmodule Asteroid.Token.AccessToken do
         end
       )
 
-    {:ok, jwk} = Crypto.Key.get(access_token.signing_key)
+    case Crypto.JOSE.sign(jwt, client, access_token.signing_key_selector || []) do
+      {:ok, {jws, _}} ->
+        jws
 
-    if access_token.signing_alg do
-      jws = JOSE.JWS.from_map(%{"alg" => access_token.signing_alg})
-
-      JOSE.JWT.sign(jwk, jws, jwt)
-      |> JOSE.JWS.compact()
-      |> elem(1)
-    else
-      JOSE.JWT.sign(jwk, jwt)
-      |> JOSE.JWS.compact()
-      |> elem(1)
+      {:error, e} ->
+        raise e
     end
   end
 
@@ -444,8 +431,8 @@ defmodule Asteroid.Token.AccessToken do
 
     client = Client.fetch_attributes(client, [attr])
 
-    if client.attrs[attr] == "jws" do
-      :jws
+    if client.attrs[attr] == "jwt" do
+      :jwt
     else
       conf_opt =
         case flow do
@@ -482,44 +469,42 @@ defmodule Asteroid.Token.AccessToken do
   Returns the signing key name for an access token
 
   The following rules apply (<FLOW> is to be replace by a `t:Asteroid.OAuth2.flow_str()/0`):
-  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_signing_key` is set, returns
+  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_signing_key_selector` is set, returns
   this value
-  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_key` is set, returns
+  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_key_selector` is set, returns
   this value
   - otherwise, returns the value of the
-  #{Asteroid.Config.link_to_option(:oauth2_access_token_signing_key)} configuration
+  #{Asteroid.Config.link_to_option(:oauth2_access_token_signing_key_selector)} configuration
   option
   - otherwise, returns `nil`
   """
-
-  @spec signing_key(Context.t()) :: Asteroid.Crypto.Key.name()
-
-  def signing_key(%{flow: flow, client: client}) do
+  @spec signing_key_selector(Context.t()) :: JOSEUtils.JWK.key_selector()
+  def signing_key_selector(%{flow: flow, client: client}) do
     attr =
       case flow do
         :ropc ->
-          "__asteroid_oauth2_flow_ropc_access_token_signing_key"
+          "__asteroid_oauth2_flow_ropc_access_token_signing_key_selector"
 
         :client_credentials ->
-          "__asteroid_oauth2_flow_client_credentials_access_token_signing_key"
+          "__asteroid_oauth2_flow_client_credentials_access_token_signing_key_selector"
 
         :authorization_code ->
-          "__asteroid_oauth2_flow_authorization_code_access_token_signing_key"
+          "__asteroid_oauth2_flow_authorization_code_access_token_signing_key_selector"
 
         :implicit ->
-          "__asteroid_oauth2_flow_implicit_access_token_signing_key"
+          "__asteroid_oauth2_flow_implicit_access_token_signing_key_selector"
 
         :device_authorization ->
-          "__asteroid_oauth2_flow_device_authorization_access_token_signing_key"
+          "__asteroid_oauth2_flow_device_authorization_access_token_signing_key_selector"
 
         :oidc_authorization_code ->
-          "__asteroid_oidc_flow_authorization_code_access_token_signing_key"
+          "__asteroid_oidc_flow_authorization_code_access_token_signing_key_selector"
 
         :oidc_implicit ->
-          "__asteroid_oidc_flow_implicit_access_token_signing_key"
+          "__asteroid_oidc_flow_implicit_access_token_signing_key_selector"
 
         :oidc_hybrid ->
-          "__asteroid_oidc_flow_hybrid_access_token_signing_key"
+          "__asteroid_oidc_flow_hybrid_access_token_signing_key_selector"
       end
 
     client = Client.fetch_attributes(client, [attr])
@@ -530,111 +515,31 @@ defmodule Asteroid.Token.AccessToken do
       conf_opt =
         case flow do
           :ropc ->
-            :oauth2_flow_ropc_access_token_signing_key
+            :oauth2_flow_ropc_access_token_signing_key_selector
 
           :client_credentials ->
-            :oauth2_flow_client_credentials_access_token_signing_key
+            :oauth2_flow_client_credentials_access_token_signing_key_selector
 
           :authorization_code ->
-            :oauth2_flow_authorization_code_access_token_signing_key
+            :oauth2_flow_authorization_code_access_token_signing_key_selector
 
           :implicit ->
-            :oauth2_flow_implicit_access_token_signing_key
+            :oauth2_flow_implicit_access_token_signing_key_selector
 
           :device_authorization ->
-            :oauth2_flow_device_authorization_access_token_signing_key
+            :oauth2_flow_device_authorization_access_token_signing_key_selector
 
           :oidc_authorization_code ->
-            :oidc_flow_authorization_code_access_token_signing_key
+            :oidc_flow_authorization_code_access_token_signing_key_selector
 
           :oidc_implicit ->
-            :oidc_flow_implicit_access_token_signing_key
+            :oidc_flow_implicit_access_token_signing_key_selector
 
           :oidc_hybrid ->
-            :oidc_flow_hybrid_access_token_signing_key
+            :oidc_flow_hybrid_access_token_signing_key_selector
         end
 
-      opt(conf_opt) || opt(:oauth2_access_token_signing_key)
-    end
-  end
-
-  @doc """
-  Returns the signing algortihm for an access token
-
-  The following rules apply (<FLOW> is to be replace by a `t:Asteroid.OAuth2.flow_str()/0`):
-  - if the `__asteroid_oauth2_flow_<FLOW>_access_token_signing_alg` is set, returns
-  this value
-  - otherwise, if the `:oauth2_flow_<FLOW>_access_token_signing_alg` is set, returns
-  this value
-  - otherwise, returns the value of the
-  #{Asteroid.Config.link_to_option(:oauth2_access_token_signing_alg)} configuration
-  option
-  - otherwise, returns `nil`
-  """
-
-  @spec signing_alg(Context.t()) :: Asteroid.Crypto.Key.jws_alg()
-
-  def signing_alg(%{flow: flow, client: client}) do
-    attr =
-      case flow do
-        :ropc ->
-          "__asteroid_oauth2_flow_ropc_access_token_signing_alg"
-
-        :client_credentials ->
-          "__asteroid_oauth2_flow_client_credentials_access_token_signing_alg"
-
-        :authorization_code ->
-          "__asteroid_oauth2_flow_authorization_code_access_token_signing_alg"
-
-        :implicit ->
-          "__asteroid_oauth2_flow_implicit_access_token_signing_alg"
-
-        :device_authorization ->
-          "__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"
-
-        :oidc_authorization_code ->
-          "__asteroid_oidc_flow_authorization_code_access_token_signing_alg"
-
-        :oidc_implicit ->
-          "__asteroid_oidc_flow_implicit_access_token_signing_alg"
-
-        :oidc_hybrid ->
-          "__asteroid_oidc_flow_hybrid_access_token_signing_alg"
-      end
-
-    client = Client.fetch_attributes(client, [attr])
-
-    if client.attrs[attr] != nil do
-      client.attrs[attr]
-    else
-      conf_opt =
-        case flow do
-          :ropc ->
-            :oauth2_flow_ropc_access_token_signing_alg
-
-          :client_credentials ->
-            :oauth2_flow_client_credentials_access_token_signing_alg
-
-          :authorization_code ->
-            :oauth2_flow_authorization_code_access_token_signing_alg
-
-          :implicit ->
-            :oauth2_flow_implicit_access_token_signing_alg
-
-          :device_authorization ->
-            :oauth2_flow_device_authorization_access_token_signing_alg
-
-          :oidc_authorization_code ->
-            :oidc_flow_authorization_code_access_token_signing_alg
-
-          :oidc_implicit ->
-            :oidc_flow_implicit_access_token_signing_alg
-
-          :oidc_hybrid ->
-            :oidc_flow_hybrid_access_token_signing_alg
-        end
-
-      opt(conf_opt) || opt(:oauth2_access_token_signing_alg)
+      opt(conf_opt) || opt(:oauth2_access_token_signing_key_selector)
     end
   end
 end

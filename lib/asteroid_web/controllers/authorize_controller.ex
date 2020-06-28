@@ -462,7 +462,7 @@ defmodule AsteroidWeb.AuthorizeController do
       end
 
     maybe_access_token_serialized =
-      if maybe_access_token, do: AccessToken.serialize(maybe_access_token)
+      if maybe_access_token, do: AccessToken.serialize(maybe_access_token, client)
 
     maybe_id_token_serialized =
       if authz_request.response_type in [
@@ -1192,15 +1192,13 @@ defmodule AsteroidWeb.AuthorizeController do
       :opaque ->
         AccessToken.gen_new(access_token_opts)
 
-      :jws ->
-        signing_key = opt(:oauth2_access_token_signing_key_callback).(ctx)
-        signing_alg = opt(:oauth2_access_token_signing_alg_callback).(ctx)
+      :jwt ->
+        signing_key_selector = opt(:oauth2_access_token_signing_key_selector_callback).(ctx)
 
         access_token_opts =
           access_token_opts
           |> Keyword.put(:serialization_format, serialization_format)
-          |> Keyword.put(:signing_key, signing_key)
-          |> Keyword.put(:signing_alg, signing_alg)
+          |> Keyword.put(:signing_key_selector, signing_key_selector)
 
         AccessToken.gen_new(access_token_opts)
     end

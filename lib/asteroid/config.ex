@@ -597,22 +597,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the ROPC flow
+    Defines the signing key selector of an access token in the ROPC flow
     """
-    @type oauth2_flow_ropc_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_ropc_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_ropc_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_ropc_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the ROPC flow
-    """
-    @type oauth2_flow_ropc_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_ropc_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback called to determine the lifetime of an access token
@@ -665,44 +656,21 @@ defmodule Asteroid.Config do
     Note that client configuration takes precedence over configuration options. See
     `Asteroid.Client` fields.
     """
-    @type oauth2_access_token_signing_key_callback ::
-            (Asteroid.Context.t() -> Crypto.Key.name())
-    field :oauth2_access_token_signing_key_callback, :function,
-      default: &Asteroid.Token.AccessToken.signing_key/1,
+    @type oauth2_access_token_signing_key__selector_callback ::
+            (Asteroid.Context.t() -> JOSEUtils.JWK.key_selector())
+    field :oauth2_access_token_signing_key_selector_callback, :function,
+      default: &Asteroid.Token.AccessToken.signing_key_selector/1,
       config_time: :runtime,
       uses: [
-        :oauth2_access_token_signing_key,
-        :oauth2_flow_ropc_access_token_signing_key,
-        :oauth2_flow_client_credentials_access_token_signing_key,
-        :oauth2_flow_authorization_code_access_token_signing_key,
-        :oauth2_flow_implicit_access_token_signing_key,
-        :oauth2_flow_device_authorization_access_token_signing_key,
-        :oidc_flow_authorization_code_access_token_signing_key,
-        :oidc_flow_implicit_access_token_signing_key,
-        :oidc_flow_hybrid_access_token_signing_key
-      ]
-
-    @doc """
-    Callback called to determine the signing algorithm of an access token
-
-    Note that client configuration takes precedence over configuration options. See
-    `Asteroid.Client` fields.
-    """
-    @type oauth2_access_token_signing_alg_callback ::
-            (Asteroid.Context.t() -> Crypto.Key.jws_alg())
-    field :oauth2_access_token_signing_alg_callback, :function,
-      default: &Asteroid.Token.AccessToken.signing_alg/1,
-      config_time: :runtime,
-      uses: [
-        :oauth2_access_token_signing_alg,
-        :oauth2_flow_ropc_access_token_signing_alg,
-        :oauth2_flow_client_credentials_access_token_signing_alg,
-        :oauth2_flow_authorization_code_access_token_signing_alg,
-        :oauth2_flow_implicit_access_token_signing_alg,
-        :oauth2_flow_device_authorization_access_token_signing_alg,
-        :oidc_flow_authorization_code_access_token_signing_alg,
-        :oidc_flow_implicit_access_token_signing_alg,
-        :oidc_flow_hybrid_access_token_signing_alg
+        :oauth2_access_token_signing_key_selector,
+        :oauth2_flow_ropc_access_token_signing_key_selector,
+        :oauth2_flow_client_credentials_access_token_signing_key_selector,
+        :oauth2_flow_authorization_code_access_token_signing_key_selector,
+        :oauth2_flow_implicit_access_token_signing_key_selector,
+        :oauth2_flow_device_authorization_access_token_signing_key_selector,
+        :oidc_flow_authorization_code_access_token_signing_key_selector,
+        :oidc_flow_implicit_access_token_signing_key_selector,
+        :oidc_flow_hybrid_access_token_signing_key_selector
       ]
 
     @doc """
@@ -898,22 +866,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the client credentials flow
+    Defines the signing key selector of an access token in the client credentials flow
     """
-    @type oauth2_flow_client_credentials_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_client_credentials_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_client_credentials_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_client_credentials_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the client credentials flow
-    """
-    @type oauth2_flow_client_credentials_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_client_credentials_access_token_signing_alg, :string,
-      default: nil,
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback invoked on the json response when the grant_type is `"client_credentials"`
@@ -1030,22 +989,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the authorization code flow
+    Defines the signing key selector of an access token in the authorization code flow
     """
-    @type oauth2_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_authorization_code_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_authorization_code_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_authorization_code_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the authorization code flow
-    """
-    @type oauth2_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_authorization_code_access_token_signing_alg, :string,
-    default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback invoked on the json response when the grant_type is "authorization_code"
@@ -1120,22 +1070,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the implicit flow
+    Defines the signing key selector of an access token in the implicit flow
     """
-    @type oauth2_flow_implicit_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_implicit_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_implicit_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_implicit_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the implicit flow
-    """
-    @type oauth2_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_implicit_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     The PKCE policy
@@ -1528,22 +1469,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the device authorization flow
+    Defines the signing key selector of an access token in the device authorization flow
     """
-    @type oauth2_flow_device_authorization_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_device_authorization_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_device_authorization_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_device_authorization_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the device authorization flow
-    """
-    @type oauth2_flow_device_authorization_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_device_authorization_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Defines the lifetime of an access token in the device authorization flow
@@ -2098,58 +2030,31 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC authorization code flow
+    Defines the signing key selector of an access token in the OIDC authorization code flow
     """
-    @type oidc_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_authorization_code_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_authorization_code_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_authorization_code_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC implicit flow
+    Defines the signing key selector of an access token in the OIDC implicit flow
     """
-    @type oidc_flow_implicit_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_implicit_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_implicit_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_implicit_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC hybrid flow
+    Defines the signing key selector of an access token in the OIDC hybrid flow
     """
-    @type oidc_flow_hybrid_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_hybrid_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_hybrid_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_hybrid_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC authorization code flow
-    """
-    @type oidc_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_authorization_code_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC implicit flow
-    """
-    @type oidc_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_implicit_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC hybrid flow
-    """
-    @type oidc_flow_hybrid_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_hybrid_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Plugs installed on `"/api/oidc"`
@@ -2329,20 +2234,11 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing algorithm of an access token
+    Defines the signing key selector of an access token
     """
-    @type oauth2_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing key name of an access token
-    """
-    @type oauth2_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 

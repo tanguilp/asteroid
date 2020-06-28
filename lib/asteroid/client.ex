@@ -80,10 +80,8 @@ defmodule Asteroid.Client do
   lifetime duration of an access token in the ROPC flow
   - `"__asteroid_oauth2_flow_ropc_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the ROPC flow
-  - `"__asteroid_oauth2_flow_ropc_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the ROPC flow
-  - `"__asteroid_oauth2_flow_ropc_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the ROPC flow
+  - `"__asteroid_oauth2_flow_ropc_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the ROPC flow
   - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_init"`: a `boolean()` set to
   `true` if a refresh token is to be issued at the first request of the client credentials flow
   - `"__asteroid_oauth2_flow_client_credentials_issue_refresh_token_refresh"`: a `boolean()` set
@@ -95,11 +93,9 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_client_credentials_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the client credentials
   flow
-  - `"__asteroid_oauth2_flow_client_credentials_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the client credentials flow
-  - `"__asteroid_oauth2_flow_client_credentials_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the client credentials
-  flow
+  - `"__asteroid_oauth2_flow_client_credentials_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the client
+  credentials flow
   - `"__asteroid_oauth2_flow_authorization_code_authorization_code_lifetime"`: a
   `non_neg_integer()` set to the lifetime duration of an authorization in the code flow
   - `"__asteroid_oauth2_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
@@ -112,21 +108,17 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_authorization_code_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the authorization code
   flow
-  - `"__asteroid_oauth2_flow_authorization_code_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the authorization code flow
-  - `"__asteroid_oauth2_flow_authorization_code_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the authorization code
-  flow
+  - `"__asteroid_oauth2_flow_authorization_code_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the authorization
+  code flow
   - `"__asteroid_oauth2_flow_authorization_code_refresh_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of a refresh token in the authorization code flow
   - `"__asteroid_oauth2_flow_implicit_access_token_lifetime"`: a `non_neg_integer()`
   set to the lifetime duration of an access token in the implicit flow
   - `"__asteroid_oauth2_flow_implicit_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the implicit flow
-  - `"__asteroid_oauth2_flow_implicit_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the implicit flow
-  - `"__asteroid_oauth2_flow_implicit_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the implicit flow
+  - `"__asteroid_oauth2_flow_implicit_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the implicit flow
   - `"__asteroid_endpoint_introspect_claims_resp"`: the list of `String.t()` claims to be
   returned from the `"/introspect"` endpoint
   - `"__asteroid_oauth2_mandatory_pkce_use"`: a `boolean()` indicating
@@ -179,11 +171,8 @@ defmodule Asteroid.Client do
   - `"__asteroid_oauth2_flow_device_authorization_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the device authorization
   flow
-  - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the device authorization
-  flow
-  - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the device
+  - `"__asteroid_oauth2_flow_device_authorization_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the device
   authorization flow
   - `"__asteroid_oidc_flow_authorization_code_authorization_code_lifetime"`: a
   `non_neg_integer()` set to the lifetime duration of an authorization code in the OIDC code flow
@@ -192,12 +181,9 @@ defmodule Asteroid.Client do
   - `"__asteroid_oidc_flow_authorization_code_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC authorization
   code flow
-  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC authorization
-  code flow
-  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC authorization
-  code flow
+  - `"__asteroid_oidc_flow_authorization_code_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the OIDC
+  authorization code flow
   - `"__asteroid_oidc_flow_authorization_code_issue_refresh_token_init"`: a `boolean()` set to
   true if a refresh token is to be issued in the OIDC authorization code flow when presenting the
   authorization code
@@ -236,14 +222,11 @@ defmodule Asteroid.Client do
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC implicit flow
   - `"__asteroid_oidc_flow_hybrid_access_token_serialization_format"`: the
   `t:Asteroid.Token.serialization_format_str/0` serialization format for the OIDC hybrid flow
-  - `"__asteroid_oidc_flow_implicit_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC implicit flow
-  - `"__asteroid_oidc_flow_hybrid_access_token_signing_key"`: the
-  `t:Asteroid.Crypto.Key.name/0` signing key name for access tokens in the OIDC hybrid flow
-  - `"__asteroid_oidc_flow_implicit_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC implicit flow
-  - `"__asteroid_oidc_flow_hybrid_access_token_signing_alg"`: the
-  `t:Asteroid.Crypto.Key.jws_alg/0` signing algorithm for access tokens in the OIDC hybrid flow
+  - `"__asteroid_oidc_flow_implicit_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the OIDC implicit
+  flow
+  - `"__asteroid_oidc_flow_hybrid_access_token_signing_key_selector"`: the
+  `t:JOSEUtils.JWK.key_selector/0` signing key selector for access tokens in the OIDC hybrid flow
 
   ## Configuration
 
