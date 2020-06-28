@@ -17,7 +17,7 @@ defmodule Asteroid.Application do
 
     children = [
       AsteroidWeb.Endpoint,
-      {JOSEVirtualHSM, keys_config: Config.opt(:jose_virtual_hsm_keys_config)},
+      {JOSEVirtualHSM, keys: Config.opt(:jose_virtual_hsm_keys_config)},
     ]
     |> maybe_add_mtls_aliases_endpoint()
 

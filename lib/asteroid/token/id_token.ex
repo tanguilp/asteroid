@@ -175,9 +175,9 @@ defmodule Asteroid.Token.IDToken do
     signing_alg = client.attrs["id_token_signed_response_alg"] || "RS256"
 
     if claims[:selected_kid] do
-      Crypto.JOSE.sign(claims, signing_alg, client, kid: claims[:selected_kid])
+      Crypto.JOSE.sign(claims, client, alg: signing_alg, kid: claims[:selected_kid])
     else
-      Crypto.JOSE.sign(claims, signing_alg, client)
+      Crypto.JOSE.sign(claims, client, alg: signing_alg)
     end
     |> case do
       {:ok, {signed_payload, _jwk}} ->

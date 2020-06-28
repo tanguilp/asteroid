@@ -1334,14 +1334,6 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Signature algorithm for signed metadata
-    """
-    @type oauth2_endpoint_metadata_signing_alg :: JOSEUtils.JWA.sig_alg()
-    field :oauth2_endpoint_metadata_signing_alg, :string,
-      default: "RSA",
-      config_time: :runtime
-
-    @doc """
     Key selector for OAuth2 metadata signing
     """
     @type oauth2_endpoint_metadata_signing_key_selector :: JOSEUtils.JWK.key_selector()

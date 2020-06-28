@@ -12,6 +12,19 @@ defmodule Asteroid.Crypto.JOSE do
     "ECDH-ES+A256KW"
   ]
 
+  @symmetric_enc_algs [
+    "A128KW",
+    "A192KW",
+    "A256KW",
+    "dir",
+    "A128GCMKW",
+    "A192GCMKW",
+    "A256GCMKW",
+    "PBES2-HS256+A128KW",
+    "PBES2-HS384+A192KW",
+    "PBES2-HS512+A256KW"
+  ]
+
   defmodule NoSuitableKeyFoundError do
     defexception message: "no suitable key found in JOSEVirtualHSM or client JWKs"
   end
@@ -48,21 +61,39 @@ defmodule Asteroid.Crypto.JOSE do
   """
   @spec sign(
     payload :: any(),
-    alg :: JOSEUtils.JWA.sig_alg(),
     client :: Client.t() | nil,
     key_selector :: JOSEUtils.JWK.key_selector()
   ) :: {:ok, {JOSEUtils.JWS.serialized(), JOSEUtils.JWK.t()}} | {:error, Exception.t()}
-  def sign(payload, alg, client \\ nil, key_selector \\ [])
+  def sign(payload, client \\ nil, key_selector \\ [])
 
-  def sign(payload, alg, client, key_selector) when alg in @mac_algs and client != nil do
+  def sign(payload, client, key_selector) do
+    case key_selector[:alg] do
+      <<_::binary>> = alg when alg in @mac_algs ->
+        mac(payload, client, key_selector)
+
+      algs when is_list(algs) ->
+        if Enum.all?(algs, fn alg -> alg in @mac_algs end) do
+          mac(payload, client, key_selector)
+        else
+          JOSEVirtualHSM.sign(payload, key_selector)
+        end
+
+      nil ->
+        JOSEVirtualHSM.sign(payload, key_selector)
+    end
+  end
+
+  defp mac(payload, client, key_selector) when client != nil do
     with {:ok, jwks} <- Client.get_jwks(client) do
       eligible_keys =
         jwks
         |> JOSEUtils.JWKS.signature_keys()
-        |> JOSEUtils.JWKS.filter(Keyword.put(key_selector, :alg, alg))
+        |> JOSEUtils.JWKS.filter(key_selector)
 
       case eligible_keys do
         [jwk | _] ->
+          [alg | _] = JOSEUtils.JWK.sig_algs_supported(jwk)
+
           case JOSEUtils.JWS.sign(payload, jwk, alg) do
             {:ok, signed_payload} ->
               {:ok, {signed_payload, jwk}}
@@ -75,10 +106,6 @@ defmodule Asteroid.Crypto.JOSE do
           {:error, %NoSuitableKeyFoundError{}}
       end
     end
-  end
-
-  def sign(payload, alg, _client, key_selector) do
-    JOSEVirtualHSM.sign(payload, Keyword.put(key_selector, :alg, alg))
   end
 
   @doc """
@@ -129,6 +156,7 @@ defmodule Asteroid.Crypto.JOSE do
         jwks
         |> JOSEUtils.JWKS.encryption_keys()
         |> JOSEUtils.JWKS.filter(key_selector)
+        |> JOSEUtils.JWKS.filter(alg: enc_alg, enc: enc_enc)
 
       case eligible_keys do
         [jwk | _] ->
@@ -141,7 +169,7 @@ defmodule Asteroid.Crypto.JOSE do
   end
 
   defp do_encrypt(payload, jwk_pub, enc_alg, enc_enc) when enc_alg in @enc_dh_algs do
-    case JOSEVirtualHSM.encrypt_with_df(payload, jwk_pub, enc_alg, enc_enc) do
+    case JOSEVirtualHSM.encrypt_ecdh(payload, jwk_pub, enc_alg, enc_enc) do
       {:ok, encrypted_payload} ->
         {:ok, {encrypted_payload, jwk_pub}}
 
@@ -173,14 +201,11 @@ defmodule Asteroid.Crypto.JOSE do
   ) :: {:ok, {decrypted_content :: String.t(), JOSEUtils.JWK.t()}} | {:error, Exception.t()}
   def decrypt(jwe, client, key_selector \\ []) when client != nil do
     if JOSEUtils.is_jwe?(jwe) do
-      case encryption_alg_type(jwe) do
-        :symmetric ->
+      case JOSEUtils.JWE.peek_header(jwe) do
+        %{"alg" => alg} when alg in @symmetric_enc_algs ->
           decrypt_symmetric(jwe, client, key_selector)
 
-        :asymmetric_ecdh ->
-          decrypt_asymmetric_with_dh(jwe, client, key_selector)
-
-        :asymmetric ->
+        _ ->
           JOSEVirtualHSM.decrypt(jwe, key_selector)
       end
     else
@@ -198,48 +223,6 @@ defmodule Asteroid.Crypto.JOSE do
       JOSEUtils.JWE.decrypt(jwe, jwks, key_selector[:alg] || [], key_selector[:enc] || [])
     end
   end
-
-  defp decrypt_asymmetric_with_dh(jwe, client, key_selector) do
-    with {:ok, jwks} <- Client.get_jwks(client) do
-      key_selector = Keyword.put(key_selector, :kty, ["EC", "OKP"])
-
-      jwks =
-        jwks
-        |> JOSEUtils.JWKS.decryption_keys()
-        |> JOSEUtils.JWKS.filter(key_selector)
-
-      JOSEUtils.JWE.decrypt_with_dh(jwe, jwks, key_selector[:alg] || [], key_selector[:enc] || [])
-    end
-  end
-
-  defp encryption_alg_type(jwe) do
-    jwe
-    |> JOSE.JWE.expand()
-    |> elem(1)
-    |> Map.get("protected")
-    |> Base.url_decode64!(padding: false)
-    |> Jason.decode!()
-    |> Map.get("alg")
-    |> enc_alg_to_enc_alg_type()
-  end
-
-  defp enc_alg_to_enc_alg_type("RSA1_5"), do: :asymmetric
-  defp enc_alg_to_enc_alg_type("RSA-OAEP"), do: :asymmetric
-  defp enc_alg_to_enc_alg_type("RSA-OAEP-256"), do: :asymmetric
-  defp enc_alg_to_enc_alg_type("A128KW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("A192KW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("A256KW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("dir"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("ECDH-ES"), do: :asymmetric_ecdh
-  defp enc_alg_to_enc_alg_type("ECDH-ES+A128KW"), do: :asymmetric_ecdh
-  defp enc_alg_to_enc_alg_type("ECDH-ES+A192KW"), do: :asymmetric_ecdh
-  defp enc_alg_to_enc_alg_type("ECDH-ES+A256KW"), do: :asymmetric_ecdh
-  defp enc_alg_to_enc_alg_type("A128GCMKW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("A192GCMKW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("A256GCMKW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("PBES2-HS256+A128KW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("PBES2-HS384+A192KW"), do: :symmetric
-  defp enc_alg_to_enc_alg_type("PBES2-HS512+A256KW"), do: :symmetric
 
   @doc """
   Returns the list of public keys managed by the server

@@ -437,11 +437,10 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   @spec signed_statement(map()) :: String.t()
   defp signed_statement(to_be_signed) do
-    signing_alg = opt(:oauth2_endpoint_metadata_signing_alg)
     signing_key_selector =
       Keyword.merge([use: "sig"], opt(:oauth2_endpoint_metadata_signing_key_selector))
 
-    {:ok, {signed, _}} = Crypto.JOSE.sign(to_be_signed, signing_alg, nil, signing_key_selector)
+    {:ok, {signed, _}} = Crypto.JOSE.sign(to_be_signed, nil, signing_key_selector)
 
     signed
   end
