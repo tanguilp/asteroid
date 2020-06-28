@@ -126,7 +126,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
     signing_alg = client.attrs["userinfo_signed_response_alg"]
 
     if signing_alg do
-      case Crypto.JOSE.sign(claims, signing_alg, client) do
+      case Crypto.JOSE.sign(claims, client, alg: signing_alg) do
         {:ok, {signed_payload, _jwk}} ->
           signed_payload
 

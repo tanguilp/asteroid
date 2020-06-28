@@ -511,9 +511,8 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
   end
 
   test "Authorization granted (implicit) - access granted with JWS access token", %{conn: conn} do
-    Process.put(:oauth2_flow_implicit_access_token_serialization_format, :jws)
-    Process.put(:oauth2_flow_implicit_access_token_signing_key, "key_auto_sig")
-    Process.put(:oauth2_flow_implicit_access_token_signing_alg, "RS384")
+    Process.put(:oauth2_flow_implicit_access_token_serialization_format, :jwt)
+    Process.put(:oauth2_flow_implicit_access_token_signing_key_selector, alg: "RS384")
 
     authz_request = %AsteroidWeb.AuthorizeController.Request{
       flow: :implicit,
@@ -547,10 +546,9 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
 
     jws_at = URI.decode_query(URI.parse(redirected_to(conn)).fragment)["access_token"]
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, access_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], jws_at)
+    assert {:ok, {access_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      jws_at, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     access_token_data = Jason.decode!(access_token_str)
 

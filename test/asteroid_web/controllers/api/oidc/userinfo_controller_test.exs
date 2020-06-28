@@ -34,18 +34,13 @@ defmodule AsteroidWeb.UserinfoControllerTest do
       |> Subject.add("non_standard_claim_1", "some value")
       |> Subject.store()
 
-    rsa_enc_alg_all =
-      JOSE.JWK.generate_key({:rsa, 1024})
-      |> Crypto.Key.set_key_use(:enc)
+    rsa_priv_key = JOSE.JWK.generate_key({:rsa, 1024}) |> JOSE.JWK.to_map() |> elem(1)
 
     Client.gen_new(id: "client_userinfo_sig")
     |> Client.add("client_id", "client_userinfo_sig")
     |> Client.add("client_type", "confidential")
     |> Client.add("userinfo_signed_response_alg", "RS384")
-    |> Client.add(
-      "jwks",
-      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
-    )
+    |> Client.add("jwks", [JOSEUtils.JWK.to_public(rsa_priv_key)])
     |> Client.store()
 
     Client.gen_new(id: "client_userinfo_enc")
@@ -54,13 +49,10 @@ defmodule AsteroidWeb.UserinfoControllerTest do
     |> Client.add("userinfo_signed_response_alg", "RS384")
     |> Client.add("userinfo_encrypted_response_alg", "RSA1_5")
     |> Client.add("userinfo_encrypted_response_enc", "A128GCM")
-    |> Client.add(
-      "jwks",
-      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
-    )
+    |> Client.add("jwks", [JOSEUtils.JWK.to_public(rsa_priv_key)])
     |> Client.store()
 
-    %{rsa_enc_alg_all: rsa_enc_alg_all}
+    %{rsa_priv_key: rsa_priv_key}
   end
 
   test "Success case - requesting using all scopes values, get req", %{conn: conn} do
@@ -239,10 +231,9 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     response = response(conn, 200)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, payload_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], response)
+    assert {:ok, {payload_str, _jwk}} = JOSEUtils.JWS.verify(
+      response, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     payload = Jason.decode!(payload_str)
 
@@ -280,7 +271,7 @@ defmodule AsteroidWeb.UserinfoControllerTest do
   end
 
   test "Success case - requesting using all scopes values, signed and encrypted resp, get req",
-       %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all} do
+       %{conn: conn, rsa_priv_key: rsa_priv_key} do
     {:ok, access_token} =
       AccessToken.gen_new()
       |> AccessToken.put_value("scope", ["profile", "email", "address", "phone"])
@@ -297,12 +288,12 @@ defmodule AsteroidWeb.UserinfoControllerTest do
 
     response = response(conn, 200)
 
-    {payload_signed, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, response)
+    assert {:ok, {payload_signed, _}} =
+      JOSEUtils.JWE.decrypt(response, rsa_priv_key, ["RSA1_5"], ["A128GCM"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, payload_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], payload_signed)
+    assert {:ok, {payload_str, _jwk}} = JOSEUtils.JWS.verify(
+      payload_signed, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     payload = Jason.decode!(payload_str)
 

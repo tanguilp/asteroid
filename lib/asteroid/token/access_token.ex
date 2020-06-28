@@ -215,7 +215,9 @@ defmodule Asteroid.Token.AccessToken do
   Supports serialization to `:opaque` and `:jwt` serialization formats.
   """
 
-  @spec serialize(t(), Client.t()) :: String.t()
+  @spec serialize(t(), Client.t() | nil) :: String.t()
+  def serialize(access_token, client \\ nil)
+
   def serialize(%__MODULE__{id: id, serialization_format: :opaque}, _client) do
     id
   end

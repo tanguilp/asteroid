@@ -198,15 +198,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_jwks_uri(map()) :: map()
 
   defp put_jwks_uri(metadata) do
-    if opt(:crypto_keys) do
-      Map.put(
-        metadata,
-        "jwks_uri",
-        Routes.keys_url(AsteroidWeb.Endpoint, :handle)
-      )
-    else
-      metadata
-    end
+    Map.put(metadata, "jwks_uri", Routes.keys_url(AsteroidWeb.Endpoint, :handle))
   end
 
   @spec put_revocation_endpoint(map()) :: map()

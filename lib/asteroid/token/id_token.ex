@@ -300,7 +300,7 @@ defmodule Asteroid.Token.IDToken do
     if client.attrs[attr] == true do
       true
     else
-      conf_opt =
+      opt_name =
         case flow do
           :oidc_authorization_code ->
             :oidc_flow_authorization_code_issue_id_token_refresh
@@ -309,7 +309,13 @@ defmodule Asteroid.Token.IDToken do
             :oidc_flow_hybrid_issue_id_token_refresh
         end
 
-      opt(conf_opt) || opt(:oidc_issue_id_token_refresh)
+      case opt(opt_name) do
+        val when is_boolean(val) ->
+          val
+
+        nil ->
+          opt(:oidc_issue_id_token_refresh)
+      end
     end
   end
 

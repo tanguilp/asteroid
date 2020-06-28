@@ -1322,21 +1322,6 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Cryptographic keys configuration
-
-    Refer to `t:Asteroid.Crypto.Key.key_config/0` for more information.
-
-    **Security consideration**: consider storing keys in a separate configuration file
-    (such as `secret.exs`).
-    """
-    @type crypto_keys :: Crypto.Key.key_config()
-    field :crypto_keys, :term,
-      default: %{
-        "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig, advertise: false]}
-      },
-      config_time: :runtime
-
-    @doc """
     Cryptographic keys cache store
 
     The first element is a module implementing the `Asteroid.Crypto.Key.Cache` behaviour, and

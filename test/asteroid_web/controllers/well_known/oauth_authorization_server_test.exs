@@ -6,7 +6,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.Endpoint
   alias AsteroidWeb.Endpoint
-  alias Asteroid.OAuth2
+  alias Asteroid.{Crypto, OAuth2}
   alias OAuth2Utils.Scope
 
   test "verifiy all fields", %{conn: conn} do
@@ -140,39 +140,28 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
     assert response["code_challenge_methods_supported"] == nil
   end
 
-  test "jwks_uri not set if disabled", %{conn: conn} do
-    Process.put(:crypto_keys, nil)
-
-    response =
-      conn
-      |> get(Routes.oauth_authorization_server_path(conn, :handle))
-      |> json_response(200)
-
-    assert response["jwks_uri"] == nil
-  end
-
   test "signed_metadata published with issuer and correct signature", %{conn: conn} do
     Process.put(
       :oauth2_endpoint_metadata_signed_fields,
       ["token_endpoint", "token_endpoint_auth_methods_supported", "scopes_supported"]
     )
 
-    Process.put(:oauth2_endpoint_metadata_signing_key, "key_auto_sig")
-    Process.put(:oauth2_endpoint_metadata_signing_alg, "PS512")
-
     response =
       conn
       |> get(Routes.oauth_authorization_server_path(conn, :handle))
       |> json_response(200)
 
-    {:ok, jwk} = Asteroid.Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, signed_metadata_str, _} =
-             JOSE.JWS.verify_strict(jwk, ["PS512"], response["signed_metadata"])
+    assert {:ok, {signed_metadata_str, _jwk}} = JOSEUtils.JWS.verify(
+      response["signed_metadata"], Crypto.JOSE.public_keys(), sig_algs_supported()
+    )
 
     signed_metadata = Jason.decode!(signed_metadata_str)
 
     assert signed_metadata["issuer"] == OAuth2.issuer()
+  end
+
+  defp sig_algs_supported do
+    Asteroid.Crypto.JOSE.public_keys()
+    |> Enum.flat_map(fn jwk -> JOSEUtils.JWK.sig_algs_supported(jwk) end)
   end
 end

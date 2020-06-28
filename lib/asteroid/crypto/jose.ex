@@ -71,6 +71,9 @@ defmodule Asteroid.Crypto.JOSE do
       <<_::binary>> = alg when alg in @mac_algs ->
         mac(payload, client, key_selector)
 
+      <<_::binary>> = alg ->
+        JOSEVirtualHSM.sign(payload, Keyword.put(key_selector, :alg, alg))
+
       algs when is_list(algs) ->
         if Enum.all?(algs, fn alg -> alg in @mac_algs end) do
           mac(payload, client, key_selector)
