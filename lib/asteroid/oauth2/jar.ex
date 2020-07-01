@@ -121,9 +121,56 @@ defmodule Asteroid.OAuth2.JAR do
   end
 
   @doc """
+  Returns the list of supported signing algorithms for request objects
+
+  See
+  #{Asteroid.Config.link_to_option(:oauth2_jar_request_object_signing_alg_values_supported)}
+  """
+  @spec signing_alg_values_supported() :: [JOSEUtils.JWA.sig_alg()]
+  def signing_alg_values_supported() do
+    case opt(:oauth2_jar_request_object_signing_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.sig_algs_supported/1)
+        |> Enum.uniq()
+
+      l ->
+        l
+    end
+  end
+
+  @doc """
+  Returns the list of supported encryption key derivation algorithms for request objects
+
+  See
+  #{Asteroid.Config.link_to_option(:oauth2_jar_request_object_encryption_alg_values_supported)}
+  """
+  @spec encryption_alg_values_supported() :: [JOSEUtils.JWA.enc_alg()]
+  def encryption_alg_values_supported() do
+    case opt(:oauth2_jar_request_object_encryption_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.enc_algs_supported/1)
+        |> Enum.uniq()
+
+      l ->
+        l
+    end
+  end
+
+  @doc """
+  Returns the list of supported content encryption algorithms for request objects
+
+  See
+  #{Asteroid.Config.link_to_option(:oauth2_jar_request_object_encryption_enc_values_supported)}
+  """
+  @spec encryption_enc_values_supported() :: [JOSEUtils.JWA.enc_enc()]
+  def encryption_enc_values_supported(),
+    do: opt(:oauth2_jar_request_object_encryption_enc_values_supported)
+
+  @doc """
   Parses and verifies a request object
   """
-
   @spec verify_and_parse(String.t(), Client.t()) :: {:ok, map()} | {:error, Exception.t()}
   def verify_and_parse(request_object_str, client) do
     with {:ok, jws} <- maybe_decrypt(request_object_str, client),
@@ -148,17 +195,15 @@ defmodule Asteroid.OAuth2.JAR do
       ["request_object_encryption_alg", "request_object_encryption_enc", "jwks", "jwks_uri"]
     )
 
-    enc_alg = client.attrs["request_object_encryption_alg"]
-              || opt(:oauth2_jar_request_object_encryption_alg_values_supported)
-    enc_enc = client.attrs["request_object_encryption_enc"]
-              || opt(:oauth2_jar_request_object_encryption_enc_values_supported)
+    enc_alg = client.attrs["request_object_encryption_alg"] || encryption_alg_values_supported()
+    enc_enc = client.attrs["request_object_encryption_enc"] || encryption_enc_values_supported()
 
     case Crypto.JOSE.decrypt(jwe, client, alg: enc_alg, enc: enc_enc) do
       {:ok, {decrypted_content, _jwk}} ->
         {:ok, decrypted_content}
 
-      {:error, _} = error ->
-        error
+      {:error, e} ->
+        {:error, %InvalidRequestObjectError{reason: Exception.message(e)}}
     end
   end
 
@@ -172,22 +217,21 @@ defmodule Asteroid.OAuth2.JAR do
   defp do_verify(jws, client) do
     client = Client.fetch_attributes(client, ["request_object_signing_alg"])
 
-    key_selector =
-      case client.attrs["request_object_signing_alg"] do
-        <<_::binary>> = alg ->
-          [alg: alg]
+    case client.attrs["request_object_signing_alg"] do
+      <<_::binary>> = alg ->
+        case Crypto.JOSE.verify(jws, client, alg: alg) do
+          {:ok, {verified_content, _jwk}} ->
+            {:ok, verified_content}
 
-        nil ->
-          [alg: opt(:oauth2_jar_request_object_signing_alg_values_supported)]
-      end
+          {:error, e} ->
+            {:error, %InvalidRequestObjectError{reason: Exception.message(e)}}
+        end
 
-    case Crypto.JOSE.verify(jws, client, key_selector) do
-      {:ok, {verified_content, _jwk}} ->
-        {:ok, verified_content}
-
-      {:error, _} = error ->
-        error
+      nil ->
+        {:error, %InvalidRequestObjectError{
+          reason: "missing `request_object_signing_alg` client configuration"}}
     end
+
   end
 
   @spec request_object_issuer_valid?(map(), Client.t()) :: :ok | {:error, Exception.t()}

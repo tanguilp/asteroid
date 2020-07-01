@@ -284,23 +284,12 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   end
 
   @spec put_jar_enabled(map()) :: map()
-
   defp put_jar_enabled(metadata) do
-    case opt(:oauth2_jar_enabled) do
-      :disabled ->
-        Map.put(metadata, "request_parameter_supported", false)
+    jar_enabled = opt(:oauth2_jar_enabled)
 
-      :request_only ->
-        Map.put(metadata, "request_parameter_supported", true)
-
-      :request_uri_only ->
-        Map.put(metadata, "request_uri_parameter_supported", true)
-
-      :enabled ->
-        metadata
-        |> Map.put("request_parameter_supported", true)
-        |> Map.put("request_uri_parameter_supported", true)
-    end
+    metadata
+    |> Map.put("request_parameter_supported", jar_enabled in [:request_only, :enabled])
+    |> Map.put("request_uri_parameter_supported", jar_enabled in [:request_uri_only, :enabled])
   end
 
   @spec put_jar_metadata_values(map()) :: map()
@@ -313,16 +302,16 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       _ ->
         metadata
         |> put_if_not_empty(
+          "request_object_signing_alg_values_supported",
+          OAuth2.JAR.signing_alg_values_supported()
+        )
+        |> put_if_not_empty(
           "request_object_encryption_alg_values_supported",
-          opt(:oauth2_jar_request_object_encryption_alg_values_supported)
+          OAuth2.JAR.encryption_alg_values_supported()
         )
         |> put_if_not_empty(
           "request_object_encryption_enc_values_supported",
-          opt(:oauth2_jar_request_object_encryption_enc_values_supported)
-        )
-        |> put_if_not_empty(
-          "request_object_signing_alg_values_supported",
-          opt(:oauth2_jar_request_object_signing_alg_values_supported)
+          OAuth2.JAR.encryption_enc_values_supported()
         )
     end
   end
@@ -354,8 +343,6 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
       metadata
       |> Map.put("claims_parameter_supported", true)
-      |> Map.put("request_parameter_supported", true)
-      |> Map.put("request_uri_parameter_supported", true)
       |> Map.put("subject_types_supported", ["public", "pairwise"])
       |> Map.put("userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
       |> Map.put("response_modes_supported", response_modes_supported)

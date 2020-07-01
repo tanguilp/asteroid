@@ -1322,17 +1322,6 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Cryptographic keys cache store
-
-    The first element is a module implementing the `Asteroid.Crypto.Key.Cache` behaviour, and
-    the second element are the module's options.
-    """
-    @type crypto_keys_cache :: {module(), Crypto.Key.Cache.opts()}
-    field :crypto_keys_cache, :option,
-      default: {Asteroid.Crypto.Key.Cache.ETS, []},
-      config_time: :runtime
-
-    @doc """
     Determines whether the `"none"` JWS algorithm is supported
 
     It is set using the `JOSE.JWA.unsecured_signing/1` function on Asteroid startup. Defaults
@@ -1527,7 +1516,7 @@ defmodule Asteroid.Config do
     @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
     field :oauth2_jar_enabled,
       {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled]},
-      default: :disabled,
+      default: :request_only,
       config_time: :runtime
 
     @doc """
@@ -1569,26 +1558,41 @@ defmodule Asteroid.Config do
 
     @doc """
     List of supported signing algorithms for JAR request objects
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oauth2_jar_request_object_signing_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oauth2_jar_request_object_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oauth2_jar_request_object_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of supported encryption algorithms for JAR request objects
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oauth2_jar_request_object_encryption_alg_values_supported, {:list, :string},
-      default: ["RSA-OAEP"],
+    @type oauth2_jar_request_object_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oauth2_jar_request_object_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of supported encryption encryption algorithms for JAR request objects
     """
-    @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oauth2_jar_request_object_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oauth2_jar_request_object_encryption_enc_values_supported, {:list, :string},
-      default: ["A128CBC-HS256", "A256CBC-HS512"],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """

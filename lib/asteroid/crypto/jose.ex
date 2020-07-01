@@ -124,7 +124,7 @@ defmodule Asteroid.Crypto.JOSE do
   def verify(jws, client, key_selector \\ []) when not is_nil(client) do
     with true <- JOSEUtils.is_jws?(jws),
          {:ok, jwks} <- Client.get_jwks(client) do
-      jwks = JOSEUtils.JWKS.filter(jwks, key_selector)
+      jwks = jwks |> JOSEUtils.JWKS.filter(key_selector) |> JOSEUtils.JWKS.verification_keys()
       algs = algs(key_selector)
 
       case JOSEUtils.JWS.verify(jws, jwks, algs) do
