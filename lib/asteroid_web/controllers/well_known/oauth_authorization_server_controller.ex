@@ -44,7 +44,6 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         "op_tos_uri",
         opt(:oauth2_endpoint_metadata_op_tos_uri)
       )
-      |> put_jar_enabled()
       |> put_jar_metadata_values()
       |> put_oidc_metadata()
       |> put_mtls_endpoint_aliases()
@@ -283,24 +282,23 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
     end
   end
 
-  @spec put_jar_enabled(map()) :: map()
-  defp put_jar_enabled(metadata) do
-    jar_enabled = opt(:oauth2_jar_enabled)
-
-    metadata
-    |> Map.put("request_parameter_supported", jar_enabled in [:request_only, :enabled])
-    |> Map.put("request_uri_parameter_supported", jar_enabled in [:request_uri_only, :enabled])
-  end
-
   @spec put_jar_metadata_values(map()) :: map()
-
   defp put_jar_metadata_values(metadata) do
     case opt(:oauth2_jar_enabled) do
       :disabled ->
         metadata
 
-      _ ->
+      jar_status ->
         metadata
+        |> Map.put(
+          "request_parameter_supported",
+          jar_status in [:request_only, :enabled, :mandatory]
+        )
+        |> Map.put(
+          "request_uri_parameter_supported",
+          jar_status in [:request_uri_only, :enabled, :mandatory]
+        )
+        |> Map.put("require_signed_request_object", jar_status == :mandatory)
         |> put_if_not_empty(
           "request_object_signing_alg_values_supported",
           OAuth2.JAR.signing_alg_values_supported()

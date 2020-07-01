@@ -155,6 +155,21 @@ defmodule AsteroidWeb.AuthorizeControllerTest do
     assert %{"error" => "invalid_scope"} = URI.decode_query(URI.parse(redirected_to(conn)).query)
   end
 
+  test "JAR is mandatory but not used", %{conn: conn} do
+    Process.put(:oauth2_jar_enabled, :mandatory)
+
+    params = %{
+      "response_type" => "code",
+      "client_id" => "client_confidential_1",
+      "redirect_uri" => "https://www.example.com"
+    }
+
+    conn = get(conn, "/authorize?#{URI.encode_query(params)}")
+
+    assert redirected_to(conn) =~ "https://www.example.com"
+    assert %{"error" => "invalid_request"} = URI.decode_query(URI.parse(redirected_to(conn)).query)
+  end
+
   ##########################
   # Authorization denied
   ##########################

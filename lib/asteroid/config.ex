@@ -1513,9 +1513,9 @@ defmodule Asteroid.Config do
     - `:request_uri_only`: only the `"request_uri"` is enabled
     - `:enabled`: both the `"request"` and `"request_uri"` parameters are enabled
     """
-    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
+    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled | :mandatory
     field :oauth2_jar_enabled,
-      {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled]},
+      {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled, :mandatory]},
       default: :request_only,
       config_time: :runtime
 

@@ -141,7 +141,8 @@ defmodule AsteroidWeb.AuthorizeController do
 
     protocol = if "openid" in requested_scopes, do: :oidc, else: :oauth2
 
-    with {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
+    with :ok <- check_jar_required_status(conn),
+         {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
          {:ok, response_type} <- Asteroid.OAuth2.to_response_type(response_type_str),
          :ok <- Asteroid.OAuth2.response_type_enabled?(response_type),
          :ok <- client_id_valid?(client_id),
@@ -593,7 +594,9 @@ defmodule AsteroidWeb.AuthorizeController do
           {:ok, jar_req_params} ->
             req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
-            pre_authorize(conn, req_params)
+            conn
+            |> put_private(:asteroid_jar_request, true)
+            |> pre_authorize(req_params)
 
           {:error, e} ->
             AsteroidWeb.Error.respond_authorize(conn, e)
@@ -623,7 +626,9 @@ defmodule AsteroidWeb.AuthorizeController do
              {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj, client) do
           req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
-          pre_authorize(conn, req_params)
+          conn
+          |> put_private(:asteroid_jar_request, true)
+          |> pre_authorize(req_params)
         else
           {:error, e} ->
             AsteroidWeb.Error.respond_authorize(conn, e)
@@ -665,7 +670,9 @@ defmodule AsteroidWeb.AuthorizeController do
                  "openid" in scopes do
               req_params = Map.merge(Map.delete(params, "request"), jar_req_params)
 
-              pre_authorize(conn, req_params)
+              conn
+              |> put_private(:asteroid_jar_request, true)
+              |> pre_authorize(req_params)
             else
               AsteroidWeb.Error.respond_authorize(
                 conn,
@@ -710,7 +717,9 @@ defmodule AsteroidWeb.AuthorizeController do
                "openid" in scopes do
             req_params = Map.merge(Map.delete(params, "request_uri"), jar_req_params)
 
-            pre_authorize(conn, req_params)
+            conn
+            |> put_private(:asteroid_jar_request, true)
+            |> pre_authorize(req_params)
           else
             AsteroidWeb.Error.respond_authorize(
               conn,
@@ -787,6 +796,20 @@ defmodule AsteroidWeb.AuthorizeController do
       {:error, _} ->
         :oauth2
     end
+  end
+
+  @spec check_jar_required_status(Plug.Conn.t()) :: :ok | {:error, Exception.t()}
+  defp check_jar_required_status(%Plug.Conn{private: %{asteroid_jar_request: true}}) do
+    :ok
+  end
+
+  defp check_jar_required_status(_conn) do
+    unless opt(:oauth2_jar_enabled) == :mandatory,
+      do: :ok,
+      else: {:error, %OAuth2.Request.InvalidRequestError{
+        reason: "use of JAR is mandatory",
+        parameter: "request"
+      }}
   end
 
   @spec client_id_valid?(String.t()) ::
