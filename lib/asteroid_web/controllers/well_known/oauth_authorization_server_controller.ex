@@ -6,7 +6,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
-  alias Asteroid.{Crypto, Token.IDToken, OAuth2, OIDC}
+  alias Asteroid.{Crypto, Token, OAuth2, OIDC}
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
 
@@ -318,13 +318,13 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp put_oidc_metadata(metadata) do
     if OIDC.enabled?() do
-      sig_alg = opt(:oidc_endpoint_userinfo_signature_alg_values_supported)
-      enc_alg = opt(:oidc_endpoint_userinfo_encryption_alg_values_supported)
-      enc_enc = opt(:oidc_endpoint_userinfo_encryption_enc_values_supported)
+      id_token_sig_alg = Token.IDToken.signing_alg_values_supported()
+      id_token_enc_alg = Token.IDToken.encryption_alg_values_supported()
+      id_token_enc_enc = Token.IDToken.encryption_enc_values_supported()
 
-      id_token_sig_alg = IDToken.signing_alg_values_supported()
-      id_token_enc_alg = IDToken.encryption_alg_values_supported()
-      id_token_enc_enc = IDToken.encryption_enc_values_supported()
+      userinfo_sig_alg = OIDC.Userinfo.signing_alg_values_supported()
+      userinfo_enc_alg = OIDC.Userinfo.encryption_alg_values_supported()
+      userinfo_enc_enc = OIDC.Userinfo.encryption_enc_values_supported()
 
       acr_values = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
@@ -343,9 +343,9 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
       |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
       |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
-      |> put_if_not_empty("userinfo_signing_alg_values_supported", sig_alg)
-      |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
-      |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
+      |> put_if_not_empty("userinfo_signing_alg_values_supported", userinfo_sig_alg)
+      |> put_if_not_empty("userinfo_encryption_alg_values_supported", userinfo_enc_alg)
+      |> put_if_not_empty("userinfo_encryption_enc_values_supported", userinfo_enc_enc)
       |> put_if_not_empty("acr_values_supported", acr_values)
       |> put_if_not_empty("claims_supported", opt(:oidc_claims_supported))
       |> put_if_not_empty(

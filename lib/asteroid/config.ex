@@ -6,7 +6,6 @@ defmodule Asteroid.Config do
   require Specify
 
   alias Asteroid.Client
-  alias Asteroid.Crypto
   alias Asteroid.OIDC
   alias Asteroid.Subject
 
@@ -2109,28 +2108,43 @@ defmodule Asteroid.Config do
     @doc """
     List of acceptable signature `alg` algorithms for the signature response on the
     `/api/oidc/userinfo` endpoint
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_endpoint_userinfo_signature_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oidc_endpoint_userinfo_signature_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oidc_endpoint_userinfo_signature_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_endpoint_userinfo_signature_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `alg` algorithms for the encrypted response on the
     `/api/oidc/userinfo` endpoint
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oidc_endpoint_userinfo_encryption_alg_values_supported, {:list, :string},
-      default: [],
+    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oidc_endpoint_userinfo_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `enc` algorithms for the encrypted response on the
     `/api/oidc/userinfo` endpoint
     """
-    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oidc_endpoint_userinfo_encryption_enc_values_supported, {:list, :string},
-      default: [],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """
