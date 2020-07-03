@@ -1,107 +1,116 @@
 # Using cryptographic keys
 
-Cryptographic keys are loaded at startup from the configuration file.
+Cryptographic keys are managed with the `JOSEVirtualHSM` library. They are loaded at startup
+and stored in memory in a secure and protected way in the `JOSEVirtualHSM` processes.
+
+This library handles distribution automatically, which means Asteroid "shares" keys between
+instances as soon as they are connected through Erlang distribution. (They are actually not
+shared because it would require copying them; instead `JOSEVirtualHSM` instances communicate
+to perform signing and decryption operations.)
+
+It also allows generating keys randomly at startup. It is particularly well suited for an
+authorization server because clients do not require long-lived certificates but instead
+use keys published on the `jwks_uri`. At startup, an Asteroid server using auto-generated keys
+will generate such keys and start advertising the (and the keys of the other members of the
+cluster) on the `jwks_uri`.
+
+Refer to `JOSEVirtualHSM` documentation for more information.
+
+The asymmetric keys managed by `JOSEVirtualHSM` are by default used to determine automatically
+which algorithms are supported. This behaviour can be overridden in the options.
 
 The related configuration options are:
-- [`:crypto_keys`](Asteroid.Config.html#module-crypto_keys)
-- [`:crypto_keys_cache`](Asteroid.Config.html#module-crypto_keys_cache)
-
-## Key loading and key cache
-
-Since signing can be frequent and is CPU-intensive, Asteroid loads all keys at startup and
-store them in a key cache. The associated behaviour is `Asteroid.Crypto.Key.Cache`. It is
-essential that the key cache returns the keys quickly. Also, read carefully the security
-considerations of the modules implementing the key cache behaviour since such caches store
-the **private keys** of these keys. You might want to consider:
-- What happens in case of the EVM crash: are the private keys dumped to the crash dump?
-- Are the keys stored at some point on the file system? If the file system encrypted?
-- Which processes can access the keys on the EVM, if the cache runs on the EVM? Or who can
-access the keys if it's stored in an external system?
-- Can the keys be updated and modified during runtime?
-
-Asteroid ships with the local key cache `Asteroid.Crypto.Key.Cache.ETS` which make some tradeoffs
-between simplicity and security.
-
-Note that you can reload the keys at runtime using `Asteroid.Crypto.Key.load_from_config!/0`:
-it will load new keys from the configuration file and remove those no longer present.
-
-This interface may changed in the future and be replaced by a signer interface, along with a
-virtual HSM implementation.
-
-## Options to load keys
-
-There are 3 options to load private keys as described in
-`t:Asteroid.Crypto.Key.key_config_entry/0`:
-- loading keys from files (encrypted or unencrypted)
-- loading keys from configuration file
-- generate new keys on the fly
-
-When loading keys from the configuration files, make sure to set keys in a separate configuration
-file that is not versionned or widely shared (use of `secret.exs`).
-
-Generating new keys on the fly can be useful for some types of tokens, such as access tokens: in
-case of server reboot, the signing keys will indeed change but the target resource servers can
-update the new keys from the JWKs URI. However, the `Asteroid.Crypto.Key.Cache.ETS` implementation is
-local and this solution doesn't work in a multi-server deployment scenario.
-
-Example of configured keys:
-
-```elixir
-config :asteroid, :crypto_keys, %{
-  "key_from_file_1" => {:pem_file, [path: "priv/keys/ec-secp256r1.pem", use: :sig]},
-  "key_from_file_2" => {:pem_file, [path: "priv/keys/ec-secp521r1.pem", use: :sig]},
-  "key_from_map" => {:map, [key: {%{kty: :jose_jwk_kty_oct}, %{"k" => "P9dGnU_We5thJOOigUGtl00WmubLVAAr1kYsAUP80Sc", "kty" => "oct"}}, use: :sig]},
-  "key_auto" => {:auto_gen, [params: {:rsa, 4096}, use: :sig]}
-}
-
-config :asteroid, :crypto_keys_cache, {Asteroid.Crypto.Key.Cache.ETS, []}
-```
+- [`:jose_virtual_hsm_keys_config`](Asteroid.Config.html#module-jose_virtual_hsm_keys_config)
+- [`:jose_virtual_hsm_crypto_fallback`](Asteroid.Config.html#module-jose_virtual_hsm_crypto_fallback)
+- [`:oauth2_jar_request_object_signing_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_signing_alg_values_supported)
+- [`:oauth2_jar_request_object_encryption_alg_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_encryption_alg_values_supported)
+- [`:oauth2_jar_request_object_encryption_enc_values_supported`](Asteroid.Config.html#module-oauth2_jar_request_object_encryption_enc_values_supported)
+- [`:oidc_id_token_signing_alg_values_supported`](Asteroid.Config.html#module-oidc_id_token_signing_alg_values_supported)
+- [`:oidc_id_token_encryption_alg_values_supported`](Asteroid.Config.html#module-oidc_id_token_encryption_alg_values_supported)
+- [`:oidc_id_token_encryption_enc_values_supported`](Asteroid.Config.html#module-oidc_id_token_encryption_enc_values_supported)
+- [`:oidc_endpoint_userinfo_signing_alg_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_signing_alg_values_supported)
+- [`:oidc_endpoint_userinfo_encryption_alg_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_alg_values_supported)
+- [`:oidc_endpoint_userinfo_encryption_enc_values_supported`](Asteroid.Config.html#module-oidc_endpoint_userinfo_encryption_enc_values_supported)
 
 ## JWK URI
 
-Keys are published on the `/discovery/keys` endpoint, unless marked as not advertised in the
-configuration file.
+Keys are published on the `/discovery/keys` endpoint.
 
 Keys of type `"oct"` (symmetric keys) are never published.
 
 A `"kid"` field is automatically generated for each key, based on constant key parameters. The
 generated `"kid"` will remain unchanged for a key.
 
-The previous configuration example will output the following JWKs:
+
+Using the following configuration:
 
 ```elixir
-[
-   {
-      "crv":"P-256",
-      "kid":"_heSWDZvRaALUVVp66bvHAt4IvebygU1HbECbvyTPaQ",
-      "kty":"EC",
-      "use":"sig",
-      "x":"QiHRAuLJuI4alEUEJH9fjIaXBqYIyjn4ofSXmrJL_kQ",
-      "y":"SHWYJ9iYWh-EgeQZorHOl-cBZkZK9rW1FFgv6RlVB20"
-   },
-   {
-      "crv":"P-521",
-      "kid":"sKICOK5W-juwHVRLBN-UGnFZ0bl8KCE1D7-ByZ8hAgc",
-      "kty":"EC",
-      "use":"sig",
-      "x":"AB25hyb0l5nMEDWQPkDNfKc-qAm_mTYQa1v4qUBQbOeKm40tiPupmgts4AJ02AwAtesa14RC8SqLTdqbp6OxId2f",
-      "y":"AGMeI_7eyhti1jN9W6Rkkv142BZ370NXqLwHfqxEVowrIbX12cHIh5nUWBcwu-LIpQARWasT6-7bTdqKn6S8MOsR"
-   },
-   {
-      "e":"AQAB",
-      "kid":"3nTYFtfRnEiW4ISV2Wj_i_CXAI7kZAOFlI6MwQ2ImBQ",
-      "kty":"RSA",
-      "n":"1Lh-W5EkoCAspB5cvtzVtLq19PQZCPO4gDYQu8K3fktUgk8rocS6eteMScrRvcJxoYyuohybmyeaVJdaEayW8XowUm7oBo3WHIi1bMTHE6qVTTBHD7J-_SDQ87_F0mH-r_P04sva-LbmUuxq7GQd5f7mIC7y4yJPJJl757dCgm-lPbhHiXGmVK3ZzYND45mSEzp0TRI5zdWQogaYJf0NXUtxzZW7UY0D-bTKnX8zhY5TEPGAxjrX0_e1s__xiH3mN4Sw_WFIAaLskS1MWstzPJVN_4TQ6PN5D5up63ABlafgtE-ywyRLHBqKMVIsP3jhJgcu4aOuUK-92dA2I8v5rNcEkxlE76uTmIszLpRzYXWm0v7Wjg_qizPOagJh3-Fecwj0rF7tADgZidL6uc70OkwZENhx3qtjTnXVK0rJDnTFknS8d44TFP4_QmVl7ftf0P0C5u1r2SGAo3Butld8A2ZC4obPcCZWWVXAyGLzhjcUKluj84aqRbqmKj7uL16NGFT61LgqXXOenoZXHZ3gKjTgzwymkDr3vjeaRP5Vsimpibcvpr5CCzq5QRwPTPq6irXjb5BeSDdrQHjxG6tUQgg_3nLCUP5ZMjzHN4tTVY1kmV3eiY-anMYIIW6_aQM3hbUC-xuEcRJ8_rn1CUeZzh5VPitO6CZxzdKpWEZBw0U",
-      "use":"sig"
-   }
+config :asteroid, :jose_virtual_hsm_keys_config,  [
+  {:auto_gen, {:rsa, 2048}, %{"use" => "sig"}},
+  {:auto_gen, {:ec, "P-256"}, %{"use" => "sig"}},
+  {:auto_gen, {:okp, :Ed25519}, %{"use" => "sig"}},
+  {:auto_gen, {:rsa, 2048}, %{"use" => "enc"}},
+  {:auto_gen, {:ec, "P-256"}, %{"use" => "enc"}},
+  {:auto_gen, {:okp, :X25519}, %{"use" => "enc"}}
 ]
+
+config :asteroid, :jose_virtual_hsm_crypto_fallback, true
 ```
 
-## JWS "none" algorithm
+the following keys are advertised on the `jwks_uri`:
 
-Asteroid relies on the JOSE library to deal with JWS' and JWEs. This library by default disables
-the use of the "none" JWS algorithm.
+```elixir
+{
+  "keys": [
+    {
+      "crv": "P-256",
+      "kid": "O_C4DKTei6Vm72V79YD-_BO2_6bYGNugzeSdymPt2cI",
+      "kty": "EC",
+      "use": "sig",
+      "x": "Bn0v42AUy9NnkfJCoIcsMEEaaFvL0UmX6k8oQtSfRXo",
+      "y": "sikN5ZGz_Ld6gOCEdj9Pqu1CXUyq30WYe504_4PXl84"
+    },
+    {
+      "crv": "X25519",
+      "kid": "KaOY2pylfW2MuRcp74O8XgmSnWenC2BZMfbyrpiXA5s",
+      "kty": "OKP",
+      "use": "enc",
+      "x": "H3pdUWRBRdyZx_pdwP_W-7C7T_nUlQ_LZiKB8qjL5RQ"
+    },
+    {
+      "crv": "Ed25519",
+      "kid": "Puwf64Cd8ooGue3vb7ghI8quggrEARN1Hj5yUwXE1v4",
+      "kty": "OKP",
+      "use": "sig",
+      "x": "C0ulZcGlfSkk5selFENR21KDuDGqvE2JlLDfKxcgD94"
+    },
+    {
+      "e": "AQAB",
+      "kid": "mKbunlceWaYh6MK4Af6VHuxXClddHmXuMZ4zsXVaOtc",
+      "kty": "RSA",
+      "n": "qeLGYsbgSM_zHprIUKaOGzecKpHffCJz0NF_2B8scCd9DVtSIF1q4bYWLXrc2upX2rWtsLfILcC1xu9EfJYncHHxAmFY6QRHm_X2R0BMRrmRNqRk8LpyaS7o74LZ27FF9c5LPFxxS3j4ka97OP9gtwOJepkkaa9COSXMu97-Bf3RgZgFGcyqvZbH_YlB_mEBh-U2lVboyWUTLtktN-MD7EO7J3CPXwuarRm8Vvfyl9pbAfpwJAPzOODqR1S7onJN_42nw1XExOBqsiCsM3k18XT6kbew5Tvh53c3-fMMqv-ixMzoY8KAF4YeBhUZpxxBiKTscMoHnCfEH2R9uWO3ww",
+      "use": "enc"
+    },
+    {
+      "e": "AQAB",
+      "kid": "G7kJOtSFPkOxuJ85fQJV73aiMk9caIejFcKHlw_GaY4",
+      "kty": "RSA",
+      "n": "zaoG3cnMkugSksoxRpk9rslZ_6zHEBct-92Fn8RMLKuWA2cc3ukwJh311K6tm9ytT34sbhKo8DP7eXk--qlV0-92U8_oNx8sMoW5Hq03RFUBdMPxsNlb4k1fFaL6Mx2EiermePN1cz2p1DxAlPwd6VKrwWshz29qek4HaqRvSNyUNKxgIvmngXIjhnPjAeKeXFtxIo_qyUism_b0VMZT4rVzJStktEbMs410oOdNVeHf8KPpkSrUZhycCdrvSHTsnr0YN-6QBL7rwEjvUrztBLLd8fYH7l89zE964YZCvnv9uVQpc1YHyb7fZG3N24bllvlM-wO-rwA43JyNrWd8dQ",
+      "use": "sig"
+    },
+    {
+      "crv": "P-256",
+      "kid": "pzuXXpypwN_7vyIDJsbFSldFX3dOWfe4ok33Bb_pqH8",
+      "kty": "EC",
+      "use": "enc",
+      "x": "BCZJtGDmSC_vhMUyX8LMhAYXluhNCznez5jsZ2EU58U",
+      "y": "-N8DnjRsuaJ4aptkV6rF-cWOy5JdZ5JYNF_O-vgZYfU"
+    }
+  ]
+}
+```
 
-To activate it, refer to the
-[`:crypto_jws_none_alg_enabled`](Asteroid.Config.html#module-crypto_jws_none_alg_enabled)
-configuration option. **Assess carefully** when activating such a feature.
+## JWS `"none"` algorithm
+
+The JWS `"none"` algorithm is not available because it weakens the security if used
+carelessly.

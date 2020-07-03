@@ -660,6 +660,10 @@ defmodule AsteroidWeb.AuthorizeControllerJARTest do
     |> Phoenix.Controller.json(request_map)
   end
 
-  defp encryption_key(key_selector),
-    do: Crypto.JOSE.public_keys() |> JOSEUtils.JWKS.filter(key_selector) |> List.first()
+  defp encryption_key(key_selector) do
+    Crypto.JOSE.public_keys()
+    |> JOSEUtils.JWKS.filter(key_selector)
+    |> JOSEUtils.JWKS.encryption_keys()
+    |> List.first()
+  end
 end

@@ -9,11 +9,11 @@ defmodule Asteroid.OIDC.Userinfo do
   Returns the list of supported signing algorithms for the userinfo endpoint
 
   See
-  #{Asteroid.Config.link_to_option(:oidc_endpoint_userinfo_signature_alg_values_supported)}
+  #{Asteroid.Config.link_to_option(:oidc_endpoint_userinfo_signing_alg_values_supported)}
   """
   @spec signing_alg_values_supported() :: [JOSEUtils.JWA.sig_alg()]
   def signing_alg_values_supported() do
-    case opt(:oidc_endpoint_userinfo_signature_alg_values_supported) do
+    case opt(:oidc_endpoint_userinfo_signing_alg_values_supported) do
       :auto ->
         Asteroid.Crypto.JOSE.public_keys()
         |> Enum.flat_map(&JOSEUtils.JWK.sig_algs_supported/1)

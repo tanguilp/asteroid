@@ -1321,17 +1321,6 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Determines whether the `"none"` JWS algorithm is supported
-
-    It is set using the `JOSE.JWA.unsecured_signing/1` function on Asteroid startup. Defaults
-    to `false`.
-    """
-    @type crypto_jws_none_alg_enabled :: boolean()
-    field :crypto_jws_none_alg_enabled, :boolean,
-      default: false,
-      config_time: :runtime
-
-    @doc """
     Scope configuration for the device authorization flow
     """
     @type oauth2_flow_device_authorization_scope_config :: scope_config()
@@ -2112,8 +2101,8 @@ defmodule Asteroid.Config do
     When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
     supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_endpoint_userinfo_signature_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
-    field :oidc_endpoint_userinfo_signature_alg_values_supported,
+    @type oidc_endpoint_userinfo_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_endpoint_userinfo_signing_alg_values_supported,
       [{:one_of_atoms, [:auto]}, {:list, :string}],
       default: :auto,
       config_time: :runtime
@@ -2364,7 +2353,24 @@ defmodule Asteroid.Config do
     Note that RSA is mandatory for an OpenID Connect server
     """
     field :jose_virtual_hsm_keys_config, {:list, :term},
-      default: [{:auto_gen, {:rsa, 2048}}]
+      default: [
+        {:auto_gen, {:rsa, 2048}, %{"use" => "sig"}},
+        {:auto_gen, {:rsa, 2048}, %{"use" => "enc"}}
+      ]
+
+    @doc """
+    Enables cryptography fallback to non-native implementation
+
+    OKP keys are not natively supported by the underlying JOSE library, so enabling this
+    option is necessary ti make the algorithms based on `Ed25519`, `Ed448`, `X25519` and `X448`
+    work.
+
+    See also `JOSE.crypto_fallback/1`.
+    """
+    @type jose_virtual_hsm_crypto_fallback :: boolean()
+    field :jose_virtual_hsm_crypto_fallback, :boolean,
+      default: false,
+      config_time: :runtime
 
     ### end of configuration options
   end

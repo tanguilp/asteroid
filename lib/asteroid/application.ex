@@ -22,18 +22,13 @@ defmodule Asteroid.Application do
     ]
     |> maybe_add_mtls_aliases_endpoint()
 
-    #FIXME: remove
-    JOSE.crypto_fallback(true)
+    if opt(:jose_virtual_hsm_crypto_fallback), do: JOSE.crypto_fallback(true)
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
          :ok <- ObjectStore.auto_start_from_config()
     do
-      if opt(:crypto_jws_none_alg_enabled) do
-        JOSE.JWA.unsecured_signing(true)
-      end
-
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
       {:ok, pid} = Supervisor.start_link(children, opts)
 
