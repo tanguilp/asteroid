@@ -1893,26 +1893,41 @@ defmodule Asteroid.Config do
 
     @doc """
     List of acceptable signature `alg` algorithms to sign ID tokens
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_id_token_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oidc_id_token_signing_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oidc_id_token_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_id_token_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `alg` algorithms to encrypt ID tokens
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_id_token_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oidc_id_token_encryption_alg_values_supported, {:list, :string},
-      default: ["RSA1_5"],
+    @type oidc_id_token_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oidc_id_token_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `enc` algorithms to encrypt ID tokens
     """
-    @type oidc_id_token_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oidc_id_token_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oidc_id_token_encryption_enc_values_supported, {:list, :string},
-      default: ["A128GCM"],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """

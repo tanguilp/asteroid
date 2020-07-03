@@ -5,9 +5,7 @@ defmodule Asteroid.OIDC do
 
   import Asteroid.Config, only: [opt: 1]
 
-  alias Asteroid.Client
-  alias Asteroid.OAuth2
-  alias Asteroid.Subject
+  alias Asteroid.{Client, Crypto, OAuth2, Subject}
 
   defmodule InteractionRequiredError do
     @moduledoc """
@@ -121,6 +119,25 @@ defmodule Asteroid.OIDC do
     end
   end
 
+  defmodule IncorrectConfigError do
+    @moduledoc """
+    Error returned when OpenID Connect is misconfigured
+    """
+
+    @enforce_keys [:reason]
+
+    defexception [:reason]
+
+    @type t :: %__MODULE__{
+      reason: String.t()
+    }
+
+    @impl true
+    def message(%{reason: reason}) do
+      "incorrect OpenID Connect configuration: " <> reason
+    end
+  end
+
   @typedoc """
   Atoms describing the endpoints
 
@@ -170,8 +187,39 @@ defmodule Asteroid.OIDC do
 
   def enabled?() do
     "openid" in OAuth2.Scope.scopes_for_flow(:oidc_authorization_code) or
-      "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
-      "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
+    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_implicit) or
+    "openid" in OAuth2.Scope.scopes_for_flow(:oidc_hybrid)
+  end
+
+  @doc """
+  Verifies that the configuration is correct for OpenID Connect
+
+  It verifies that there is at least one RSA signing key available.
+
+  Checks are performed only if OpenID Connect is enabled (see `enabled?/0`).
+  """
+  @spec verify_config() :: :ok | {:error, Exception.t()}
+  def verify_config() do
+    if enabled?() do
+      if signing_rsa_key_available?() do
+        :ok
+      else
+        {:error, %IncorrectConfigError{reason:
+          "no RSA key configured for signing, which is mandatory per 'OpenID Connect" <>
+          "Discovery 1.0 incorporating errata set 1' specification"}}
+      end
+    else
+      :ok
+    end
+  end
+
+  defp signing_rsa_key_available?() do
+    not (
+      Crypto.JOSE.public_keys()
+      |> JOSEUtils.JWKS.signature_keys()
+      |> JOSEUtils.JWKS.filter(kty: "RSA")
+      |> Enum.empty?()
+    )
   end
 
   @doc """

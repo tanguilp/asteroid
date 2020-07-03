@@ -6,7 +6,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
-  alias Asteroid.{Crypto, OAuth2, OIDC}
+  alias Asteroid.{Crypto, Token.IDToken, OAuth2, OIDC}
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
 
@@ -322,13 +322,9 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       enc_alg = opt(:oidc_endpoint_userinfo_encryption_alg_values_supported)
       enc_enc = opt(:oidc_endpoint_userinfo_encryption_enc_values_supported)
 
-      #FIXME: force the presence of a RSA key?
-      id_token_sig_alg =
-        ["RS256" | opt(:oidc_id_token_signing_alg_values_supported)]
-        |> Enum.uniq()
-
-      id_token_enc_alg = opt(:oidc_id_token_encryption_alg_values_supported)
-      id_token_enc_enc = opt(:oidc_id_token_encryption_enc_values_supported)
+      id_token_sig_alg = IDToken.signing_alg_values_supported()
+      id_token_enc_alg = IDToken.encryption_alg_values_supported()
+      id_token_enc_enc = IDToken.encryption_enc_values_supported()
 
       acr_values = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 

@@ -7,8 +7,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
-  alias Asteroid.Client
-  alias Asteroid.OAuth2
+  alias Asteroid.{Client, Token.IDToken, OAuth2}
 
   defmodule InvalidClientMetadataFieldError do
     @moduledoc """
@@ -909,12 +908,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   end
 
   @spec process_oidc_id_token_signed_response_alg(map(), map()) :: map()
-
   defp process_oidc_id_token_signed_response_alg(
          processed_metadata,
          %{"id_token_signed_response_alg" => id_token_signed_response_alg}
        ) do
-    if id_token_signed_response_alg in opt(:oidc_id_token_supported_signing_algs) do
+    if id_token_signed_response_alg in IDToken.signing_alg_values_supported() do
       Map.put(processed_metadata, "id_token_signed_response_alg", id_token_signed_response_alg)
     else
       raise InvalidClientMetadataFieldError,
@@ -933,7 +931,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"id_token_encrypted_response_alg" => id_token_encrypted_response_alg}
        ) do
-    if id_token_encrypted_response_alg in opt(:oidc_id_token_supported_encryption_algs) do
+    if id_token_encrypted_response_alg in IDToken.encryption_alg_values_supported() do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_alg",
@@ -959,7 +957,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
            "id_token_encrypted_response_alg" => _
          }
        ) do
-    if id_token_encrypted_response_enc in opt(:oidc_id_token_supported_encryption_encs) do
+    if id_token_encrypted_response_enc in IDToken.encryption_enc_values_supported() do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_enc",

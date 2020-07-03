@@ -9,6 +9,7 @@ defmodule Asteroid.Application do
     AttributeRepository,
     Config,
     OAuth2,
+    OIDC,
     ObjectStore
   }
 
@@ -34,7 +35,11 @@ defmodule Asteroid.Application do
       end
 
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
-      Supervisor.start_link(children, opts)
+      {:ok, pid} = Supervisor.start_link(children, opts)
+
+      with :ok <- OIDC.verify_config() do
+        {:ok, pid}
+      end
     end
   end
 

@@ -63,6 +63,54 @@ defmodule Asteroid.Token.IDToken do
   @type id :: String.t()
 
   @doc """
+  Returns the list of supported signing algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_signing_alg_values_supported)}
+  """
+  @spec signing_alg_values_supported() :: [JOSEUtils.JWA.sig_alg()]
+  def signing_alg_values_supported() do
+    case opt(:oidc_id_token_signing_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.sig_algs_supported/1)
+        |> Enum.uniq()
+
+      sig_algs ->
+        sig_algs
+    end
+  end
+
+  @doc """
+  Returns the list of supported encryption key derivation algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_encryption_alg_values_supported)}
+  """
+  @spec encryption_alg_values_supported() :: [JOSEUtils.JWA.enc_alg()]
+  def encryption_alg_values_supported() do
+    case opt(:oidc_id_token_encryption_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.enc_algs_supported/1)
+        |> Enum.uniq()
+
+      enc_algs ->
+        enc_algs
+    end
+  end
+
+  @doc """
+  Returns the list of supported content encryption algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_encryption_enc_values_supported)}
+  """
+  @spec encryption_enc_values_supported() :: [JOSEUtils.JWA.enc_enc()]
+  def encryption_enc_values_supported(),
+    do: opt(:oidc_id_token_encryption_enc_values_supported)
+
+  @doc """
   Puts a value into the `data` field of an ID token
 
   If the value is `nil`, the ID token is not changed and the filed is not added.

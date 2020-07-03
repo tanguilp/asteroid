@@ -134,8 +134,8 @@ defmodule Asteroid.OAuth2.JAR do
         |> Enum.flat_map(&JOSEUtils.JWK.sig_algs_supported/1)
         |> Enum.uniq()
 
-      l ->
-        l
+      sig_algs ->
+        sig_algs
     end
   end
 
@@ -153,8 +153,8 @@ defmodule Asteroid.OAuth2.JAR do
         |> Enum.flat_map(&JOSEUtils.JWK.enc_algs_supported/1)
         |> Enum.uniq()
 
-      l ->
-        l
+      enc_algs ->
+        enc_algs
     end
   end
 
