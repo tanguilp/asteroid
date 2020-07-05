@@ -264,7 +264,7 @@ defmodule Asteroid.Client do
     end
   end
 
-  @spec get_jwks(t()) :: {:ok, [Asteroid.Crypto.Key.t()]} | {:error, any()}
+  @spec get_jwks(t()) :: {:ok, [JOSEUtils.JWK.t()]} | {:error, any()}
   def get_jwks(client) do
     client = fetch_attributes(client, ["jwks", "jwks_uri"])
 

@@ -207,14 +207,8 @@ defmodule Asteroid.OAuth2.JAR do
     end
   end
 
-  @spec verify(String.t(), Client.t()) :: {:ok, map()} | {:error, Exception.t()}
+  @spec verify(String.t(), Client.t()) :: {:ok, String.t()} | {:error, Exception.t()}
   defp verify(jws, client) do
-    if JOSEUtils.is_jws?(jws),
-      do: do_verify(jws, client),
-      else: {:error, %InvalidRequestObjectError{reason: "invalid jws"}}
-  end
-
-  defp do_verify(jws, client) do
     client = Client.fetch_attributes(client, ["request_object_signing_alg"])
 
     case client.attrs["request_object_signing_alg"] do

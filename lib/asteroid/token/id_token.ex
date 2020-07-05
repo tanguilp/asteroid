@@ -167,7 +167,7 @@ defmodule Asteroid.Token.IDToken do
     |> maybe_encrypt(client)
   end
 
-  @spec maybe_put_token_hash(map(), String.t(), String.t() | nil, Client.t()) :: String.t()
+  @spec maybe_put_token_hash(map(), String.t(), String.t() | nil, Client.t()) :: map()
   defp maybe_put_token_hash(id_token_claims, _, nil, _) do
     id_token_claims
   end

@@ -148,8 +148,8 @@ defmodule Asteroid.Crypto.JOSE do
   """
   @spec encrypt(
     payload :: any(),
-    alg :: JOSE.JWA.enc_alg(),
-    enc :: JOSE.JWA.enc_enc(),
+    alg :: JOSEUtils.JWA.enc_alg(),
+    enc :: JOSEUtils.JWA.enc_enc(),
     client :: Client.t(),
     key_selector :: JOSEUtils.JWK.key_selector()
   ) :: {:ok, {JOSEUtils.JWE.serialized(), JOSEUtils.JWK.t()}} | {:error, Exception.t()}
@@ -205,11 +205,14 @@ defmodule Asteroid.Crypto.JOSE do
   def decrypt(jwe, client, key_selector \\ []) when client != nil do
     if JOSEUtils.is_jwe?(jwe) do
       case JOSEUtils.JWE.peek_header(jwe) do
-        %{"alg" => alg} when alg in @symmetric_enc_algs ->
+        {:ok, %{"alg" => alg}} when alg in @symmetric_enc_algs ->
           decrypt_symmetric(jwe, client, key_selector)
 
-        _ ->
+        {:ok, _} ->
           JOSEVirtualHSM.decrypt(jwe, key_selector)
+
+        {:error, _} = error ->
+          error
       end
     else
       {:error, %InvalidJWEError{}}
