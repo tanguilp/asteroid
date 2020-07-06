@@ -9,6 +9,8 @@ defmodule Asteroid.OAuth2.Endpoint do
   :none
   | :client_secret_basic
   | :client_secret_post
+  | :client_secret_jwt
+  | :private_key_jwt
   | :tls_client_auth
   | :self_signed_tls_client_auth
 
@@ -110,6 +112,10 @@ defmodule Asteroid.OAuth2.Endpoint do
 
   def apiac_authenticator_to_auth_method(APIacAuthBasic, _) do
     [:client_secret_basic]
+  end
+
+  def apiac_authenticator_to_auth_method(APIacAuthClientJWT, _) do
+    [:client_secret_jwt, :private_key_jwt]
   end
 
   def apiac_authenticator_to_auth_method(APIacAuthClientSecretPost, _) do

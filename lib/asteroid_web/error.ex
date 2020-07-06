@@ -304,14 +304,14 @@ defmodule AsteroidWeb.Error do
   @spec set_www_authenticate_header(Plug.Conn.t()) :: Plug.Conn.t()
 
   def set_www_authenticate_header(conn) do
-    apisex_errors = APIac.AuthFailureResponseData.get(conn)
+    apiac_errors = APIac.AuthFailureResponseData.get(conn)
 
     failed_auth =
       Enum.find(
-        apisex_errors,
-        fn apisex_error ->
-          apisex_error.reason != :credentials_not_found and
-            is_tuple(apisex_error.www_authenticate_header)
+        apiac_errors,
+        fn apiac_error ->
+          apiac_error.reason != :credentials_not_found and
+            is_tuple(apiac_error.www_authenticate_header)
         end
       )
 
@@ -322,7 +322,7 @@ defmodule AsteroidWeb.Error do
       # no failed authn at all or one that can return www-authenticate header
       nil ->
         Enum.reduce(
-          apisex_errors,
+          apiac_errors,
           conn,
           fn
             %APIac.AuthFailureResponseData{www_authenticate_header: {scheme, params}}, conn ->

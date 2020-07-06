@@ -1,0 +1,454 @@
+defmodule Asteroid.OAuth2.Metadata do
+  @moduledoc """
+  Convenience functions to work with server metadata
+  """
+
+  import Asteroid.Config, only: [opt: 1]
+  import Asteroid.Utils
+
+  alias Asteroid.{Token, OAuth2, OIDC}
+  alias AsteroidWeb.Router.Helpers, as: Routes
+  alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
+
+  @type t :: %{optional(String.t()) => any()}
+
+  @doc """
+  Returns the server's metadata
+
+  The OIDC metadata is returned as well.
+
+  ## Example
+
+      iex> Asteroid.OAuth2.Metadata.get()
+      %{
+        "authorization_endpoint" => "http://localhost:4000/authorize",
+        "claims_parameter_supported" => true,
+        "claims_supported" => ["sub", "name", "given_name", "family_name",
+         "middle_name", "nickname", "preferred_username", "profile", "picture",
+         "website", "email", "email_verified", "gender", "birthdate", "zoneinfo",
+         "locale", "phone_number", "phone_number_verified", "address", "updated_at"],
+        "code_challenge_methods_supported" => ["S256"],
+        "grant_types_supported" => ["authorization_code", "refresh_token"],
+        "id_token_encryption_alg_values_supported" => ["ECDH-ES", "ECDH-ES+A128KW",
+         "ECDH-ES+A192KW", "ECDH-ES+A256KW", "RSA1_5", "RSA-OAEP", "RSA-OAEP-256"],
+        "id_token_encryption_enc_values_supported" => ["A128CBC-HS256",
+         "A192CBC-HS384", "A256CBC-HS512", "A128GCM", "A192GCM", "A256GCM"],
+        "id_token_signing_alg_values_supported" => ["EdDSA", "RS256", "RS384",
+         "RS512", "PS256", "PS384", "PS512", "ES256"],
+        "introspection_endpoint" => "http://localhost:4000/api/oauth2/introspect",
+        "introspection_endpoint_auth_methods_supported" => ["client_secret_basic"],
+        "issuer" => "http://localhost:4000",
+        "jwks_uri" => "http://localhost:4000/discovery/keys",
+        "registration_endpoint" => "http://localhost:4000/api/oauth2/register",
+        "request_object_encryption_alg_values_supported" => ["ECDH-ES",
+         "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW", "RSA1_5", "RSA-OAEP",
+         "RSA-OAEP-256"],
+        "request_object_encryption_enc_values_supported" => ["A128CBC-HS256",
+         "A192CBC-HS384", "A256CBC-HS512", "A128GCM", "A192GCM", "A256GCM"],
+        "request_object_signing_alg_values_supported" => ["EdDSA", "RS256", "RS384",
+         "RS512", "PS256", "PS384", "PS512", "ES256"],
+        "request_parameter_supported" => true,
+        "request_uri_parameter_supported" => false,
+        "require_signed_request_object" => false,
+        "response_modes_supported" => ["query", "fragment", "form_post"],
+        "response_types_supported" => ["code"],
+        "revocation_endpoint" => "http://localhost:4000/api/oauth2/revoke",
+        "revocation_endpoint_auth_methods_supported" => ["client_secret_basic"],
+        "scopes_supported" => ["openid"],
+        "subject_types_supported" => ["public", "pairwise"],
+        "token_endpoint" => "http://localhost:4000/api/oauth2/token",
+        "token_endpoint_auth_methods_supported" => ["client_secret_basic", "none"],
+        "userinfo_encryption_alg_values_supported" => ["ECDH-ES", "ECDH-ES+A128KW",
+         "ECDH-ES+A192KW", "ECDH-ES+A256KW", "RSA1_5", "RSA-OAEP", "RSA-OAEP-256"],
+        "userinfo_encryption_enc_values_supported" => ["A128CBC-HS256",
+         "A192CBC-HS384", "A256CBC-HS512", "A128GCM", "A192GCM", "A256GCM"],
+        "userinfo_endpoint" => "http://localhost:4000/api/oidc/userinfo",
+        "userinfo_signing_alg_values_supported" => ["EdDSA", "RS256", "RS384",
+         "RS512", "PS256", "PS384", "PS512", "ES256"]
+      }
+  """
+  @spec get() :: t()
+  def get() do
+    %{}
+    |> Map.put("issuer", OAuth2.issuer())
+    |> maybe_put_authorization_endpoint()
+    |> maybe_put_token_endpoint()
+    |> put_registration_endpoint()
+    |> put_scopes_supported()
+    |> put_response_types_supported()
+    |> put_grant_types_supported()
+    |> put_token_endpoint_auth_method_supported()
+    |> put_token_endpoint_auth_signing_alg_values_suppported()
+    |> put_jwks_uri()
+    |> put_revocation_endpoint()
+    |> put_revocation_endpoint_auth_method_supported()
+    |> put_introspection_endpoint()
+    |> put_introspection_endpoint_auth_method_supported()
+    |> put_device_authorization_endpoint()
+    |> put_code_challenge_methods_supported()
+    |> put_if_not_nil(
+      "service_documentation",
+      opt(:oauth2_endpoint_metadata_service_documentation)
+    )
+    |> put_if_not_nil(
+      "ui_locales_supported",
+      opt(:oauth2_endpoint_metadata_ui_locales_supported)
+    )
+    |> put_if_not_nil("op_policy_uri", opt(:oauth2_endpoint_metadata_op_policy_uri))
+    |> put_if_not_nil("op_tos_uri", opt(:oauth2_endpoint_metadata_op_tos_uri))
+    |> put_jar_metadata_values()
+    |> put_oidc_metadata()
+    |> put_mtls_endpoint_aliases()
+  end
+
+  @spec maybe_put_authorization_endpoint(map()) :: map()
+
+  defp maybe_put_authorization_endpoint(metadata) do
+    if Enum.any?(
+         opt(:oauth2_grant_types_enabled),
+         fn grant_type -> OAuth2Utils.uses_authorization_endpoint?(to_string(grant_type)) end
+       ) do
+      Map.put(
+        metadata,
+        "authorization_endpoint",
+        Routes.authorize_url(AsteroidWeb.Endpoint, :pre_authorize)
+      )
+    else
+      metadata
+    end
+  end
+
+  @spec maybe_put_token_endpoint(map()) :: map()
+
+  defp maybe_put_token_endpoint(metadata) do
+    case opt(:oauth2_grant_types_enabled) do
+      [:implicit] ->
+        metadata
+
+      _ ->
+        Map.put(
+          metadata,
+          "token_endpoint",
+          Routes.token_url(AsteroidWeb.Endpoint, :handle)
+        )
+    end
+  end
+
+  @spec put_registration_endpoint(map()) :: map()
+
+  defp put_registration_endpoint(metadata) do
+    Map.put(
+      metadata,
+      "registration_endpoint",
+      Routes.register_url(AsteroidWeb.Endpoint, :handle)
+    )
+  end
+
+  @spec put_scopes_supported(map()) :: map()
+
+  defp put_scopes_supported(metadata) do
+    grant_types_enabled = opt(:oauth2_grant_types_enabled)
+
+    scopes =
+      if :password in grant_types_enabled do
+        OAuth2.Scope.configuration_for_flow(:ropc)[:scopes]
+      else
+        %{}
+      end
+
+    scopes =
+      if :client_credentials in grant_types_enabled do
+        Map.merge(scopes, OAuth2.Scope.configuration_for_flow(:client_credentials)[:scopes])
+      else
+        scopes
+      end
+
+    scopes =
+      if :authorization_code in grant_types_enabled do
+        Map.merge(scopes, OAuth2.Scope.configuration_for_flow(:authorization_code)[:scopes])
+      else
+        scopes
+      end
+
+    scopes =
+      if :implicit in grant_types_enabled do
+        Map.merge(scopes, OAuth2.Scope.configuration_for_flow(:authorization_code)[:scopes])
+      else
+        scopes
+      end
+
+    advertised_scopes =
+      Enum.reduce(
+        scopes,
+        [],
+        fn
+          {scope, scope_opts}, acc ->
+            if scope_opts[:advertise] == false do
+              acc
+            else
+              acc ++ [scope]
+            end
+        end
+      )
+
+    case advertised_scopes do
+      [_ | _] ->
+        Map.put(metadata, "scopes_supported", advertised_scopes)
+
+      [] ->
+        metadata
+    end
+  end
+
+  @spec put_response_types_supported(map()) :: map()
+
+  defp put_response_types_supported(metadata) do
+    case opt(:oauth2_response_types_enabled) do
+      [] ->
+        metadata
+
+      response_types when is_list(response_types) ->
+        Map.put(metadata, "response_types_supported", Enum.map(response_types, &to_string/1))
+    end
+  end
+
+  @spec put_grant_types_supported(map()) :: map()
+
+  defp put_grant_types_supported(metadata) do
+    case opt(:oauth2_grant_types_enabled) do
+      [] ->
+        metadata
+
+      grant_types when is_list(grant_types) ->
+        Map.put(metadata, "grant_types_supported", Enum.map(grant_types, &to_string/1))
+    end
+  end
+
+  @spec put_token_endpoint_auth_method_supported(map()) :: map()
+
+  defp put_token_endpoint_auth_method_supported(metadata) do
+    token_endpoint_auth_methods_supported =
+      OAuth2.Endpoint.token_endpoint_auth_methods_supported()
+      |> Enum.map(&to_string/1)
+
+    case token_endpoint_auth_methods_supported do
+      [] ->
+        metadata
+
+      methods when is_list(methods) ->
+        Map.put(metadata, "token_endpoint_auth_methods_supported", methods)
+    end
+  end
+
+  @spec put_token_endpoint_auth_signing_alg_values_suppported(map()) :: map()
+  defp put_token_endpoint_auth_signing_alg_values_suppported(metadata) do
+    auth_methods_supported = metadata["token_endpoint_auth_methods_supported"] || []
+
+    if Enum.any?(auth_methods_supported, &(&1 in ["private_key_jwt", "private_key_jwt"])) do
+      Map.put(
+        metadata,
+        "token_endpoint_auth_signing_alg_values_supported",
+        OIDC.AuthClientJWT.signing_alg_values_supported()
+      )
+    else
+      metadata
+    end
+  end
+
+  @spec put_jwks_uri(map()) :: map()
+
+  defp put_jwks_uri(metadata) do
+    Map.put(metadata, "jwks_uri", Routes.keys_url(AsteroidWeb.Endpoint, :handle))
+  end
+
+  @spec put_revocation_endpoint(map()) :: map()
+
+  defp put_revocation_endpoint(metadata) do
+    Map.put(
+      metadata,
+      "revocation_endpoint",
+      Routes.revoke_url(AsteroidWeb.Endpoint, :handle)
+    )
+  end
+
+  @spec put_revocation_endpoint_auth_method_supported(map()) :: map()
+
+  defp put_revocation_endpoint_auth_method_supported(metadata) do
+    revoke_endpoint_auth_methods_supported =
+      OAuth2.Endpoint.revoke_endpoint_auth_methods_supported()
+      |> Enum.map(&to_string/1)
+
+    case revoke_endpoint_auth_methods_supported do
+      [] ->
+        metadata
+
+      methods when is_list(methods) ->
+        Map.put(metadata, "revocation_endpoint_auth_methods_supported", methods)
+    end
+  end
+
+  @spec put_introspection_endpoint(map()) :: map()
+
+  defp put_introspection_endpoint(metadata) do
+    Map.put(
+      metadata,
+      "introspection_endpoint",
+      Routes.introspect_url(AsteroidWeb.Endpoint, :handle)
+    )
+  end
+
+  @spec put_introspection_endpoint_auth_method_supported(map()) :: map()
+
+  defp put_introspection_endpoint_auth_method_supported(metadata) do
+    introspect_endpoint_auth_methods_supported =
+      OAuth2.Endpoint.introspect_endpoint_auth_methods_supported()
+      |> Enum.map(&to_string/1)
+
+    case introspect_endpoint_auth_methods_supported do
+      [] ->
+        metadata
+
+      methods when is_list(methods) ->
+        Map.put(metadata, "introspection_endpoint_auth_methods_supported", methods)
+    end
+  end
+
+  @spec put_device_authorization_endpoint(map()) :: map()
+
+  defp put_device_authorization_endpoint(metadata) do
+    if :"urn:ietf:params:oauth:grant-type:device_code" in opt(:oauth2_grant_types_enabled) do
+      Map.put(
+        metadata,
+        "device_authorization_endpoint",
+        Routes.device_authorization_url(AsteroidWeb.Endpoint, :handle)
+      )
+    else
+      metadata
+    end
+  end
+
+  @spec put_code_challenge_methods_supported(map()) :: map()
+
+  defp put_code_challenge_methods_supported(metadata) do
+    case opt(:oauth2_pkce_policy) do
+      :disabled ->
+        metadata
+
+      _ ->
+        methods =
+          opt(:oauth2_pkce_allowed_methods)
+          |> Enum.map(&to_string/1)
+
+        Map.put(metadata, "code_challenge_methods_supported", methods)
+    end
+  end
+
+  @spec put_jar_metadata_values(map()) :: map()
+  defp put_jar_metadata_values(metadata) do
+    case opt(:oauth2_jar_enabled) do
+      :disabled ->
+        metadata
+
+      jar_status ->
+        metadata
+        |> Map.put(
+          "request_parameter_supported",
+          jar_status in [:request_only, :enabled, :mandatory]
+        )
+        |> Map.put(
+          "request_uri_parameter_supported",
+          jar_status in [:request_uri_only, :enabled, :mandatory]
+        )
+        |> Map.put("require_signed_request_object", jar_status == :mandatory)
+        |> put_if_not_empty(
+          "request_object_signing_alg_values_supported",
+          OAuth2.JAR.signing_alg_values_supported()
+        )
+        |> put_if_not_empty(
+          "request_object_encryption_alg_values_supported",
+          OAuth2.JAR.encryption_alg_values_supported()
+        )
+        |> put_if_not_empty(
+          "request_object_encryption_enc_values_supported",
+          OAuth2.JAR.encryption_enc_values_supported()
+        )
+    end
+  end
+
+  @spec put_oidc_metadata(map()) :: map()
+
+  defp put_oidc_metadata(metadata) do
+    if OIDC.enabled?() do
+      id_token_sig_alg = Token.IDToken.signing_alg_values_supported()
+      id_token_enc_alg = Token.IDToken.encryption_alg_values_supported()
+      id_token_enc_enc = Token.IDToken.encryption_enc_values_supported()
+
+      userinfo_sig_alg = OIDC.Userinfo.signing_alg_values_supported()
+      userinfo_enc_alg = OIDC.Userinfo.encryption_alg_values_supported()
+      userinfo_enc_enc = OIDC.Userinfo.encryption_enc_values_supported()
+
+      acr_values = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
+
+      response_modes_supported =
+        if opt(:oauth2_response_mode_policy) == :disabled do
+          ["query", "fragment"]
+        else
+          ["query", "fragment", "form_post"]
+        end
+
+      metadata
+      |> Map.put("claims_parameter_supported", true)
+      |> Map.put("subject_types_supported", ["public", "pairwise"])
+      |> Map.put("userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
+      |> Map.put("response_modes_supported", response_modes_supported)
+      |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
+      |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
+      |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
+      |> put_if_not_empty("userinfo_signing_alg_values_supported", userinfo_sig_alg)
+      |> put_if_not_empty("userinfo_encryption_alg_values_supported", userinfo_enc_alg)
+      |> put_if_not_empty("userinfo_encryption_enc_values_supported", userinfo_enc_enc)
+      |> put_if_not_empty("acr_values_supported", acr_values)
+      |> put_if_not_empty("claims_supported", opt(:oidc_claims_supported))
+      |> put_if_not_empty(
+        "display_values_supported",
+        opt(:oidc_endpoint_metadata_display_values_supported)
+      )
+    else
+      metadata
+    end
+  end
+
+  @spec put_mtls_endpoint_aliases(map()) :: map()
+  defp put_mtls_endpoint_aliases(metadata) do
+    if opt(:oauth2_mtls_advertise_aliases) and OAuth2.MTLS.in_use?() do
+      helpers = %{
+        token_url: "token_endpoint",
+        introspect_url: "introspection_endpoint",
+        revoke_url: "revocation_endpoint",
+        register_url: "registration_endpoint",
+        device_authorization_url: "device_authorization_endpoint"
+      }
+
+      aliases =
+        Enum.reduce(
+          helpers,
+          %{},
+          fn {helper, endpoint}, acc ->
+            if Kernel.function_exported?(RoutesMTLS, helper, 2) do
+              Map.put(
+                acc,
+                endpoint,
+                apply(RoutesMTLS, helper, [AsteroidWeb.EndpointMTLSAliases, :handle])
+              )
+            else
+              acc
+            end
+          end
+        )
+
+      Map.put(metadata, "mtls_endpoint_aliases", aliases)
+    else
+      metadata
+    end
+  end
+end

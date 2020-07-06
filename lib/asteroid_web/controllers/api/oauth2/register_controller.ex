@@ -7,7 +7,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
-  alias Asteroid.{Client, Token.IDToken, OAuth2}
+  alias Asteroid.{Client, Token.IDToken, OAuth2, OIDC}
 
   defmodule InvalidClientMetadataFieldError do
     @moduledoc """
@@ -122,6 +122,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       |> check_grant_response_type_consistency()
       |> process_redirect_uris(input_metadata)
       |> process_token_endpoint_auth_method(maybe_authenticated_client, input_metadata)
+      |> process_token_endpoint_auth_signing_alg(input_metadata)
       |> process_mtls_pki_method_parameter(input_metadata)
       |> process_i18n_field(input_metadata, "client_name")
       |> process_i18n_field(input_metadata, "client_uri")
@@ -414,7 +415,6 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   end
 
   @spec process_token_endpoint_auth_method(map(), Client.t() | nil, map()) :: map()
-
   defp process_token_endpoint_auth_method(
          processed_metadata,
          nil,
@@ -422,7 +422,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
        )
        when is_binary(token_endpoint_auth_method) do
     auth_method_allowed_str =
-      opt(:oauth2_endpoint_token_auth_methods_supported_callback).f()
+      opt(:oauth2_endpoint_token_auth_methods_supported_callback).()
       |> Enum.map(&to_string/1)
 
     if token_endpoint_auth_method in auth_method_allowed_str do
@@ -495,6 +495,33 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       nil ->
         Map.put(processed_metadata, "token_endpoint_auth_method", "client_secret_basic")
     end
+  end
+
+  @spec process_token_endpoint_auth_signing_alg(map(), map()) :: map()
+  defp process_token_endpoint_auth_signing_alg(
+         %{"token_endpoint_auth_method" => token_endpoint_auth_method} = processed_metadata,
+         %{"token_endpoint_auth_signing_alg" => token_endpoint_auth_signing_alg}
+  ) when token_endpoint_auth_method in ["private_key_jwt", "private_key_jwt"] do
+    if token_endpoint_auth_signing_alg in OIDC.AuthClientJWT.signing_alg_values_supported() do
+      Map.put(
+        processed_metadata, "token_endpoint_auth_signing_alg", token_endpoint_auth_signing_alg
+      )
+    else
+      raise InvalidClientMetadataFieldError,
+        field: "token_endpoint_auth_signing_alg",
+        reason: "specified algorithm is not supported"
+    end
+  end
+
+  defp process_token_endpoint_auth_signing_alg(_, %{"token_endpoint_auth_signing_alg" => _}) do
+    raise InvalidClientMetadataFieldError,
+      field: "token_endpoint_auth_signing_alg",
+      reason: "can be used only when the authentication method is set to `private_key_jwt` " <>
+      "or `private_key_jwt`"
+  end
+
+  defp process_token_endpoint_auth_signing_alg(processed_metadata, _) do
+    processed_metadata
   end
 
   @spec process_mtls_pki_method_parameter(map(), map()) :: map()

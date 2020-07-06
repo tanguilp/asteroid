@@ -38,6 +38,7 @@ defmodule Asteroid.MixProject do
     [
       {:apiac_auth_basic, "~> 1.0"},
       {:apiac_auth_bearer, "~> 1.0"},
+      {:apiac_auth_client_jwt, "~> 1.0"},
       {:apiac_auth_mtls, "~> 1.0"},
       #{:apiac_auth_client_jwt, "~> 1.0"},
       #{:apiac_auth_client_secret_post, "~> 1.0"},
@@ -56,6 +57,7 @@ defmodule Asteroid.MixProject do
       {:gettext, "~> 0.11"},
       {:hammer, "~> 6.0"},
       {:jose_virtual_hsm, "~> 0.2"},
+      {:jti_register, "~> 0.1.0"},
       {:jwks_uri_updater, "~> 1.0"},
       {:oauth2_metadata_updater, "~> 1.0"},
       {:phoenix, "~> 1.4.0"},

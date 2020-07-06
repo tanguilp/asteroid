@@ -90,7 +90,13 @@ config :asteroid, :api_oauth2_endpoint_token_plugs, [
      [response: {:error, :invalid_token}]
    },
    set_error_response: &APIacAuthBearer.save_authentication_failure_response/3,
-   error_response_verbosity: :debug}
+   error_response_verbosity: :debug},
+  {APIacAuthClientJWT,
+  client_callback: &Asteroid.OIDC.AuthClientJWT.client_callback/1,
+  jti_register: JTIRegister.ETS,
+  server_metadata_callback: &Asteroid.OIDC.AuthClientJWT.server_metadata_callback/0,
+  set_error_response: &APIacAuthClientJWT.save_authentication_failure_response/3
+  }
 ]
 
 config :asteroid, :api_oauth2_endpoint_introspect_plugs, [

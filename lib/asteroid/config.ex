@@ -331,7 +331,23 @@ defmodule Asteroid.Config do
     """
     @type api_oauth2_endpoint_token_plugs :: [{module(), Keyword.t()}]
     field :api_oauth2_endpoint_token_plugs, {:list, :option},
-      default: [{Corsica, origins: "*"}],
+    default: [
+        {Corsica, origins: "*"},
+        {
+          APIacAuthBasic,
+          realm: "Asteroid",
+          callback: &Asteroid.OAuth2.Client.get_client_secret/2,
+          set_error_response: &APIacAuthBasic.save_authentication_failure_response/3,
+          error_response_verbosity: :normal
+        },
+        {
+          APIacAuthClientJWT,
+          client_callback: &Asteroid.OIDC.AuthClientJWT.client_callback/1,
+          jti_register: JTIRegister.ETS,
+          server_metadata_callback: &Asteroid.OIDC.AuthClientJWT.server_metadata_callback/0,
+          set_error_response: &APIacAuthClientJWT.save_authentication_failure_response/3
+        }
+      ],
       config_time: :compile
 
     @doc """
@@ -2370,6 +2386,20 @@ defmodule Asteroid.Config do
     @type jose_virtual_hsm_crypto_fallback :: boolean()
     field :jose_virtual_hsm_crypto_fallback, :boolean,
       default: false,
+      config_time: :runtime
+
+    @doc """
+    List of acceptable signature `alg` algorithms for client authentication on the
+    `/api/oauth2/token` endpoint when the `"private_key_jwt"` or `"client_secret_jwt"`
+    authentication method is used
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
+    """
+    @type oidc_endpoint_token_auth_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_endpoint_token_auth_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     ### end of configuration options

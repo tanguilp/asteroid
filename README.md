@@ -12,19 +12,21 @@ benefits from the high performances and reliability of the Erlang Virtual Machin
 
 Asteroid supports the following specifications:
 - OAuth2:
-  - The OAuth 2.0 Authorization Framework ([RFC6749](https://tools.ietf.org/html/rfc6749))
-  - The OAuth 2.0 Authorization Framework: Bearer Token Usage ([RFC6750](https://www.rfc-editor.org/rfc/rfc6750.html))
-  with [`APIacAuthBearer`](https://github.com/tanguilp/apiac_auth_bearer)
-  - OAuth 2.0 Token Introspection ([RFC7662](https://tools.ietf.org/html/rfc7662))
-  - OAuth 2.0 Token Revocation ([RFC7009](https://tools.ietf.org/html/rfc7009))
-  - Proof Key for Code Exchange by OAuth Public Clients ([RFC7636](https://tools.ietf.org/html/rfc7636))
-  - OAuth 2.0 Dynamic Client Registration Protocol ([RFC7591](https://tools.ietf.org/html/rfc7591))
-  - OAuth 2.0 Authorization Server Metadata ([RFC8414](https://tools.ietf.org/html/rfc8414))
-  - OAuth 2.0 Device Authorization Grant ([RFC8628](https://www.rfc-editor.org/rfc/rfc8628.html))
-  - JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens
-  ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00))
-  - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens ([RFC8705](https://tools.ietf.org/html/rfc8705))
-  with [`APIacAuthMTLS`](https://github.com/tanguilp/apiac_auth_mtls)
+  - [RFC6749](https://tools.ietf.org/html/rfc6749): The OAuth 2.0 Authorization Framework 
+  - [RFC6750](https://www.rfc-editor.org/rfc/rfc6750.html): The OAuth 2.0 Authorization Framework: Bearer Token Usage
+  (using [`APIacAuthBearer`](https://github.com/tanguilp/apiac_auth_bearer))
+  - [RFC7662](https://tools.ietf.org/html/rfc7662): OAuth 2.0 Token Introspection
+  - [RFC7009](https://tools.ietf.org/html/rfc7009): OAuth 2.0 Token Revocation
+  - [RFC7636](https://tools.ietf.org/html/rfc7636): Proof Key for Code Exchange by OAuth Public Clients 
+  - [RFC7591](https://tools.ietf.org/html/rfc7591): OAuth 2.0 Dynamic Client Registration Protocol 
+  - [RFC8414](https://tools.ietf.org/html/rfc8414): OAuth 2.0 Authorization Server Metadata
+  - [RFC8628](https://tools.ietf.org/html/rfc8628): OAuth 2.0 Device Authorization Grant
+  - ([draft-ietf-oauth-access-token-jwt-00](https://tools.ietf.org/html/draft-ietf-oauth-access-token-jwt-00)):
+  JSON Web Token (JWT) Profile for OAuth 2.0 Access Tokens
+  -[RFC8705](https://tools.ietf.org/html/rfc8705): OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens 
+  (using [`APIacAuthMTLS`](https://github.com/tanguilp/apiac_auth_mtls))
+  - [RFC7523](https://tools.ietf.org/html/rfc7523): JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants
+  (only for client authentication, using [`APIacAuthClientJWT`](https://github.com/tanguilp/apiac_auth_client_jwt))
 - OpenID Connect:
   - [OpenID Connect Core 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-core-1_0.html)
   - [OpenID Connect Dynamic Client Registration 1.0 incorporating errata set 1](https://openid.net/specs/openid-connect-registration-1_0.html)

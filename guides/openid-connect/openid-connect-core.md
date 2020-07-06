@@ -60,8 +60,8 @@ Subject identifier types:
 Client authentication:
   - [x] `client_secret_basic` (via `APIacAuthBasic`)
   - [x] `client_secret_post` (via `APIacAuthClientSecretPost`)
-  - [ ] `client_secret_jwt`
-  - [ ] `private_key_jwt`
+  - [x] `client_secret_jwt`
+  - [x] `private_key_jwt`
 
 Initiating Login from a Third Party
   - [ ] Support

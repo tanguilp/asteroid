@@ -33,6 +33,7 @@ Asteroid relies on the following components and configuration:
     - [APIacBasicAuth](https://github.com/tanguilp/apiac_auth_basic)
     - [APIacAuthBearer](https://github.com/tanguilp/apiac_auth_bearer)
     - [APIacClientSecretPostAuth](https://github.com/tanguilp/apiac_auth_client_secret_post)
+    - [APIacAuthClientJWT](https://github.com/tanguilp/apiac_auth_client_jwt)
     - [APIacAuthMTLS](https://github.com/tanguilp/apiac_auth_mtls)
   - [`APIac.Filter`](https://github.com/tanguilp/apiac/blob/master/lib/apiac/filter.ex) implementation, such as:
     - [APIacFilterIPWhitelist](https://github.com/tanguilp/apiac_filter_ip_whitelist)
