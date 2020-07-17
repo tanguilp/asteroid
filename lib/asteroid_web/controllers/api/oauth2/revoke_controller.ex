@@ -2,7 +2,9 @@ defmodule AsteroidWeb.API.OAuth2.RevokeController do
   @moduledoc false
 
   use AsteroidWeb, :controller
-  import Asteroid.Utils
+
+  import Asteroid.Config, only: [opt: 1]
+
   alias Asteroid.Token.{RefreshToken, AccessToken}
   alias Asteroid.Client
   alias Asteroid.OAuth2
@@ -118,7 +120,7 @@ defmodule AsteroidWeb.API.OAuth2.RevokeController do
       |> Map.put(:conn, conn)
 
     conn
-    |> astrenv(:oauth2_endpoint_revoke_before_send_conn_callback).(ctx)
+    |> opt(:oauth2_endpoint_revoke_before_send_conn_callback).(ctx)
     |> Plug.Conn.resp(200, [])
   end
 

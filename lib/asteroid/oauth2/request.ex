@@ -1,5 +1,5 @@
 defmodule Asteroid.OAuth2.Request do
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   defmodule InvalidRequestError do
     @moduledoc """
@@ -20,7 +20,7 @@ defmodule Asteroid.OAuth2.Request do
     @impl true
 
     def message(%{reason: reason, parameter: parameter}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "invalid parameter `#{parameter}`, reason: #{reason}"
 
@@ -48,7 +48,7 @@ defmodule Asteroid.OAuth2.Request do
     @impl true
 
     def message(%{name: name, value: value}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Malformed parameter `#{name}` with value `#{value}`"
 

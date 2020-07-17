@@ -1,4 +1,5 @@
 defmodule Asteroid.Token.DeviceCode do
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -99,8 +100,8 @@ defmodule Asteroid.Token.DeviceCode do
           | {:error, Exception.t()}
 
   def get(device_code_id, opts \\ [check_active: true]) do
-    code_store_module = astrenv(:object_store_device_code)[:module]
-    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
+    code_store_module = opt(:object_store_device_code)[:module]
+    code_store_opts = opt(:object_store_device_code)[:opts] || []
 
     case code_store_module.get(device_code_id, code_store_opts) do
       {:ok, device_code} when not is_nil(device_code) ->
@@ -141,8 +142,8 @@ defmodule Asteroid.Token.DeviceCode do
           | {:error, Exception.t()}
 
   def get_from_user_code(user_code, opts \\ [check_active: true]) do
-    code_store_module = astrenv(:object_store_device_code)[:module]
-    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
+    code_store_module = opt(:object_store_device_code)[:module]
+    code_store_opts = opt(:object_store_device_code)[:opts] || []
 
     case code_store_module.get_from_user_code(user_code, code_store_opts) do
       {:ok, device_code} when not is_nil(device_code) ->
@@ -177,10 +178,10 @@ defmodule Asteroid.Token.DeviceCode do
   @spec store(t(), Context.t()) :: {:ok, t()} | {:error, any()}
 
   def store(device_code, ctx) do
-    code_store_module = astrenv(:object_store_device_code)[:module]
-    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
+    code_store_module = opt(:object_store_device_code)[:module]
+    code_store_opts = opt(:object_store_device_code)[:opts] || []
 
-    device_code = astrenv(:object_store_device_code_before_store_callback).(device_code, ctx)
+    device_code = opt(:object_store_device_code_before_store_callback).(device_code, ctx)
 
     case code_store_module.put(device_code, code_store_opts) do
       :ok ->
@@ -202,8 +203,8 @@ defmodule Asteroid.Token.DeviceCode do
   end
 
   def delete(device_code_id) do
-    code_store_module = astrenv(:object_store_device_code)[:module]
-    code_store_opts = astrenv(:object_store_device_code)[:opts] || []
+    code_store_module = opt(:object_store_device_code)[:module]
+    code_store_opts = opt(:object_store_device_code)[:opts] || []
 
     code_store_module.delete(device_code_id, code_store_opts)
   end
@@ -284,7 +285,7 @@ defmodule Asteroid.Token.DeviceCode do
         lifetime
 
       _ ->
-        astrenv(:oauth2_flow_device_authorization_device_code_lifetime, 0)
+        opt(:oauth2_flow_device_authorization_device_code_lifetime)
     end
   end
 end

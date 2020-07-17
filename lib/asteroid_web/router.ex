@@ -4,9 +4,11 @@ defmodule AsteroidWeb.Router do
   use AsteroidWeb, :router
   use Plug.ErrorHandler
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias Asteroid.OAuth2
+
+  Asteroid.Config.load_and_save()
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -15,19 +17,19 @@ defmodule AsteroidWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
 
-    for {plug_module, plug_options} <- astrenv(:browser_plugs, []) do
+    for {plug_module, plug_options} <- opt(:browser_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :well_known do
-    for {plug_module, plug_options} <- astrenv(:well_known_plugs, []) do
+    for {plug_module, plug_options} <- opt(:well_known_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :discovery do
-    for {plug_module, plug_options} <- astrenv(:discovery_plugs, []) do
+    for {plug_module, plug_options} <- opt(:discovery_plugs) do
       plug plug_module, plug_options
     end
   end
@@ -43,56 +45,55 @@ defmodule AsteroidWeb.Router do
   end
 
   pipeline :request_object do
-    for {plug_module, plug_options} <- astrenv(:api_request_object_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_request_object_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oidc do
-    for {plug_module, plug_options} <- astrenv(:api_oidc_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oidc_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oidc_endpoint_userinfo do
-    for {plug_module, plug_options} <- astrenv(:api_oidc_endpoint_userinfo_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oidc_endpoint_userinfo_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2 do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_token do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_token_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_endpoint_token_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_introspect do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_introspect_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_endpoint_introspect_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_revoke do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_revoke_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_endpoint_revoke_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_register do
-    for {plug_module, plug_options} <- astrenv(:api_oauth2_endpoint_register_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_endpoint_register_plugs) do
       plug plug_module, plug_options
     end
   end
 
   pipeline :oauth2_endpoint_device_authorization do
-    for {plug_module, plug_options} <-
-          astrenv(:api_oauth2_endpoint_device_authorization_plugs, []) do
+    for {plug_module, plug_options} <- opt(:api_oauth2_endpoint_device_authorization_plugs) do
       plug plug_module, plug_options
     end
   end

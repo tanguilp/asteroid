@@ -2,7 +2,10 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
   @moduledoc false
 
   use AsteroidWeb, :controller
+
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
+
   alias Asteroid.Token.{RefreshToken, AccessToken}
   alias Asteroid.{Client, Subject}
   alias Asteroid.OAuth2
@@ -10,7 +13,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
   def handle(%Plug.Conn{body_params: %{"token" => token}} = conn, params) do
     with {:ok, client} <- OAuth2.Client.get_authenticated_client(conn),
          :ok <- valid_token_parameter?(token),
-         :ok <- astrenv(:oauth2_endpoint_introspect_client_authorized).(client) do
+         :ok <- opt(:oauth2_endpoint_introspect_client_authorized).(client) do
       do_handle(conn, params, client)
     else
       {:error, e} ->
@@ -86,7 +89,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
       |> Map.put(:token_sort, :access_token)
       |> Map.put(:conn, conn)
 
-    response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
+    response_claims = opt(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
     resp =
       access_token.data
@@ -94,11 +97,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
       |> Enum.into(%{})
       |> scope_list_to_param()
       |> Map.put("active", true)
-      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
+      |> opt(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
+    |> opt(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 
@@ -122,7 +125,7 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
       |> Map.put(:token_sort, :refresh_token)
       |> Map.put(:conn, conn)
 
-    response_claims = astrenv(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
+    response_claims = opt(:oauth2_endpoint_introspect_claims_resp_callback).(ctx)
 
     resp =
       refresh_token.data
@@ -131,11 +134,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
       |> Enum.into(%{})
       |> scope_list_to_param()
       |> Map.put("active", true)
-      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
+      |> opt(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
+    |> opt(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 
@@ -167,11 +170,11 @@ defmodule AsteroidWeb.API.OAuth2.IntrospectController do
 
     resp =
       %{"active" => false}
-      |> astrenv(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
+      |> opt(:oauth2_endpoint_introspect_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(200)
-    |> astrenv(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
+    |> opt(:oauth2_endpoint_introspect_before_send_conn_callback).(ctx)
     |> json(resp)
   end
 

@@ -3,6 +3,7 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Client
@@ -44,9 +45,9 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
               put_if_not_nil(acc, claim, subject.attrs[claim])
           end
         )
-        |> Map.put("sub", astrenv(:oidc_subject_identifier_callback).(subject, client))
+        |> Map.put("sub", opt(:oidc_subject_identifier_callback).(subject, client))
         |> put_iss_aud_if_signed(client)
-        |> astrenv(:oidc_endpoint_userinfo_before_send_resp_callback).(ctx)
+        |> opt(:oidc_endpoint_userinfo_before_send_resp_callback).(ctx)
         |> maybe_sign(client)
         |> maybe_encrypt(client)
 
@@ -55,14 +56,14 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
           conn
           |> put_status(200)
           |> put_resp_content_type("application/json")
-          |> astrenv(:oidc_endpoint_userinfo_before_send_conn_callback).(ctx)
+          |> opt(:oidc_endpoint_userinfo_before_send_conn_callback).(ctx)
           |> json(result_claims)
 
         _ ->
           conn
           |> put_status(200)
           |> put_resp_content_type("application/jwt")
-          |> astrenv(:oidc_endpoint_userinfo_before_send_conn_callback).(ctx)
+          |> opt(:oidc_endpoint_userinfo_before_send_conn_callback).(ctx)
           |> text(result_claims)
       end
     else

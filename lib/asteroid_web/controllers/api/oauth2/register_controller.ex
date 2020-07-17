@@ -3,6 +3,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
@@ -19,12 +20,12 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     @impl true
 
     def message(%{field: field, reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           case field do
             "token_endpoint_auth_method" ->
               "Invalid field `#{field}` (reason: #{reason}, supported methods:)" <>
-                "#{inspect(astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).())})"
+                "#{inspect(opt(:oauth2_endpoint_token_auth_methods_supported_callback).())})"
 
             _ ->
               "Invalid field `#{field}` (reason: #{reason})"
@@ -50,7 +51,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     @impl true
 
     def message(%{scopes: scopes}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "The following requested scopes are not allowed under the current policy: " <>
             Enum.join(scopes, " ")
@@ -78,7 +79,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     @impl true
 
     def message(%{redirect_uri: redirect_uri}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "Invalid redirect URI `#{redirect_uri}`"
 
@@ -159,7 +160,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       end
 
     client_resource_id =
-      astrenv(:oauth2_endpoint_register_gen_client_resource_id_callback).(processed_metadata, ctx)
+      opt(:oauth2_endpoint_register_gen_client_resource_id_callback).(processed_metadata, ctx)
 
     new_client =
       Enum.reduce(
@@ -188,7 +189,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     :ok =
       new_client
       |> jwks_to_binary()
-      |> astrenv(:oauth2_endpoint_register_client_before_save_callback).(ctx)
+      |> opt(:oauth2_endpoint_register_client_before_save_callback).(ctx)
       |> Client.store()
 
     processed_metadata =
@@ -199,11 +200,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       else
         processed_metadata
       end
-      |> astrenv(:oauth2_endpoint_register_before_send_resp_callback).(ctx)
+      |> opt(:oauth2_endpoint_register_before_send_resp_callback).(ctx)
 
     conn
     |> put_status(201)
-    |> astrenv(:oauth2_endpoint_register_before_send_conn_callback).(ctx)
+    |> opt(:oauth2_endpoint_register_before_send_conn_callback).(ctx)
     |> json(processed_metadata)
   rescue
     e in [
@@ -234,7 +235,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
        )
        when is_list(requested_grant_types) do
     enabled_grant_types =
-      astrenv(:oauth2_grant_types_enabled)
+      opt(:oauth2_grant_types_enabled)
       |> Enum.map(&to_string/1)
       |> MapSet.new()
 
@@ -259,7 +260,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     client = Client.fetch_attributes(authenticated_client, [conf_attr])
 
     enabled_grant_types =
-      astrenv(:oauth2_grant_types_enabled)
+      opt(:oauth2_grant_types_enabled)
       |> Enum.map(&to_string/1)
 
     allowed_grant_types =
@@ -311,7 +312,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
        )
        when is_list(requested_response_types) do
     enabled_response_types =
-      astrenv(:oauth2_response_types_enabled)
+      opt(:oauth2_response_types_enabled)
       |> Enum.map(&to_string/1)
       |> MapSet.new()
 
@@ -336,7 +337,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     client = Client.fetch_attributes(authenticated_client, [conf_attr])
 
     enabled_response_types =
-      astrenv(:oauth2_response_types_enabled)
+      opt(:oauth2_response_types_enabled)
       |> Enum.map(&to_string/1)
 
     allowed_response_types =
@@ -422,7 +423,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
        )
        when is_binary(token_endpoint_auth_method) do
     auth_method_allowed_str =
-      astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).f()
+      opt(:oauth2_endpoint_token_auth_methods_supported_callback).f()
       |> Enum.map(&to_string/1)
 
     if token_endpoint_auth_method in auth_method_allowed_str do
@@ -445,7 +446,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     client = Client.fetch_attributes(authenticated_client, [auth_meth_client])
 
     token_endpoint_auth_methods_supported =
-      astrenv(:oauth2_endpoint_token_auth_methods_supported_callback).()
+      opt(:oauth2_endpoint_token_auth_methods_supported_callback).()
 
     auth_method_allowed_str =
       case client.attrs[auth_meth_client] do
@@ -913,7 +914,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"id_token_signed_response_alg" => id_token_signed_response_alg}
        ) do
-    if id_token_signed_response_alg in astrenv(:oidc_id_token_supported_signing_algs, []) do
+    if id_token_signed_response_alg in opt(:oidc_id_token_supported_signing_algs) do
       Map.put(processed_metadata, "id_token_signed_response_alg", id_token_signed_response_alg)
     else
       raise InvalidClientMetadataFieldError,
@@ -932,7 +933,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"id_token_encrypted_response_alg" => id_token_encrypted_response_alg}
        ) do
-    if id_token_encrypted_response_alg in astrenv(:oidc_id_token_supported_encryption_algs, []) do
+    if id_token_encrypted_response_alg in opt(:oidc_id_token_supported_encryption_algs) do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_alg",
@@ -958,7 +959,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
            "id_token_encrypted_response_alg" => _
          }
        ) do
-    if id_token_encrypted_response_enc in astrenv(:oidc_id_token_supported_encryption_encs, []) do
+    if id_token_encrypted_response_enc in opt(:oidc_id_token_supported_encryption_encs) do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_enc",
@@ -997,7 +998,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"userinfo_signed_response_alg" => userinfo_signed_response_alg}
        ) do
-    if userinfo_signed_response_alg in astrenv(:oidc_userinfo_supported_signing_algs, []) do
+    if userinfo_signed_response_alg in opt(:oidc_userinfo_supported_signing_algs) do
       Map.put(processed_metadata, "userinfo_signed_response_alg", userinfo_signed_response_alg)
     else
       raise InvalidClientMetadataFieldError,
@@ -1016,7 +1017,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"userinfo_encrypted_response_alg" => userinfo_encrypted_response_alg}
        ) do
-    if userinfo_encrypted_response_alg in astrenv(:oidc_userinfo_supported_encryption_algs, []) do
+    if userinfo_encrypted_response_alg in opt(:oidc_userinfo_supported_encryption_algs) do
       Map.put(
         processed_metadata,
         "userinfo_encrypted_response_alg",
@@ -1042,7 +1043,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
            "userinfo_encrypted_response_alg" => _
          }
        ) do
-    if userinfo_encrypted_response_enc in astrenv(:oidc_userinfo_supported_encryption_encs, []) do
+    if userinfo_encrypted_response_enc in opt(:oidc_userinfo_supported_encryption_encs) do
       Map.put(
         processed_metadata,
         "userinfo_encrypted_response_enc",
@@ -1081,10 +1082,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"request_object_signed_response_alg" => request_object_signed_response_alg}
        ) do
-    if request_object_signed_response_alg in astrenv(
-         :oidc_request_object_supported_signing_algs,
-         []
-       ) do
+    if request_object_signed_response_alg in opt(:oidc_request_object_supported_signing_algs) do
       Map.put(
         processed_metadata,
         "request_object_signed_response_alg",
@@ -1107,10 +1105,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"request_object_encrypted_response_alg" => request_object_encrypted_response_alg}
        ) do
-    if request_object_encrypted_response_alg in astrenv(
-         :oidc_request_object_supported_encryption_algs,
-         []
-       ) do
+    if request_object_encrypted_response_alg in opt(:oidc_request_object_supported_encryption_algs) do
       Map.put(
         processed_metadata,
         "request_object_encrypted_response_alg",
@@ -1136,10 +1131,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
            "request_object_encrypted_response_alg" => _
          }
        ) do
-    if request_object_encrypted_response_enc in astrenv(
-         :oidc_request_object_supported_encryption_encs,
-         []
-       ) do
+    if request_object_encrypted_response_enc in opt(:oidc_request_object_supported_encryption_encs) do
       Map.put(
         processed_metadata,
         "request_object_encrypted_response_enc",
@@ -1215,7 +1207,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
        })
        when is_list(default_acr_values) do
     acr_values_supported =
-      Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+      Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
     if Enum.all?(default_acr_values, &(&1 in acr_values_supported)) do
       Map.put(processed_metadata, "default_acr_values", default_acr_values)
@@ -1240,7 +1232,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
 
   defp process_additional_metadata_fields(processed_metadata, nil, input_metadata) do
     Enum.reduce(
-      astrenv(:oauth2_endpoint_register_additional_metadata_field, []),
+      opt(:oauth2_endpoint_register_additional_metadata_field),
       processed_metadata,
       fn
         additional_field, acc ->
@@ -1256,7 +1248,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
 
     Enum.reduce(
       client.attrs[add_met] ||
-        astrenv(:oauth2_endpoint_register_additional_metadata_field, []),
+        opt(:oauth2_endpoint_register_additional_metadata_field),
       processed_metadata,
       fn
         additional_field, acc ->
@@ -1269,7 +1261,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
 
   defp set_client_id(processed_metadata, ctx) do
     client_id =
-      astrenv(:oauth2_endpoint_register_gen_client_id_callback).(processed_metadata, ctx)
+      opt(:oauth2_endpoint_register_gen_client_id_callback).(processed_metadata, ctx)
 
     Map.put(processed_metadata, "client_id", client_id)
   end
@@ -1277,7 +1269,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   @spec set_new_client_type(Client.t()) :: Client.t()
 
   defp set_new_client_type(client) do
-    case astrenv(:oauth2_endpoint_register_client_type_callback).(client) do
+    case opt(:oauth2_endpoint_register_client_type_callback).(client) do
       :public ->
         Client.add(client, "client_type", "public")
 

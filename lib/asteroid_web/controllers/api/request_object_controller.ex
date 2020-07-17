@@ -3,6 +3,7 @@ defmodule AsteroidWeb.API.RequestObjectController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.OAuth2
@@ -27,7 +28,7 @@ defmodule AsteroidWeb.API.RequestObjectController do
 
     to_store = %{
       "request_object" => request_object,
-      "exp" => now() + astrenv(:oauth2_jar_request_object_lifetime)
+      "exp" => now() + opt(:oauth2_jar_request_object_lifetime)
     }
 
     case OAuth2.JAR.put_request_object(key, to_store) do

@@ -1,7 +1,7 @@
 defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
   use AsteroidWeb.ConnCase, async: true
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.Endpoint
@@ -33,12 +33,12 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
              |> Enum.sort()
 
     assert Enum.sort(response["response_types_supported"]) ==
-             astrenv(:oauth2_response_types_enabled)
+             opt(:oauth2_response_types_enabled)
              |> Enum.map(&to_string/1)
              |> Enum.sort()
 
     assert Enum.sort(response["grant_types_supported"]) ==
-             astrenv(:oauth2_grant_types_enabled)
+             opt(:oauth2_grant_types_enabled)
              |> Enum.map(&to_string/1)
              |> Enum.sort()
 
@@ -66,7 +66,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerControllerTest do
              |> Enum.sort()
 
     assert Enum.sort(response["code_challenge_methods_supported"]) ==
-             astrenv(:oauth2_pkce_allowed_methods)
+             opt(:oauth2_pkce_allowed_methods)
              |> Enum.map(&to_string/1)
              |> Enum.sort()
   end

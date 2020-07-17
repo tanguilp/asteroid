@@ -1,9 +1,9 @@
 defmodule Asteroid.OAuth2.Client do
+  import Asteroid.Config, only: [opt: 1]
+
   alias Asteroid.Client
   alias Asteroid.OAuth2
   alias OAuth2Utils.Scope
-
-  import Asteroid.Utils
 
   @moduledoc """
   Util function to work with OAuth2 clients
@@ -23,7 +23,7 @@ defmodule Asteroid.OAuth2.Client do
     @impl true
 
     def message(%__MODULE__{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "authentication error: #{String.replace(Atom.to_string(reason), "_", " ")}"
 
@@ -48,7 +48,7 @@ defmodule Asteroid.OAuth2.Client do
           }
 
     def message(%__MODULE__{reason: reason}) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "The client is not authorized to perform this action (reason: #{inspect(reason)})"
 

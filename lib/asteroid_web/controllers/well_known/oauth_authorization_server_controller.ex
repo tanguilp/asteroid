@@ -3,6 +3,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.OAuth2
@@ -30,29 +31,29 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_code_challenge_methods_supported()
       |> put_if_not_nil(
         "service_documentation",
-        astrenv(:oauth2_endpoint_metadata_service_documentation, nil)
+        opt(:oauth2_endpoint_metadata_service_documentation)
       )
       |> put_if_not_nil(
         "ui_locales_supported",
-        astrenv(:oauth2_endpoint_metadata_ui_locales_supported, nil)
+        opt(:oauth2_endpoint_metadata_ui_locales_supported)
       )
       |> put_if_not_nil(
         "op_policy_uri",
-        astrenv(:oauth2_endpoint_metadata_op_policy_uri, nil)
+        opt(:oauth2_endpoint_metadata_op_policy_uri)
       )
       |> put_if_not_nil(
         "op_tos_uri",
-        astrenv(:oauth2_endpoint_metadata_op_tos_uri, nil)
+        opt(:oauth2_endpoint_metadata_op_tos_uri)
       )
       |> put_jar_enabled()
       |> put_jar_metadata_values()
       |> put_oidc_metadata()
       |> put_mtls_endpoint_aliases()
-      |> astrenv(:oauth2_endpoint_metadata_before_send_resp_callback).()
+      |> opt(:oauth2_endpoint_metadata_before_send_resp_callback).()
       |> sign_metadata()
 
     conn
-    |> astrenv(:oauth2_endpoint_metadata_before_send_conn_callback).()
+    |> opt(:oauth2_endpoint_metadata_before_send_conn_callback).()
     |> json(metadata)
   end
 
@@ -60,7 +61,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp maybe_put_authorization_endpoint(metadata) do
     if Enum.any?(
-         astrenv(:oauth2_grant_types_enabled, []),
+         opt(:oauth2_grant_types_enabled),
          fn grant_type -> OAuth2Utils.uses_authorization_endpoint?(to_string(grant_type)) end
        ) do
       Map.put(
@@ -76,7 +77,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec maybe_put_token_endpoint(map()) :: map()
 
   defp maybe_put_token_endpoint(metadata) do
-    case astrenv(:oauth2_grant_types_enabled, []) do
+    case opt(:oauth2_grant_types_enabled) do
       [:implicit] ->
         metadata
 
@@ -102,7 +103,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_scopes_supported(map()) :: map()
 
   defp put_scopes_supported(metadata) do
-    grant_types_enabled = astrenv(:oauth2_grant_types_enabled, [])
+    grant_types_enabled = opt(:oauth2_grant_types_enabled)
 
     scopes =
       if :password in grant_types_enabled do
@@ -158,7 +159,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_response_types_supported(map()) :: map()
 
   defp put_response_types_supported(metadata) do
-    case astrenv(:oauth2_response_types_enabled, []) do
+    case opt(:oauth2_response_types_enabled) do
       [] ->
         metadata
 
@@ -170,7 +171,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_grant_types_supported(map()) :: map()
 
   defp put_grant_types_supported(metadata) do
-    case astrenv(:oauth2_grant_types_enabled, []) do
+    case opt(:oauth2_grant_types_enabled) do
       [] ->
         metadata
 
@@ -198,7 +199,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_jwks_uri(map()) :: map()
 
   defp put_jwks_uri(metadata) do
-    if astrenv(:crypto_keys) do
+    if opt(:crypto_keys) do
       Map.put(
         metadata,
         "jwks_uri",
@@ -264,7 +265,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_device_authorization_endpoint(map()) :: map()
 
   defp put_device_authorization_endpoint(metadata) do
-    if :"urn:ietf:params:oauth:grant-type:device_code" in astrenv(:oauth2_grant_types_enabled, []) do
+    if :"urn:ietf:params:oauth:grant-type:device_code" in opt(:oauth2_grant_types_enabled) do
       Map.put(
         metadata,
         "device_authorization_endpoint",
@@ -278,13 +279,13 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_code_challenge_methods_supported(map()) :: map()
 
   defp put_code_challenge_methods_supported(metadata) do
-    case astrenv(:oauth2_pkce_policy, []) do
+    case opt(:oauth2_pkce_policy) do
       :disabled ->
         metadata
 
       _ ->
         methods =
-          astrenv(:oauth2_pkce_allowed_methods, [])
+          opt(:oauth2_pkce_allowed_methods)
           |> Enum.map(&to_string/1)
 
         Map.put(metadata, "code_challenge_methods_supported", methods)
@@ -294,7 +295,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_jar_enabled(map()) :: map()
 
   defp put_jar_enabled(metadata) do
-    case astrenv(:oauth2_jar_enabled, :disabled) do
+    case opt(:oauth2_jar_enabled) do
       :disabled ->
         Map.put(metadata, "request_parameter_supported", false)
 
@@ -314,7 +315,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_jar_metadata_values(map()) :: map()
 
   defp put_jar_metadata_values(metadata) do
-    case astrenv(:oauth2_jar_enabled, :disabled) do
+    case opt(:oauth2_jar_enabled) do
       :disabled ->
         metadata
 
@@ -322,15 +323,15 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         metadata
         |> put_if_not_empty(
           "request_object_encryption_alg_values_supported",
-          astrenv(:oauth2_jar_request_object_encryption_alg_values_supported, [])
+          opt(:oauth2_jar_request_object_encryption_alg_values_supported)
         )
         |> put_if_not_empty(
           "request_object_encryption_enc_values_supported",
-          astrenv(:oauth2_jar_request_object_encryption_enc_values_supported, [])
+          opt(:oauth2_jar_request_object_encryption_enc_values_supported)
         )
         |> put_if_not_empty(
           "request_object_signing_alg_values_supported",
-          astrenv(:oauth2_jar_request_object_signing_alg_values_supported, [])
+          opt(:oauth2_jar_request_object_signing_alg_values_supported)
         )
     end
   end
@@ -339,21 +340,22 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp put_oidc_metadata(metadata) do
     if OIDC.enabled?() do
-      sig_alg = astrenv(:oidc_endpoint_userinfo_signature_alg_values_supported, [])
-      enc_alg = astrenv(:oidc_endpoint_userinfo_encryption_alg_values_supported, [])
-      enc_enc = astrenv(:oidc_endpoint_userinfo_encryption_enc_values_supported, [])
+      sig_alg = opt(:oidc_endpoint_userinfo_signature_alg_values_supported)
+      enc_alg = opt(:oidc_endpoint_userinfo_encryption_alg_values_supported)
+      enc_enc = opt(:oidc_endpoint_userinfo_encryption_enc_values_supported)
 
+      #FIXME: force the presence of a RSA key?
       id_token_sig_alg =
-        ["RS256" | astrenv(:oidc_id_token_signing_alg_values_supported, [])]
+        ["RS256" | opt(:oidc_id_token_signing_alg_values_supported)]
         |> Enum.uniq()
 
-      id_token_enc_alg = astrenv(:oidc_id_token_encryption_alg_values_supported, [])
-      id_token_enc_enc = astrenv(:oidc_id_token_encryption_enc_values_supported, [])
+      id_token_enc_alg = opt(:oidc_id_token_encryption_alg_values_supported)
+      id_token_enc_enc = opt(:oidc_id_token_encryption_enc_values_supported)
 
-      acr_values = Enum.map(astrenv(:oidc_acr_config, []), fn {k, _} -> Atom.to_string(k) end)
+      acr_values = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
       response_modes_supported =
-        if astrenv(:oauth2_response_mode_policy, :disabled) == :disabled do
+        if opt(:oauth2_response_mode_policy) == :disabled do
           ["query", "fragment"]
         else
           ["query", "fragment", "form_post"]
@@ -373,10 +375,10 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
       |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
       |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
       |> put_if_not_empty("acr_values_supported", acr_values)
-      |> put_if_not_empty("claims_supported", astrenv(:oidc_claims_supported, []))
+      |> put_if_not_empty("claims_supported", opt(:oidc_claims_supported))
       |> put_if_not_empty(
         "display_values_supported",
-        astrenv(:oidc_endpoint_metadata_display_values_supported, [])
+        opt(:oidc_endpoint_metadata_display_values_supported)
       )
     else
       metadata
@@ -385,7 +387,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   @spec put_mtls_endpoint_aliases(map()) :: map()
   defp put_mtls_endpoint_aliases(metadata) do
-    if astrenv(:oauth2_mtls_advertise_aliases, true) and OAuth2.MTLS.in_use?() do
+    if opt(:oauth2_mtls_advertise_aliases) and OAuth2.MTLS.in_use?() do
       helpers = %{
         token_url: "token_endpoint",
         introspect_url: "introspection_endpoint",
@@ -420,7 +422,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec sign_metadata(map()) :: map()
 
   defp sign_metadata(metadata) do
-    case astrenv(:oauth2_endpoint_metadata_signed_fields, :disabled) do
+    case opt(:oauth2_endpoint_metadata_signed_fields) do
       :disabled ->
         metadata
 
@@ -437,8 +439,8 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec signed_statement(map()) :: String.t()
 
   defp signed_statement(to_be_signed) do
-    signing_key = astrenv(:oauth2_endpoint_metadata_signing_key)
-    signing_alg = astrenv(:oauth2_endpoint_metadata_signing_alg)
+    signing_key = opt(:oauth2_endpoint_metadata_signing_key)
+    signing_alg = opt(:oauth2_endpoint_metadata_signing_alg)
 
     {:ok, jwk} = Asteroid.Crypto.Key.get(signing_key)
 

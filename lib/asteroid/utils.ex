@@ -14,32 +14,6 @@ defmodule Asteroid.Utils do
     |> Base.url_encode64(padding: false)
   end
 
-  @doc """
-  Returns the configuration option value
-
-  In tests, checks first the process dictionary for the value and fall backs to the standard
-  configuration, so that one can set configuration at the testing process level using:
-
-  ```elixir
-  Process.put(:configuration_option, value)
-  ```
-  """
-  @spec astrenv(atom()) :: any()
-
-  if Mix.env() == :test do
-    def astrenv(key, default_value \\ nil) do
-      if key in Keyword.keys(Process.get()) do
-        Process.get(key)
-      else
-        Application.get_env(:asteroid, key, default_value)
-      end
-    end
-  else
-    def astrenv(key, default_value \\ nil) do
-      Application.get_env(:asteroid, key, default_value)
-    end
-  end
-
   @spec put_if_not_nil(map(), Map.key(), Map.value()) :: map()
 
   def put_if_not_nil(map, _, nil), do: map
@@ -75,9 +49,9 @@ defmodule Asteroid.Utils do
   Always returns nil
   """
 
-  @spec always_nil(any(), any()) :: nil
+  @spec always_nil(any(), any(), any()) :: nil
 
-  def always_nil(_, _ \\ nil), do: nil
+  def always_nil(_, _ \\ nil, _ \\ nil), do: nil
 
   @spec conn_not_authenticated?(Plug.Conn.t()) :: boolean()
 
