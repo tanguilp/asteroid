@@ -419,10 +419,10 @@ defmodule Asteroid.OAuth2.JAR do
     parsed_uri = URI.parse(uri)
 
     if parsed_uri.scheme == "https" do
-      jar_request_uri_get_opts = opt(:oauth2_jar_request_uri_get_opts)
+      http_client = Tesla.client(tesla_middlewares())
 
-      case HTTPoison.get(uri, [], jar_request_uri_get_opts) do
-        {:ok, %HTTPoison.Response{status_code: 200, headers: headers, body: body}} ->
+      case Tesla.get(http_client, uri) do
+        {:ok, %Tesla.Env{status: 200, headers: headers, body: body}} ->
           if headers_contain_content_type?(headers, "application", "jwt") do
             {:ok, body}
           else
@@ -432,14 +432,14 @@ defmodule Asteroid.OAuth2.JAR do
              )}
           end
 
-        {:ok, %HTTPoison.Response{status_code: status_code}} ->
+        {:ok, %Tesla.Env{status: status_code}} ->
           {:error,
            InvalidRequestURIError.exception(
              reason: "requesting the request uri resulted in HTTP code #{status_code}"
            )}
 
-        {:error, e} ->
-          {:error, InvalidRequestURIError.exception(reason: Exception.message(e))}
+        {:error, error} ->
+          {:error, %InvalidRequestURIError{reason: inspect(error)}}
       end
     else
       {:error, InvalidRequestURIError.exception(reason: "request URI must be HTTPS")}
@@ -494,4 +494,7 @@ defmodule Asteroid.OAuth2.JAR do
 
     module.put(key, value, opts)
   end
+
+  @spec tesla_middlewares() :: [Tesla.Client.middleware()]
+  defp tesla_middlewares(), do: opt(:tesla_middlewares) ++ opt(:tesla_middlewares_jar)
 end

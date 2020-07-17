@@ -1649,16 +1649,6 @@ defmodule Asteroid.Config do
       unit: "seconds"
 
     @doc """
-    Set the options of the HTTP request to retrieve external JAR request objects
-
-    The options are request options of `HTTPoison.Request`
-    """
-    @type oauth2_jar_request_uri_get_opts :: Keyword.t()
-    field :oauth2_jar_request_uri_get_opts, {:list, :option},
-      default: [follow_redirect: false, max_body_length: 1024 * 20, timeout: 1000],
-      config_time: :runtime
-
-    @doc """
     List of supported signing algorithms for JAR request objects
     """
     @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
@@ -2451,6 +2441,23 @@ defmodule Asteroid.Config do
       default: %{scopes: %{"openid" => []}},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
+
+    @doc """
+    Tesla middlewares globally added to any outbound HTTP request performed by Asteroid
+    """
+    @type tesla_middlewares :: [Tesla.Client.middleware()]
+    field :tesla_middlewares, {:list, :term},
+      default: [],
+      config_time: :runtime
+
+    @doc """
+    Tesla middlewares added to any outbound HTTP JAR request performed to request external
+    objects
+    """
+    @type tesla_middlewares_jar :: [Tesla.Client.middleware()]
+    field :tesla_middlewares_jar, {:list, :term},
+      default: [],
+      config_time: :runtime
 
     ### end of configuration options
   end
