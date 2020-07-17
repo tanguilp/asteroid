@@ -2392,14 +2392,23 @@ defmodule Asteroid.Config do
     List of acceptable signature `alg` algorithms for client authentication on the
     `/api/oauth2/token` endpoint when the `"private_key_jwt"` or `"client_secret_jwt"`
     authentication method is used
-
-    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
-    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
     @type oidc_endpoint_token_auth_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
-    field :oidc_endpoint_token_auth_signing_alg_values_supported,
-      [{:one_of_atoms, [:auto]}, {:list, :string}],
-      default: :auto,
+    field :oidc_endpoint_token_auth_signing_alg_values_supported, {:list, :string},
+      default: [
+        "HS256",
+        "HS384",
+        "HS512",
+        "RS256",
+        "RS384",
+        "RS512",
+        "ES256",
+        "ES384",
+        "ES512",
+        "PS256",
+        "PS384",
+        "PS512"
+      ],
       config_time: :runtime
 
     ### end of configuration options

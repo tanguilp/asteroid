@@ -41,7 +41,7 @@ defmodule Asteroid.OIDC.AuthClientJWT do
   def client_callback(client_id) do
     case Client.load_from_unique_attribute("client_id", client_id) do
       {:ok, client} ->
-        Map.put(client.attrs, "client_id", client_id)
+        client.attrs
 
       {:error, e} ->
         raise e
