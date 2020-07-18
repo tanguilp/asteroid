@@ -7,8 +7,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
-  alias Asteroid.Client
-  alias Asteroid.OAuth2
+  alias Asteroid.{Client, Token.IDToken, OAuth2}
 
   defmodule InvalidClientMetadataFieldError do
     @moduledoc """
@@ -144,9 +143,9 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
       |> process_oidc_userinfo_signed_response_alg(input_metadata)
       |> process_oidc_userinfo_encrypted_response_alg(input_metadata)
       |> process_oidc_userinfo_encrypted_response_enc(input_metadata)
-      |> process_oidc_request_object_signed_response_alg(input_metadata)
-      |> process_oidc_request_object_encrypted_response_alg(input_metadata)
-      |> process_oidc_request_object_encrypted_response_enc(input_metadata)
+      |> process_oidc_request_object_signing_response_alg(input_metadata)
+      |> process_oidc_request_object_encryption_response_alg(input_metadata)
+      |> process_oidc_request_object_encryption_response_enc(input_metadata)
       |> process_oidc_default_max_age(input_metadata)
       |> process_oidc_require_auth_time(input_metadata)
       |> process_oidc_default_acr_values(input_metadata)
@@ -909,12 +908,11 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
   end
 
   @spec process_oidc_id_token_signed_response_alg(map(), map()) :: map()
-
   defp process_oidc_id_token_signed_response_alg(
          processed_metadata,
          %{"id_token_signed_response_alg" => id_token_signed_response_alg}
        ) do
-    if id_token_signed_response_alg in opt(:oidc_id_token_supported_signing_algs) do
+    if id_token_signed_response_alg in IDToken.signing_alg_values_supported() do
       Map.put(processed_metadata, "id_token_signed_response_alg", id_token_signed_response_alg)
     else
       raise InvalidClientMetadataFieldError,
@@ -933,7 +931,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
          processed_metadata,
          %{"id_token_encrypted_response_alg" => id_token_encrypted_response_alg}
        ) do
-    if id_token_encrypted_response_alg in opt(:oidc_id_token_supported_encryption_algs) do
+    if id_token_encrypted_response_alg in IDToken.encryption_alg_values_supported() do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_alg",
@@ -959,7 +957,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
            "id_token_encrypted_response_alg" => _
          }
        ) do
-    if id_token_encrypted_response_enc in opt(:oidc_id_token_supported_encryption_encs) do
+    if id_token_encrypted_response_enc in IDToken.encryption_enc_values_supported() do
       Map.put(
         processed_metadata,
         "id_token_encrypted_response_enc",
@@ -1076,91 +1074,69 @@ defmodule AsteroidWeb.API.OAuth2.RegisterController do
     processed_metadata
   end
 
-  @spec process_oidc_request_object_signed_response_alg(map(), map()) :: map()
-
-  defp process_oidc_request_object_signed_response_alg(
+  @spec process_oidc_request_object_signing_response_alg(map(), map()) :: map()
+  defp process_oidc_request_object_signing_response_alg(
          processed_metadata,
-         %{"request_object_signed_response_alg" => request_object_signed_response_alg}
+         %{"request_object_signing_alg" => request_object_signing_alg}
        ) do
-    if request_object_signed_response_alg in opt(:oidc_request_object_supported_signing_algs) do
-      Map.put(
-        processed_metadata,
-        "request_object_signed_response_alg",
-        request_object_signed_response_alg
-      )
+    if request_object_signing_alg in OAuth2.JAR.signing_alg_values_supported() do
+      Map.put(processed_metadata, "request_object_signing_alg", request_object_signing_alg)
     else
       raise InvalidClientMetadataFieldError,
-        field: "request_object_signed_response_alg",
+        field: "request_object_signing_alg",
         reason: "value provided not in supported signing algs"
     end
   end
 
-  defp process_oidc_request_object_signed_response_alg(processed_metadata, _) do
+  defp process_oidc_request_object_signing_response_alg(processed_metadata, _) do
     processed_metadata
   end
 
-  @spec process_oidc_request_object_encrypted_response_alg(map(), map()) :: map()
-
-  defp process_oidc_request_object_encrypted_response_alg(
+  @spec process_oidc_request_object_encryption_response_alg(map(), map()) :: map()
+  defp process_oidc_request_object_encryption_response_alg(
          processed_metadata,
-         %{"request_object_encrypted_response_alg" => request_object_encrypted_response_alg}
+         %{"request_object_encryption_alg" => request_object_encryption_alg}
        ) do
-    if request_object_encrypted_response_alg in opt(:oidc_request_object_supported_encryption_algs) do
-      Map.put(
-        processed_metadata,
-        "request_object_encrypted_response_alg",
-        request_object_encrypted_response_alg
-      )
+    if request_object_encryption_alg in OAuth2.JAR.encryption_alg_values_supported() do
+      Map.put(processed_metadata, "request_object_encryption_alg", request_object_encryption_alg)
     else
       raise InvalidClientMetadataFieldError,
-        field: "request_object_encrypted_response_alg",
+        field: "request_object_encryption_alg",
         reason: "value provided not in supported encryption algs"
     end
   end
 
-  defp process_oidc_request_object_encrypted_response_alg(processed_metadata, _) do
+  defp process_oidc_request_object_encryption_response_alg(processed_metadata, _) do
     processed_metadata
   end
 
-  @spec process_oidc_request_object_encrypted_response_enc(map(), map()) :: map()
-
-  defp process_oidc_request_object_encrypted_response_enc(
+  @spec process_oidc_request_object_encryption_response_enc(map(), map()) :: map()
+  defp process_oidc_request_object_encryption_response_enc(
          processed_metadata,
          %{
-           "request_object_encrypted_response_enc" => request_object_encrypted_response_enc,
-           "request_object_encrypted_response_alg" => _
+           "request_object_encryption_enc" => request_object_encryption_enc,
+           "request_object_encryption_alg" => _
          }
        ) do
-    if request_object_encrypted_response_enc in opt(:oidc_request_object_supported_encryption_encs) do
-      Map.put(
-        processed_metadata,
-        "request_object_encrypted_response_enc",
-        request_object_encrypted_response_enc
-      )
+         if request_object_encryption_enc in OAuth2.JAR.encryption_enc_values_supported() do
+      Map.put(processed_metadata, "request_object_encryption_enc", request_object_encryption_enc)
     else
       raise InvalidClientMetadataFieldError,
-        field: "request_object_encrypted_response_enc",
+        field: "request_object_encryption_enc",
         reason: "value provided not in supported encryption encs"
     end
   end
 
-  defp process_oidc_request_object_encrypted_response_enc(
+  defp process_oidc_request_object_encryption_response_enc(
          _processed_metadata,
-         %{"request_object_encrypted_response_enc" => _request_object_encrypted_response_enc}
+         %{"request_object_encryption_enc" => _request_object_encrypted_response_enc}
        ) do
     raise InvalidClientMetadataFieldError,
-      field: "request_object_encrypted_response_enc",
-      reason: "`request_object_encrypted_response_alg` must be registered along with this field"
+      field: "request_object_encryption_enc",
+      reason: "`request_object_encryption_alg` must be registered along with this field"
   end
 
-  defp process_oidc_request_object_encrypted_response_enc(
-         processed_metadata,
-         %{"request_object_encrypted_response_alg" => _}
-       ) do
-    Map.put(processed_metadata, "request_object_encrypted_response_enc", "A128CBC-HS256")
-  end
-
-  defp process_oidc_request_object_encrypted_response_enc(processed_metadata, _) do
+  defp process_oidc_request_object_encryption_response_enc(processed_metadata, _) do
     processed_metadata
   end
 

@@ -78,7 +78,6 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   end
 
   @spec claims_for_access_token(AccessToken.t()) :: [String.t()]
-
   defp claims_for_access_token(access_token) do
     claims_to_exclude = [
       "iss",
@@ -112,7 +111,6 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   end
 
   @spec put_iss_aud_if_signed(map(), Client.t()) :: map()
-
   defp put_iss_aud_if_signed(claims, client) do
     if client.attrs["userinfo_signed_response_alg"] do
       claims
@@ -124,28 +122,16 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   end
 
   @spec maybe_sign(map(), Client.t()) :: String.t() | map()
-
   defp maybe_sign(claims, client) do
     signing_alg = client.attrs["userinfo_signed_response_alg"]
 
     if signing_alg do
-      eligible_jwks =
-        Crypto.Key.get_all()
-        |> Enum.filter(fn
-          %JOSE.JWK{fields: fields} ->
-            fields["use"] == "sig" and
-              (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
-              (fields["alg"] == signing_alg or fields["alg"] == nil)
-        end)
+      case Crypto.JOSE.sign(claims, client, alg: signing_alg) do
+        {:ok, {signed_payload, _jwk}} ->
+          signed_payload
 
-      case eligible_jwks do
-        [jwk | _] ->
-          JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), claims)
-          |> JOSE.JWS.compact()
-          |> elem(1)
-
-        [] ->
-          raise Crypto.Key.NoSuitableKeyError
+        {:error, e} ->
+          raise e
       end
     else
       claims
@@ -153,50 +139,18 @@ defmodule AsteroidWeb.API.OIDC.UserinfoController do
   end
 
   @spec maybe_encrypt(map() | String.t(), Client.t()) :: String.t() | map()
-
   defp maybe_encrypt(claims_or_jws, client) do
-    encryption_alg = client.attrs["userinfo_encrypted_response_alg"]
+    enc_alg = client.attrs["userinfo_encrypted_response_alg"]
 
-    if encryption_alg do
-      case Client.get_jwks(client) do
-        {:ok, keys} ->
-          eligible_jwks =
-            keys
-            |> Enum.map(&JOSE.JWK.from/1)
-            |> Enum.filter(fn
-              %JOSE.JWK{fields: fields} ->
-                (fields["use"] == "enc" or fields["use"] == nil) and
-                  (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
-                  (fields["alg"] == encryption_alg or fields["alg"] == nil)
-            end)
+    if enc_alg do
+      enc_enc = client.attrs["userinfo_encrypted_response_enc"] || "A128CBC-HS256"
 
-          case eligible_jwks do
-            [jwk | _] ->
-              payload =
-                case claims_or_jws do
-                  %{} ->
-                    Jason.encode!(claims_or_jws)
+      case Crypto.JOSE.encrypt(claims_or_jws, enc_alg, enc_enc, client) do
+        {:ok, {encrypted_payload, _jwk}} ->
+          encrypted_payload
 
-                  _ ->
-                    claims_or_jws
-                end
-
-              encryption_enc = client.attrs["userinfo_encrypted_response_enc"] || "A128CBC-HS256"
-
-              JOSE.JWE.block_encrypt(
-                jwk,
-                payload,
-                %{"alg" => encryption_alg, "enc" => encryption_enc}
-              )
-              |> JOSE.JWE.compact()
-              |> elem(1)
-
-            [] ->
-              raise Crypto.Key.NoSuitableKeyError
-          end
-
-        {:error, _} ->
-          raise Crypto.Key.NoSuitableKeyError
+        {:error, e} ->
+          raise e
       end
     else
       claims_or_jws

@@ -1,6 +1,5 @@
 defmodule Asteroid.Token.IDToken do
   import Asteroid.Config, only: [opt: 1]
-  import Asteroid.Utils
 
   alias Asteroid.Context
   alias Asteroid.Client
@@ -64,6 +63,54 @@ defmodule Asteroid.Token.IDToken do
   @type id :: String.t()
 
   @doc """
+  Returns the list of supported signing algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_signing_alg_values_supported)}
+  """
+  @spec signing_alg_values_supported() :: [JOSEUtils.JWA.sig_alg()]
+  def signing_alg_values_supported() do
+    case opt(:oidc_id_token_signing_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.sig_algs_supported/1)
+        |> Enum.uniq()
+
+      sig_algs ->
+        sig_algs
+    end
+  end
+
+  @doc """
+  Returns the list of supported encryption key derivation algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_encryption_alg_values_supported)}
+  """
+  @spec encryption_alg_values_supported() :: [JOSEUtils.JWA.enc_alg()]
+  def encryption_alg_values_supported() do
+    case opt(:oidc_id_token_encryption_alg_values_supported) do
+      :auto ->
+        Asteroid.Crypto.JOSE.public_keys()
+        |> Enum.flat_map(&JOSEUtils.JWK.enc_algs_supported/1)
+        |> Enum.uniq()
+
+      enc_algs ->
+        enc_algs
+    end
+  end
+
+  @doc """
+  Returns the list of supported content encryption algorithms for ID tokens
+
+  See
+  #{Asteroid.Config.link_to_option(:oidc_id_token_encryption_enc_values_supported)}
+  """
+  @spec encryption_enc_values_supported() :: [JOSEUtils.JWA.enc_enc()]
+  def encryption_enc_values_supported(),
+    do: opt(:oidc_id_token_encryption_enc_values_supported)
+
+  @doc """
   Puts a value into the `data` field of an ID token
 
   If the value is `nil`, the ID token is not changed and the filed is not added.
@@ -101,119 +148,110 @@ defmodule Asteroid.Token.IDToken do
   def serialize(id_token) do
     client = Client.fetch_attributes(id_token.client, @client_id_token_crypto_fields)
 
-    jwt =
-      (id_token.data || %{})
-      |> Map.put("iss", id_token.iss)
-      |> Map.put("sub", id_token.sub)
-      |> Map.put("aud", id_token.aud)
-      |> Map.put("exp", id_token.exp)
-      |> Map.put("iat", id_token.iat)
-      |> put_if_not_nil("auth_time", id_token.auth_time)
-      |> put_if_not_nil("nonce", id_token.nonce)
-      |> put_if_not_nil("acr", id_token.acr)
-      |> put_if_not_nil("amr", id_token.amr)
-      |> put_if_not_nil("azp", id_token.azp)
-      |> put_if_not_nil(
-        "at_hash",
-        token_hash(id_token, id_token.associated_access_token_serialized)
-      )
-      |> put_if_not_nil(
-        "c_hash",
-        token_hash(id_token, id_token.associated_authorization_code_serialized)
-      )
-
-    signing_alg = client.attrs["id_token_signed_response_alg"] || "RS256"
-
-    eligible_jwks =
-      Crypto.Key.get_all()
-      |> Enum.filter(fn
-        %JOSE.JWK{fields: fields} ->
-          fields["use"] == "sig" and
-            (fields["key_ops"] in ["sign"] or fields["key_ops"] == nil) and
-            (fields["alg"] == signing_alg or fields["alg"] == nil)
-      end)
-
-    case eligible_jwks do
-      [jwk | _] ->
-        serialized_jws =
-          JOSE.JWT.sign(jwk, JOSE.JWS.from_map(%{"alg" => signing_alg}), jwt)
-          |> JOSE.JWS.compact()
-          |> elem(1)
-
-        encryption_alg = client.attrs["id_token_encrypted_response_alg"]
-
-        if encryption_alg do
-          case Client.get_jwks(client) do
-            {:ok, keys} ->
-              eligible_jwks =
-                keys
-                |> Enum.map(&JOSE.JWK.from/1)
-                |> Enum.filter(fn
-                  %JOSE.JWK{fields: fields} ->
-                    (fields["use"] == "enc" or fields["use"] == nil) and
-                      (fields["key_ops"] == "encrypt" or fields["key_ops"] == nil) and
-                      (fields["alg"] == encryption_alg or fields["alg"] == nil)
-                end)
-
-              case eligible_jwks do
-                [jwk | _] ->
-                  encryption_enc =
-                    client.attrs["id_token_encrypted_response_enc"] || "A128CBC-HS256"
-
-                  JOSE.JWE.block_encrypt(
-                    jwk,
-                    serialized_jws,
-                    %{"alg" => encryption_alg, "enc" => encryption_enc}
-                  )
-                  |> JOSE.JWE.compact()
-                  |> elem(1)
-
-                [] ->
-                  raise Crypto.Key.NoSuitableKeyError
-              end
-
-            {:error, _} ->
-              raise Crypto.Key.NoSuitableKeyError
-          end
-        else
-          serialized_jws
-        end
-
-      [] ->
-        raise Crypto.Key.NoSuitableKeyError
-    end
+    (id_token.data || %{})
+    |> Map.put("iss", id_token.iss)
+    |> Map.put("sub", id_token.sub)
+    |> Map.put("aud", id_token.aud)
+    |> Map.put("exp", id_token.exp)
+    |> Map.put("iat", id_token.iat)
+    |> Map.put("auth_time", id_token.auth_time)
+    |> Map.put("nonce", id_token.nonce)
+    |> Map.put("acr", id_token.acr)
+    |> Map.put("amr", id_token.amr)
+    |> Map.put("azp", id_token.azp)
+    |> maybe_put_token_hash("at_hash", id_token.associated_access_token_serialized, client)
+    |> maybe_put_token_hash("c_hash", id_token.associated_authorization_code_serialized, client)
+    |> Enum.reject(fn {_k, v} -> v == nil end)
+    |> Enum.into(%{})
+    |> sign(client)
+    |> maybe_encrypt(client)
   end
 
-  @spec token_hash(t(), token :: String.t() | nil) :: String.t()
-
-  defp token_hash(_, nil) do
-    nil
+  @spec maybe_put_token_hash(map(), String.t(), String.t() | nil, Client.t()) :: map()
+  defp maybe_put_token_hash(id_token_claims, _, nil, _) do
+    id_token_claims
   end
 
-  defp token_hash(%__MODULE__{client: client}, token) do
-    client = Client.fetch_attributes(client, ["id_token_signed_response_alg"])
+  defp maybe_put_token_hash(id_token_claims, token_hash_name, token, client) do
+    {hash_alg, kid_or_nil} = hash_alg(client.attrs["id_token_signed_response_alg"] || "RS256")
 
-    hash_alg =
-      cond do
-        client.attrs["id_token_signed_response_alg"] in ["ES256", "HS256", "PS256", "RS256"] ->
-          :sha256
+    digest = :crypto.hash(hash_alg, token)
 
-        client.attrs["id_token_signed_response_alg"] in ["ES384", "HS384", "PS384", "RS384"] ->
-          :sha384
-
-        client.attrs["id_token_signed_response_alg"] in ["ES512", "HS512", "PS512", "RS512"] ->
-          :sha512
-
-        true ->
-          nil
-      end
-
-    if hash_alg do
-      digest = :crypto.hash(hash_alg, token)
-
+    digest_final =
       digest
       |> :binary.part({0, div(byte_size(digest), 2)})
       |> Base.url_encode64(padding: false)
+
+    id_token_claims
+    |> Map.put(token_hash_name, digest_final)
+    |> Map.put(:selected_kid, kid_or_nil)
+  end
+
+  @spec hash_alg(String.t()) :: {:crypto.hash_algorithm(), kid :: String.t() | nil}
+  defp hash_alg("ES256"), do: {:sha256, nil}
+  defp hash_alg("ES384"), do: {:sha384, nil}
+  defp hash_alg("ES512"), do: {:sha512, nil}
+  defp hash_alg("HS256"), do: {:sha256, nil}
+  defp hash_alg("HS384"), do: {:sha384, nil}
+  defp hash_alg("HS512"), do: {:sha512, nil}
+  defp hash_alg("PS256"), do: {:sha256, nil}
+  defp hash_alg("PS384"), do: {:sha384, nil}
+  defp hash_alg("PS512"), do: {:sha512, nil}
+  defp hash_alg("RS256"), do: {:sha256, nil}
+  defp hash_alg("RS384"), do: {:sha384, nil}
+  defp hash_alg("RS512"), do: {:sha512, nil}
+  defp hash_alg("EdDSA") do
+    # alg is no sufficient to determine the hash alg for the EdDSA alg: we need the curve as
+    # well, which is why we have to select a key manually
+    Crypto.JOSE.public_keys()
+    |> JOSEUtils.JWKS.signature_keys()
+    |> JOSEUtils.JWKS.filter(alg: "EdDSA")
+    |> case do
+      [%{"crv" => "Ed25519", "kid" => kid} | _] ->
+        {:sha256, kid}
+
+      [%{"crv" => "Ed448", "kid" => kid} | _] ->
+        {:sha3_256, kid}
+
+      _ ->
+        raise Crypto.JOSE.NoSuitableKeyFoundError
+    end
+  end
+
+  @spec sign(map(), Client.t()) :: String.t()
+  defp sign(claims, client) do
+    signing_alg = client.attrs["id_token_signed_response_alg"] || "RS256"
+
+    if claims[:selected_kid] do
+      Crypto.JOSE.sign(claims, client, alg: signing_alg, kid: claims[:selected_kid])
+    else
+      Crypto.JOSE.sign(claims, client, alg: signing_alg)
+    end
+    |> case do
+      {:ok, {signed_payload, _jwk}} ->
+        signed_payload
+
+      {:error, e} ->
+        raise e
+    end
+  end
+
+  @spec maybe_encrypt(String.t(), Client.t()) :: String.t()
+  defp maybe_encrypt(id_token_serialized, client) do
+    enc_alg = client.attrs["id_token_encrypted_response_alg"]
+
+    if enc_alg do
+      enc_enc = client.attrs["id_token_encrypted_response_enc"] || "A128CBC-HS256"
+
+      case Crypto.JOSE.encrypt(id_token_serialized, enc_alg, enc_enc, client) do
+        {:ok, {encrypted_payload, _jwk}} ->
+          encrypted_payload
+
+        {:error, e} ->
+          raise e
+      end
+    else
+      id_token_serialized
     end
   end
 
@@ -310,7 +348,7 @@ defmodule Asteroid.Token.IDToken do
     if client.attrs[attr] == true do
       true
     else
-      conf_opt =
+      opt_name =
         case flow do
           :oidc_authorization_code ->
             :oidc_flow_authorization_code_issue_id_token_refresh
@@ -319,7 +357,13 @@ defmodule Asteroid.Token.IDToken do
             :oidc_flow_hybrid_issue_id_token_refresh
         end
 
-      opt(conf_opt) || opt(:oidc_issue_id_token_refresh)
+      case opt(opt_name) do
+        val when is_boolean(val) ->
+          val
+
+        nil ->
+          opt(:oidc_issue_id_token_refresh)
+      end
     end
   end
 

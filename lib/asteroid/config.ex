@@ -6,7 +6,6 @@ defmodule Asteroid.Config do
   require Specify
 
   alias Asteroid.Client
-  alias Asteroid.Crypto
   alias Asteroid.OIDC
   alias Asteroid.Subject
 
@@ -597,22 +596,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the ROPC flow
+    Defines the signing key selector of an access token in the ROPC flow
     """
-    @type oauth2_flow_ropc_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_ropc_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_ropc_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_ropc_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the ROPC flow
-    """
-    @type oauth2_flow_ropc_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_ropc_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback called to determine the lifetime of an access token
@@ -665,44 +655,21 @@ defmodule Asteroid.Config do
     Note that client configuration takes precedence over configuration options. See
     `Asteroid.Client` fields.
     """
-    @type oauth2_access_token_signing_key_callback ::
-            (Asteroid.Context.t() -> Crypto.Key.name())
-    field :oauth2_access_token_signing_key_callback, :function,
-      default: &Asteroid.Token.AccessToken.signing_key/1,
+    @type oauth2_access_token_signing_key__selector_callback ::
+            (Asteroid.Context.t() -> JOSEUtils.JWK.key_selector())
+    field :oauth2_access_token_signing_key_selector_callback, :function,
+      default: &Asteroid.Token.AccessToken.signing_key_selector/1,
       config_time: :runtime,
       uses: [
-        :oauth2_access_token_signing_key,
-        :oauth2_flow_ropc_access_token_signing_key,
-        :oauth2_flow_client_credentials_access_token_signing_key,
-        :oauth2_flow_authorization_code_access_token_signing_key,
-        :oauth2_flow_implicit_access_token_signing_key,
-        :oauth2_flow_device_authorization_access_token_signing_key,
-        :oidc_flow_authorization_code_access_token_signing_key,
-        :oidc_flow_implicit_access_token_signing_key,
-        :oidc_flow_hybrid_access_token_signing_key
-      ]
-
-    @doc """
-    Callback called to determine the signing algorithm of an access token
-
-    Note that client configuration takes precedence over configuration options. See
-    `Asteroid.Client` fields.
-    """
-    @type oauth2_access_token_signing_alg_callback ::
-            (Asteroid.Context.t() -> Crypto.Key.jws_alg())
-    field :oauth2_access_token_signing_alg_callback, :function,
-      default: &Asteroid.Token.AccessToken.signing_alg/1,
-      config_time: :runtime,
-      uses: [
-        :oauth2_access_token_signing_alg,
-        :oauth2_flow_ropc_access_token_signing_alg,
-        :oauth2_flow_client_credentials_access_token_signing_alg,
-        :oauth2_flow_authorization_code_access_token_signing_alg,
-        :oauth2_flow_implicit_access_token_signing_alg,
-        :oauth2_flow_device_authorization_access_token_signing_alg,
-        :oidc_flow_authorization_code_access_token_signing_alg,
-        :oidc_flow_implicit_access_token_signing_alg,
-        :oidc_flow_hybrid_access_token_signing_alg
+        :oauth2_access_token_signing_key_selector,
+        :oauth2_flow_ropc_access_token_signing_key_selector,
+        :oauth2_flow_client_credentials_access_token_signing_key_selector,
+        :oauth2_flow_authorization_code_access_token_signing_key_selector,
+        :oauth2_flow_implicit_access_token_signing_key_selector,
+        :oauth2_flow_device_authorization_access_token_signing_key_selector,
+        :oidc_flow_authorization_code_access_token_signing_key_selector,
+        :oidc_flow_implicit_access_token_signing_key_selector,
+        :oidc_flow_hybrid_access_token_signing_key_selector
       ]
 
     @doc """
@@ -898,22 +865,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the client credentials flow
+    Defines the signing key selector of an access token in the client credentials flow
     """
-    @type oauth2_flow_client_credentials_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_client_credentials_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_client_credentials_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_client_credentials_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the client credentials flow
-    """
-    @type oauth2_flow_client_credentials_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_client_credentials_access_token_signing_alg, :string,
-      default: nil,
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback invoked on the json response when the grant_type is `"client_credentials"`
@@ -1030,22 +988,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the authorization code flow
+    Defines the signing key selector of an access token in the authorization code flow
     """
-    @type oauth2_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_authorization_code_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_authorization_code_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_authorization_code_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the authorization code flow
-    """
-    @type oauth2_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_authorization_code_access_token_signing_alg, :string,
-    default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Callback invoked on the json response when the grant_type is "authorization_code"
@@ -1120,22 +1069,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the implicit flow
+    Defines the signing key selector of an access token in the implicit flow
     """
-    @type oauth2_flow_implicit_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_implicit_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_implicit_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_implicit_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the implicit flow
-    """
-    @type oauth2_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_implicit_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     The PKCE policy
@@ -1334,19 +1274,11 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Key name for the signed metadata fields
+    Key selector for OAuth2 metadata signing
     """
-    @type oauth2_endpoint_metadata_signing_key :: Crypto.Key.name()
-    field :oauth2_endpoint_metadata_signing_key, :string,
-      default: "",
-      config_time: :runtime
-
-    @doc """
-    Key algorithm for the signed metadata fields
-    """
-    @type oauth2_endpoint_metadata_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_endpoint_metadata_signing_alg, :string,
-      default: "",
+    @type oauth2_endpoint_metadata_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_endpoint_metadata_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime
 
     @doc """
@@ -1386,43 +1318,6 @@ defmodule Asteroid.Config do
             (Plug.Conn.t() -> Plug.Conn.t())
     field :oauth2_endpoint_discovery_keys_before_send_conn_callback, :function,
       default: &Asteroid.Utils.id/1,
-      config_time: :runtime
-
-    @doc """
-    Cryptographic keys configuration
-
-    Refer to `t:Asteroid.Crypto.Key.key_config/0` for more information.
-
-    **Security consideration**: consider storing keys in a separate configuration file
-    (such as `secret.exs`).
-    """
-    @type crypto_keys :: Crypto.Key.key_config()
-    field :crypto_keys, :term,
-      default: %{
-        "key_auto" => {:auto_gen, [params: {:rsa, 2048}, use: :sig, advertise: false]}
-      },
-      config_time: :runtime
-
-    @doc """
-    Cryptographic keys cache store
-
-    The first element is a module implementing the `Asteroid.Crypto.Key.Cache` behaviour, and
-    the second element are the module's options.
-    """
-    @type crypto_keys_cache :: {module(), Crypto.Key.Cache.opts()}
-    field :crypto_keys_cache, :option,
-      default: {Asteroid.Crypto.Key.Cache.ETS, []},
-      config_time: :runtime
-
-    @doc """
-    Determines whether the `"none"` JWS algorithm is supported
-
-    It is set using the `JOSE.JWA.unsecured_signing/1` function on Asteroid startup. Defaults
-    to `false`.
-    """
-    @type crypto_jws_none_alg_enabled :: boolean()
-    field :crypto_jws_none_alg_enabled, :boolean,
-      default: false,
       config_time: :runtime
 
     @doc """
@@ -1536,22 +1431,13 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the device authorization flow
+    Defines the signing key selector of an access token in the device authorization flow
     """
-    @type oauth2_flow_device_authorization_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_flow_device_authorization_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_flow_device_authorization_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_flow_device_authorization_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the device authorization flow
-    """
-    @type oauth2_flow_device_authorization_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_flow_device_authorization_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Defines the lifetime of an access token in the device authorization flow
@@ -1615,10 +1501,10 @@ defmodule Asteroid.Config do
     - `:request_uri_only`: only the `"request_uri"` is enabled
     - `:enabled`: both the `"request"` and `"request_uri"` parameters are enabled
     """
-    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled
+    @type oauth2_jar_enabled :: :disabled | :request_only | :request_uri_only | :enabled | :mandatory
     field :oauth2_jar_enabled,
-      {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled]},
-      default: :disabled,
+      {:one_of_atoms, [:disabled, :request_only, :request_uri_only, :enabled, :mandatory]},
+      default: :request_only,
       config_time: :runtime
 
     @doc """
@@ -1660,26 +1546,41 @@ defmodule Asteroid.Config do
 
     @doc """
     List of supported signing algorithms for JAR request objects
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oauth2_jar_request_object_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oauth2_jar_request_object_signing_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oauth2_jar_request_object_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oauth2_jar_request_object_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of supported encryption algorithms for JAR request objects
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oauth2_jar_request_object_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oauth2_jar_request_object_encryption_alg_values_supported, {:list, :string},
-      default: [],
+    @type oauth2_jar_request_object_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oauth2_jar_request_object_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of supported encryption encryption algorithms for JAR request objects
     """
-    @type oauth2_jar_request_object_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oauth2_jar_request_object_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oauth2_jar_request_object_encryption_enc_values_supported, {:list, :string},
-      default: [],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """
@@ -1980,26 +1881,41 @@ defmodule Asteroid.Config do
 
     @doc """
     List of acceptable signature `alg` algorithms to sign ID tokens
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_id_token_signing_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oidc_id_token_signing_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oidc_id_token_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_id_token_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `alg` algorithms to encrypt ID tokens
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_id_token_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oidc_id_token_encryption_alg_values_supported, {:list, :string},
-      default: ["RSA1_5"],
+    @type oidc_id_token_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oidc_id_token_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `enc` algorithms to encrypt ID tokens
     """
-    @type oidc_id_token_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oidc_id_token_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oidc_id_token_encryption_enc_values_supported, {:list, :string},
-      default: ["A128GCM"],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """
@@ -2106,58 +2022,31 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC authorization code flow
+    Defines the signing key selector of an access token in the OIDC authorization code flow
     """
-    @type oidc_flow_authorization_code_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_authorization_code_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_authorization_code_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_authorization_code_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC implicit flow
+    Defines the signing key selector of an access token in the OIDC implicit flow
     """
-    @type oidc_flow_implicit_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_implicit_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_implicit_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_implicit_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
     @doc """
-    Defines the signing key name of an access token in the OIDC hybrid flow
+    Defines the signing key selector of an access token in the OIDC hybrid flow
     """
-    @type oidc_flow_hybrid_access_token_signing_key :: Crypto.Key.name()
-    field :oidc_flow_hybrid_access_token_signing_key, :string,
-      default: "",
+    @type oidc_flow_hybrid_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oidc_flow_hybrid_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC authorization code flow
-    """
-    @type oidc_flow_authorization_code_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_authorization_code_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC implicit flow
-    """
-    @type oidc_flow_implicit_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_implicit_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing algorithm of an access token in the OIDC hybrid flow
-    """
-    @type oidc_flow_hybrid_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oidc_flow_hybrid_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
 
     @doc """
     Plugs installed on `"/api/oidc"`
@@ -2208,28 +2097,43 @@ defmodule Asteroid.Config do
     @doc """
     List of acceptable signature `alg` algorithms for the signature response on the
     `/api/oidc/userinfo` endpoint
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_endpoint_userinfo_signature_alg_values_supported :: [Crypto.Key.jws_alg()]
-    field :oidc_endpoint_userinfo_signature_alg_values_supported, {:list, :string},
-      default: ["RS256"],
+    @type oidc_endpoint_userinfo_signing_alg_values_supported :: [JOSEUtils.JWA.sig_alg()]
+    field :oidc_endpoint_userinfo_signing_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `alg` algorithms for the encrypted response on the
     `/api/oidc/userinfo` endpoint
+
+    When set to `:auto`, registered keys in `JOSEVirtualHSM` are used to determined the
+    supported algorithms. As a consequence, symmetrical algorithms are not allowed.
     """
-    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [Crypto.Key.jwe_alg()]
-    field :oidc_endpoint_userinfo_encryption_alg_values_supported, {:list, :string},
-      default: [],
+    @type oidc_endpoint_userinfo_encryption_alg_values_supported :: [JOSEUtils.JWA.enc_alg()]
+    field :oidc_endpoint_userinfo_encryption_alg_values_supported,
+      [{:one_of_atoms, [:auto]}, {:list, :string}],
+      default: :auto,
       config_time: :runtime
 
     @doc """
     List of acceptable encryption `enc` algorithms for the encrypted response on the
     `/api/oidc/userinfo` endpoint
     """
-    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [Crypto.Key.jwe_enc()]
+    @type oidc_endpoint_userinfo_encryption_enc_values_supported :: [JOSEUtils.JWA.enc_enc()]
     field :oidc_endpoint_userinfo_encryption_enc_values_supported, {:list, :string},
-      default: [],
+      default: [
+        "A128CBC-HS256",
+        "A192CBC-HS384",
+        "A256CBC-HS512",
+        "A128GCM",
+        "A192GCM",
+        "A256GCM"
+      ],
       config_time: :runtime
 
     @doc """
@@ -2337,20 +2241,11 @@ defmodule Asteroid.Config do
       used_by: [:oauth2_access_token_serialization_format_callback]
 
     @doc """
-    Defines the signing algorithm of an access token
+    Defines the signing key selector of an access token
     """
-    @type oauth2_access_token_signing_alg :: Crypto.Key.jws_alg()
-    field :oauth2_access_token_signing_alg, :string,
-      default: "",
-      config_time: :runtime,
-      used_by: [:oauth2_access_token_signing_alg_callback]
-
-    @doc """
-    Defines the signing key name of an access token
-    """
-    @type oauth2_access_token_signing_key :: Crypto.Key.name()
-    field :oauth2_access_token_signing_key, :string,
-      default: "",
+    @type oauth2_access_token_signing_key_selector :: JOSEUtils.JWK.key_selector()
+    field :oauth2_access_token_signing_key_selector, {:list, :option},
+      default: [],
       config_time: :runtime,
       used_by: [:oauth2_access_token_signing_key_callback]
 
@@ -2451,6 +2346,31 @@ defmodule Asteroid.Config do
       default: %{scopes: %{"openid" => []}},
       config_time: :runtime,
       used_by: [:oauth2_scope_callback]
+
+    @doc """
+    JOSEVirtualHSM keys' configuration
+
+    Note that RSA is mandatory for an OpenID Connect server
+    """
+    field :jose_virtual_hsm_keys_config, {:list, :term},
+      default: [
+        {:auto_gen, {:rsa, 2048}, %{"use" => "sig"}},
+        {:auto_gen, {:rsa, 2048}, %{"use" => "enc"}}
+      ]
+
+    @doc """
+    Enables cryptography fallback to non-native implementation
+
+    OKP keys are not natively supported by the underlying JOSE library, so enabling this
+    option is necessary ti make the algorithms based on `Ed25519`, `Ed448`, `X25519` and `X448`
+    work.
+
+    See also `JOSE.crypto_fallback/1`.
+    """
+    @type jose_virtual_hsm_crypto_fallback :: boolean()
+    field :jose_virtual_hsm_crypto_fallback, :boolean,
+      default: false,
+      config_time: :runtime
 
     ### end of configuration options
   end

@@ -141,7 +141,8 @@ defmodule AsteroidWeb.AuthorizeController do
 
     protocol = if "openid" in requested_scopes, do: :oidc, else: :oauth2
 
-    with {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
+    with :ok <- check_jar_required_status(conn),
+         {:ok, flow} <- OAuth2.response_type_to_flow(response_type_str, protocol),
          {:ok, response_type} <- Asteroid.OAuth2.to_response_type(response_type_str),
          :ok <- Asteroid.OAuth2.response_type_enabled?(response_type),
          :ok <- client_id_valid?(client_id),
@@ -462,7 +463,7 @@ defmodule AsteroidWeb.AuthorizeController do
       end
 
     maybe_access_token_serialized =
-      if maybe_access_token, do: AccessToken.serialize(maybe_access_token)
+      if maybe_access_token, do: AccessToken.serialize(maybe_access_token, client)
 
     maybe_id_token_serialized =
       if authz_request.response_type in [
@@ -583,41 +584,67 @@ defmodule AsteroidWeb.AuthorizeController do
 
   @spec jar_pre_authorize_oauth2(Plug.Conn.t(), map()) :: Plug.Conn.t()
 
-  defp jar_pre_authorize_oauth2(conn, %{"request" => request_object} = params) do
-    if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
-      case OAuth2.JAR.verify_and_parse(request_object) do
-        {:ok, jar_req_params} ->
-          req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+  defp jar_pre_authorize_oauth2(
+    conn,
+    %{"request" => request_object, "client_id" => client_id} = params
+  ) do
+    with {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id) do
+      if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
+        case OAuth2.JAR.verify_and_parse(request_object, client) do
+          {:ok, jar_req_params} ->
+            req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
-          pre_authorize(conn, req_params)
+            conn
+            |> put_private(:asteroid_jar_request, true)
+            |> pre_authorize(req_params)
 
-        {:error, e} ->
-          AsteroidWeb.Error.respond_authorize(conn, e)
+          {:error, e} ->
+            AsteroidWeb.Error.respond_authorize(conn, e)
+        end
+      else
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.JAR.RequestNotSupportedError.exception([])
+        )
       end
     else
-      AsteroidWeb.Error.respond_authorize(
-        conn,
-        OAuth2.JAR.RequestNotSupportedError.exception([])
-      )
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          %OAuth2.Request.InvalidRequestError{reason: Exception.message(e), parameter: "client_id"}
+        )
     end
   end
 
-  defp jar_pre_authorize_oauth2(conn, %{"request_uri" => request_uri} = params) do
-    if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
-      with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
-           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
-        req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
+  defp jar_pre_authorize_oauth2(
+    conn,
+    %{"request_uri" => request_uri, "client_id" => client_id} = params
+  ) do
+    with {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id) do
+      if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+        with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
+             {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj, client) do
+          req_params = Map.merge(jar_delete_oauth2_request_parameters(params), jar_req_params)
 
-        pre_authorize(conn, req_params)
+          conn
+          |> put_private(:asteroid_jar_request, true)
+          |> pre_authorize(req_params)
+        else
+          {:error, e} ->
+            AsteroidWeb.Error.respond_authorize(conn, e)
+        end
       else
-        {:error, e} ->
-          AsteroidWeb.Error.respond_authorize(conn, e)
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.JAR.RequestURINotSupportedError.exception([])
+        )
       end
     else
-      AsteroidWeb.Error.respond_authorize(
-        conn,
-        OAuth2.JAR.RequestURINotSupportedError.exception([])
-      )
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          %OAuth2.Request.InvalidRequestError{reason: Exception.message(e), parameter: "client_id"}
+        )
     end
   end
 
@@ -632,31 +659,41 @@ defmodule AsteroidWeb.AuthorizeController do
            "scope" => scope_param
          } = params
        ) do
-    scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
+    with {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id) do
+      scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
-    if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
-      case OAuth2.JAR.verify_and_parse(request_object) do
-        {:ok, jar_req_params} ->
-          if jar_req_params["response_type"] in [response_type, nil] and
-               jar_req_params["client_id"] in [client_id, nil] and
-               "openid" in scopes do
-            req_params = Map.merge(Map.delete(params, "request"), jar_req_params)
+      if opt(:oauth2_jar_enabled) in [:request_only, :enabled] do
+        case OAuth2.JAR.verify_and_parse(request_object, client) do
+          {:ok, jar_req_params} ->
+            if jar_req_params["response_type"] in [response_type, nil] and
+                 jar_req_params["client_id"] in [client_id, nil] and
+                 "openid" in scopes do
+              req_params = Map.merge(Map.delete(params, "request"), jar_req_params)
 
-            pre_authorize(conn, req_params)
-          else
-            AsteroidWeb.Error.respond_authorize(
-              conn,
-              OAuth2.JAR.InvalidRequestObjectError.exception(
-                reason: "Request and request object `response_type` or `client_id` don't match"
+              conn
+              |> put_private(:asteroid_jar_request, true)
+              |> pre_authorize(req_params)
+            else
+              AsteroidWeb.Error.respond_authorize(
+                conn,
+                OAuth2.JAR.InvalidRequestObjectError.exception(
+                  reason: "Request and request object `response_type` or `client_id` don't match"
+                )
               )
-            )
-          end
+            end
 
-        {:error, e} ->
-          AsteroidWeb.Error.respond_authorize(conn, e)
+          {:error, e} ->
+            AsteroidWeb.Error.respond_authorize(conn, e)
+        end
+      else
+        AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestNotSupportedError.exception([]))
       end
     else
-      AsteroidWeb.Error.respond_authorize(conn, OAuth2.JAR.RequestNotSupportedError.exception([]))
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          %OAuth2.Request.InvalidRequestError{reason: Exception.message(e), parameter: "client_id"}
+        )
     end
   end
 
@@ -669,34 +706,44 @@ defmodule AsteroidWeb.AuthorizeController do
            "scope" => scope_param
          } = params
        ) do
-    scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
+    with {:ok, client} <- Client.load_from_unique_attribute("client_id", client_id) do
+      scopes = OAuth2Utils.Scope.Set.from_scope_param!(scope_param)
 
-    if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
-      with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
-           {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj) do
-        if jar_req_params["response_type"] in [response_type, nil] and
-             jar_req_params["client_id"] in [client_id, nil] and
-             "openid" in scopes do
-          req_params = Map.merge(Map.delete(params, "request_uri"), jar_req_params)
+      if opt(:oauth2_jar_enabled) in [:request_uri_only, :enabled] do
+        with {:ok, jar_req_obj} <- OAuth2.JAR.retrieve_object(request_uri),
+             {:ok, jar_req_params} = OAuth2.JAR.verify_and_parse(jar_req_obj, client) do
+          if jar_req_params["response_type"] in [response_type, nil] and
+               jar_req_params["client_id"] in [client_id, nil] and
+               "openid" in scopes do
+            req_params = Map.merge(Map.delete(params, "request_uri"), jar_req_params)
 
-          pre_authorize(conn, req_params)
-        else
-          AsteroidWeb.Error.respond_authorize(
-            conn,
-            OAuth2.JAR.InvalidRequestObjectError.exception(
-              reason: "Request and request object `response_type` or `client_id` don't match"
+            conn
+            |> put_private(:asteroid_jar_request, true)
+            |> pre_authorize(req_params)
+          else
+            AsteroidWeb.Error.respond_authorize(
+              conn,
+              OAuth2.JAR.InvalidRequestObjectError.exception(
+                reason: "Request and request object `response_type` or `client_id` don't match"
+              )
             )
-          )
+          end
+        else
+          {:error, e} ->
+            AsteroidWeb.Error.respond_authorize(conn, e)
         end
       else
-        {:error, e} ->
-          AsteroidWeb.Error.respond_authorize(conn, e)
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          OAuth2.JAR.RequestURINotSupportedError.exception([])
+        )
       end
     else
-      AsteroidWeb.Error.respond_authorize(
-        conn,
-        OAuth2.JAR.RequestURINotSupportedError.exception([])
-      )
+      {:error, %AttributeRepository.Read.NotFoundError{} = e} ->
+        AsteroidWeb.Error.respond_authorize(
+          conn,
+          %OAuth2.Request.InvalidRequestError{reason: Exception.message(e), parameter: "client_id"}
+        )
     end
   end
 
@@ -749,6 +796,20 @@ defmodule AsteroidWeb.AuthorizeController do
       {:error, _} ->
         :oauth2
     end
+  end
+
+  @spec check_jar_required_status(Plug.Conn.t()) :: :ok | {:error, Exception.t()}
+  defp check_jar_required_status(%Plug.Conn{private: %{asteroid_jar_request: true}}) do
+    :ok
+  end
+
+  defp check_jar_required_status(_conn) do
+    unless opt(:oauth2_jar_enabled) == :mandatory,
+      do: :ok,
+      else: {:error, %OAuth2.Request.InvalidRequestError{
+        reason: "use of JAR is mandatory",
+        parameter: "request"
+      }}
   end
 
   @spec client_id_valid?(String.t()) ::
@@ -1154,15 +1215,13 @@ defmodule AsteroidWeb.AuthorizeController do
       :opaque ->
         AccessToken.gen_new(access_token_opts)
 
-      :jws ->
-        signing_key = opt(:oauth2_access_token_signing_key_callback).(ctx)
-        signing_alg = opt(:oauth2_access_token_signing_alg_callback).(ctx)
+      :jwt ->
+        signing_key_selector = opt(:oauth2_access_token_signing_key_selector_callback).(ctx)
 
         access_token_opts =
           access_token_opts
           |> Keyword.put(:serialization_format, serialization_format)
-          |> Keyword.put(:signing_key, signing_key)
-          |> Keyword.put(:signing_alg, signing_alg)
+          |> Keyword.put(:signing_key_selector, signing_key_selector)
 
         AccessToken.gen_new(access_token_opts)
     end

@@ -123,7 +123,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
       resp =
         %{
-          "access_token" => AccessToken.serialize(access_token),
+          "access_token" => AccessToken.serialize(access_token, client),
           "expires_in" => access_token.data["exp"] - now(),
           "token_type" => "bearer"
         }
@@ -225,7 +225,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
       resp =
         %{
-          "access_token" => AccessToken.serialize(access_token),
+          "access_token" => AccessToken.serialize(access_token, client),
           "expires_in" => access_token.data["exp"] - now(),
           "token_type" => "bearer"
         }
@@ -365,7 +365,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
         {:ok, access_token} = AccessToken.store(access_token, ctx)
 
-        access_token_serialized = AccessToken.serialize(access_token)
+        access_token_serialized = AccessToken.serialize(access_token, client)
 
         maybe_id_token_serialized =
           if maybe_initial_flow in [:oidc_authorization_code, :oidc_hybrid] and
@@ -572,7 +572,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       # FIXME: handle failure case?
       {:ok, access_token} = AccessToken.store(access_token, ctx)
 
-      access_token_serialized = AccessToken.serialize(access_token)
+      access_token_serialized = AccessToken.serialize(access_token, client)
 
       maybe_id_token_serialized =
         if flow in [:oidc_authorization_code, :oidc_hybrid] do
@@ -724,7 +724,7 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
 
       resp =
         %{
-          "access_token" => AccessToken.serialize(access_token),
+          "access_token" => AccessToken.serialize(access_token, client),
           "expires_in" => access_token.data["exp"] - now(),
           "token_type" => "bearer"
         }
@@ -979,15 +979,13 @@ defmodule AsteroidWeb.API.OAuth2.TokenController do
       :opaque ->
         AccessToken.gen_new(access_token_opts)
 
-      :jws ->
-        signing_key = opt(:oauth2_access_token_signing_key_callback).(ctx)
-        signing_alg = opt(:oauth2_access_token_signing_alg_callback).(ctx)
+      :jwt ->
+        signing_key_selector = opt(:oauth2_access_token_signing_key_selector_callback).(ctx)
 
         access_token_opts =
           access_token_opts
           |> Keyword.put(:serialization_format, serialization_format)
-          |> Keyword.put(:signing_key, signing_key)
-          |> Keyword.put(:signing_alg, signing_alg)
+          |> Keyword.put(:signing_key_selector, signing_key_selector)
 
         AccessToken.gen_new(access_token_opts)
     end

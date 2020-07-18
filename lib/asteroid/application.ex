@@ -8,8 +8,8 @@ defmodule Asteroid.Application do
   alias Asteroid.{
     AttributeRepository,
     Config,
-    Crypto,
     OAuth2,
+    OIDC,
     ObjectStore
   }
 
@@ -17,22 +17,24 @@ defmodule Asteroid.Application do
     {:ok, _conf} = Config.load_and_save()
 
     children = [
-      AsteroidWeb.Endpoint
+      AsteroidWeb.Endpoint,
+      {JOSEVirtualHSM, keys: Config.opt(:jose_virtual_hsm_keys_config)},
     ]
     |> maybe_add_mtls_aliases_endpoint()
+
+    if opt(:jose_virtual_hsm_crypto_fallback), do: JOSE.crypto_fallback(true)
 
     with :ok <- AttributeRepository.auto_install_from_config(),
          :ok <- AttributeRepository.auto_start_from_config(),
          :ok <- ObjectStore.auto_install_from_config(),
-         :ok <- ObjectStore.auto_start_from_config(),
-         :ok <- Crypto.Key.load_from_config!()
+         :ok <- ObjectStore.auto_start_from_config()
     do
-      if opt(:crypto_jws_none_alg_enabled) do
-        JOSE.JWA.unsecured_signing(true)
-      end
-
       opts = [strategy: :one_for_one, name: Asteroid.Supervisor]
-      Supervisor.start_link(children, opts)
+      {:ok, pid} = Supervisor.start_link(children, opts)
+
+      with :ok <- OIDC.verify_config() do
+        {:ok, pid}
+      end
     end
   end
 

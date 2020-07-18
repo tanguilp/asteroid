@@ -64,6 +64,17 @@ config :asteroid, AsteroidWeb.Endpoint,
     ]
   ]
 
+config :asteroid, :jose_virtual_hsm_keys_config,  [
+  {:auto_gen, {:rsa, 2048}, %{"use" => "sig"}},
+  {:auto_gen, {:ec, "P-256"}, %{"use" => "sig"}},
+  {:auto_gen, {:okp, :Ed25519}, %{"use" => "sig"}},
+  {:auto_gen, {:rsa, 2048}, %{"use" => "enc"}},
+  {:auto_gen, {:ec, "P-256"}, %{"use" => "enc"}},
+  {:auto_gen, {:okp, :X25519}, %{"use" => "enc"}}
+]
+
+config :asteroid, :jose_virtual_hsm_crypto_fallback, true
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $message\n"
 

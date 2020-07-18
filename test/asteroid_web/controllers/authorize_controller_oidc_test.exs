@@ -12,9 +12,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   alias OAuth2Utils.Scope
 
   setup_all do
-    rsa_enc_alg_all =
-      JOSE.JWK.generate_key({:rsa, 1024})
-      |> Crypto.Key.set_key_use(:enc)
+    rsa_priv_key = JOSE.JWK.generate_key({:rsa, 1024}) |> JOSE.JWK.to_map() |> elem(1)
 
     Client.gen_new(id: "client_oidc_azcode_sig")
     |> Client.add("client_id", "client_oidc_azcode_sig")
@@ -27,7 +25,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     |> Client.add("id_token_signed_response_alg", "RS384")
     |> Client.add(
       "jwks",
-      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+      [rsa_priv_key |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
     )
     |> Client.add("default_acr_values", ["loa2"])
     |> Client.store()
@@ -43,7 +41,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     |> Client.add("id_token_encrypted_response_enc", "A128GCM")
     |> Client.add(
       "jwks",
-      [rsa_enc_alg_all |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
+      [rsa_priv_key |> JOSE.JWK.to_public() |> JOSE.JWK.to_map() |> elem(1)]
     )
     |> Client.store()
 
@@ -58,7 +56,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     |> Client.add("sector_identifier_uri", "https://example.com/sector")
     |> Client.store()
 
-    %{rsa_enc_alg_all: rsa_enc_alg_all}
+    %{rsa_priv_key: rsa_priv_key}
   end
 
   # invalid request to /authorize
@@ -436,10 +434,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -484,10 +481,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -502,7 +498,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
   end
 
   test "Success - implicit - encrypted id_token returned",
-       %{conn: conn, rsa_enc_alg_all: rsa_enc_alg_all} do
+       %{conn: conn, rsa_priv_key: rsa_priv_key} do
     Process.put(:oidc_flow_implicit_id_token_lifetime, 60)
 
     authz_request = %AsteroidWeb.AuthorizeController.Request{
@@ -533,12 +529,12 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {id_token_jws, _jwe} = JOSE.JWE.block_decrypt(rsa_enc_alg_all, id_token_jwe)
+    assert {:ok, {id_token_jws, _}} =
+      JOSEUtils.JWE.decrypt(id_token_jwe, rsa_priv_key, ["RSA1_5"], ["A128GCM"])
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -592,11 +588,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-             JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -604,7 +598,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
-    assert id_token_data["at_hash"] == TestOIDCHelpers.token_hash(digest, access_token_param)
+    assert id_token_data["at_hash"] == TestOIDCHelpers.token_hash("RS384", access_token_param)
   end
 
   test "Success - hybrid - code & id_token & token returned", %{conn: conn} do
@@ -664,11 +658,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert access_token.data["exp"] >= now() + 29
     assert access_token.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-             JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -676,8 +668,8 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
-    assert id_token_data["at_hash"] == TestOIDCHelpers.token_hash(digest, access_token_param)
-    assert id_token_data["c_hash"] == TestOIDCHelpers.token_hash(digest, az_code)
+    assert id_token_data["at_hash"] == TestOIDCHelpers.token_hash("RS384", access_token_param)
+    assert id_token_data["c_hash"] == TestOIDCHelpers.token_hash("RS384", az_code)
     assert id_token_data["nickname"] == nil
     assert id_token_data["email"] == "user1@example.com"
     assert id_token_data["phone_number"] == "+3942390027"
@@ -724,11 +716,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert authorization_code.data["exp"] >= now() + 29
     assert authorization_code.data["exp"] <= now() + 31
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, %JOSE.JWS{alg: {_alg, digest}}} =
-             JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -736,7 +726,7 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
     assert id_token_data["iss"] == OAuth2.issuer()
     assert id_token_data["nonce"] == authz_request.nonce
     assert id_token_data["sub"] == "user_1"
-    assert id_token_data["c_hash"] == TestOIDCHelpers.token_hash(digest, az_code)
+    assert id_token_data["c_hash"] == TestOIDCHelpers.token_hash("RS384", az_code)
   end
 
   test "Success - hybrid - code & token returned", %{conn: conn} do
@@ -822,10 +812,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -872,10 +861,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -952,10 +940,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 
@@ -1002,10 +989,9 @@ defmodule AsteroidWeb.AuthorizeControllerOIDCTest do
              "state" => "sxgjwzedrgdfchexgim"
            } = URI.decode_query(URI.parse(redirected_to(conn)).fragment)
 
-    {:ok, jwk} = Crypto.Key.get("key_auto_sig")
-    jwk = JOSE.JWK.to_public(jwk)
-
-    assert {true, id_token_str, _} = JOSE.JWS.verify_strict(jwk, ["RS384"], id_token_jws)
+    assert {:ok, {id_token_str, _jwk}} = JOSEUtils.JWS.verify(
+      id_token_jws, Crypto.JOSE.public_keys(), ["RS384"]
+    )
 
     id_token_data = Jason.decode!(id_token_str)
 

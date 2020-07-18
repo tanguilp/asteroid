@@ -6,8 +6,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
-  alias Asteroid.OAuth2
-  alias Asteroid.OIDC
+  alias Asteroid.{Crypto, Token, OAuth2, OIDC}
   alias AsteroidWeb.Router.Helpers, as: Routes
   alias AsteroidWeb.RouterMTLSAliases.Helpers, as: RoutesMTLS
 
@@ -45,7 +44,6 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         "op_tos_uri",
         opt(:oauth2_endpoint_metadata_op_tos_uri)
       )
-      |> put_jar_enabled()
       |> put_jar_metadata_values()
       |> put_oidc_metadata()
       |> put_mtls_endpoint_aliases()
@@ -199,15 +197,7 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
   @spec put_jwks_uri(map()) :: map()
 
   defp put_jwks_uri(metadata) do
-    if opt(:crypto_keys) do
-      Map.put(
-        metadata,
-        "jwks_uri",
-        Routes.keys_url(AsteroidWeb.Endpoint, :handle)
-      )
-    else
-      metadata
-    end
+    Map.put(metadata, "jwks_uri", Routes.keys_url(AsteroidWeb.Endpoint, :handle))
   end
 
   @spec put_revocation_endpoint(map()) :: map()
@@ -292,46 +282,34 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
     end
   end
 
-  @spec put_jar_enabled(map()) :: map()
-
-  defp put_jar_enabled(metadata) do
-    case opt(:oauth2_jar_enabled) do
-      :disabled ->
-        Map.put(metadata, "request_parameter_supported", false)
-
-      :request_only ->
-        Map.put(metadata, "request_parameter_supported", true)
-
-      :request_uri_only ->
-        Map.put(metadata, "request_uri_parameter_supported", true)
-
-      :enabled ->
-        metadata
-        |> Map.put("request_parameter_supported", true)
-        |> Map.put("request_uri_parameter_supported", true)
-    end
-  end
-
   @spec put_jar_metadata_values(map()) :: map()
-
   defp put_jar_metadata_values(metadata) do
     case opt(:oauth2_jar_enabled) do
       :disabled ->
         metadata
 
-      _ ->
+      jar_status ->
         metadata
+        |> Map.put(
+          "request_parameter_supported",
+          jar_status in [:request_only, :enabled, :mandatory]
+        )
+        |> Map.put(
+          "request_uri_parameter_supported",
+          jar_status in [:request_uri_only, :enabled, :mandatory]
+        )
+        |> Map.put("require_signed_request_object", jar_status == :mandatory)
+        |> put_if_not_empty(
+          "request_object_signing_alg_values_supported",
+          OAuth2.JAR.signing_alg_values_supported()
+        )
         |> put_if_not_empty(
           "request_object_encryption_alg_values_supported",
-          opt(:oauth2_jar_request_object_encryption_alg_values_supported)
+          OAuth2.JAR.encryption_alg_values_supported()
         )
         |> put_if_not_empty(
           "request_object_encryption_enc_values_supported",
-          opt(:oauth2_jar_request_object_encryption_enc_values_supported)
-        )
-        |> put_if_not_empty(
-          "request_object_signing_alg_values_supported",
-          opt(:oauth2_jar_request_object_signing_alg_values_supported)
+          OAuth2.JAR.encryption_enc_values_supported()
         )
     end
   end
@@ -340,17 +318,13 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
   defp put_oidc_metadata(metadata) do
     if OIDC.enabled?() do
-      sig_alg = opt(:oidc_endpoint_userinfo_signature_alg_values_supported)
-      enc_alg = opt(:oidc_endpoint_userinfo_encryption_alg_values_supported)
-      enc_enc = opt(:oidc_endpoint_userinfo_encryption_enc_values_supported)
+      id_token_sig_alg = Token.IDToken.signing_alg_values_supported()
+      id_token_enc_alg = Token.IDToken.encryption_alg_values_supported()
+      id_token_enc_enc = Token.IDToken.encryption_enc_values_supported()
 
-      #FIXME: force the presence of a RSA key?
-      id_token_sig_alg =
-        ["RS256" | opt(:oidc_id_token_signing_alg_values_supported)]
-        |> Enum.uniq()
-
-      id_token_enc_alg = opt(:oidc_id_token_encryption_alg_values_supported)
-      id_token_enc_enc = opt(:oidc_id_token_encryption_enc_values_supported)
+      userinfo_sig_alg = OIDC.Userinfo.signing_alg_values_supported()
+      userinfo_enc_alg = OIDC.Userinfo.encryption_alg_values_supported()
+      userinfo_enc_enc = OIDC.Userinfo.encryption_enc_values_supported()
 
       acr_values = Enum.map(opt(:oidc_acr_config), fn {k, _} -> Atom.to_string(k) end)
 
@@ -363,17 +337,15 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
 
       metadata
       |> Map.put("claims_parameter_supported", true)
-      |> Map.put("request_parameter_supported", true)
-      |> Map.put("request_uri_parameter_supported", true)
       |> Map.put("subject_types_supported", ["public", "pairwise"])
       |> Map.put("userinfo_endpoint", Routes.userinfo_url(AsteroidWeb.Endpoint, :show))
       |> Map.put("response_modes_supported", response_modes_supported)
       |> put_if_not_empty("id_token_signing_alg_values_supported", id_token_sig_alg)
       |> put_if_not_empty("id_token_encryption_alg_values_supported", id_token_enc_alg)
       |> put_if_not_empty("id_token_encryption_enc_values_supported", id_token_enc_enc)
-      |> put_if_not_empty("userinfo_signing_alg_values_supported", sig_alg)
-      |> put_if_not_empty("userinfo_encryption_alg_values_supported", enc_alg)
-      |> put_if_not_empty("userinfo_encryption_enc_values_supported", enc_enc)
+      |> put_if_not_empty("userinfo_signing_alg_values_supported", userinfo_sig_alg)
+      |> put_if_not_empty("userinfo_encryption_alg_values_supported", userinfo_enc_alg)
+      |> put_if_not_empty("userinfo_encryption_enc_values_supported", userinfo_enc_enc)
       |> put_if_not_empty("acr_values_supported", acr_values)
       |> put_if_not_empty("claims_supported", opt(:oidc_claims_supported))
       |> put_if_not_empty(
@@ -430,30 +402,19 @@ defmodule AsteroidWeb.WellKnown.OauthAuthorizationServerController do
         Map.put(metadata, "signed_metadata", signed_statement(metadata))
 
       fields when is_list(fields) ->
-        fields_to_be_signed = Map.take(metadata, fields ++ ["issuer"])
+        fields_to_be_signed = Map.take(metadata, ["issuer" | fields])
 
         Map.put(metadata, "signed_metadata", signed_statement(fields_to_be_signed))
     end
   end
 
   @spec signed_statement(map()) :: String.t()
-
   defp signed_statement(to_be_signed) do
-    signing_key = opt(:oauth2_endpoint_metadata_signing_key)
-    signing_alg = opt(:oauth2_endpoint_metadata_signing_alg)
+    signing_key_selector =
+      Keyword.merge([use: "sig"], opt(:oauth2_endpoint_metadata_signing_key_selector))
 
-    {:ok, jwk} = Asteroid.Crypto.Key.get(signing_key)
+    {:ok, {signed, _}} = Crypto.JOSE.sign(to_be_signed, nil, signing_key_selector)
 
-    if signing_alg do
-      jws = JOSE.JWS.from_map(%{"alg" => signing_alg})
-
-      JOSE.JWT.sign(jwk, jws, to_be_signed)
-      |> JOSE.JWS.compact()
-      |> elem(1)
-    else
-      JOSE.JWT.sign(jwk, to_be_signed)
-      |> JOSE.JWS.compact()
-      |> elem(1)
-    end
+    signed
   end
 end
