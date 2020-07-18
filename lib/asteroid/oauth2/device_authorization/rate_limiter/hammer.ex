@@ -1,12 +1,12 @@
 defmodule Asteroid.OAuth2.DeviceAuthorization.RateLimiter.Hammer do
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   @behaviour Asteroid.OAuth2.DeviceAuthorization.RateLimiter
 
   @impl true
 
   def check(device_code_param, _opts) do
-    interval = astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+    interval = opt(:oauth2_flow_device_authorization_rate_limiter_interval)
 
     case Hammer.check_rate(device_code_param, interval * 1000, 1) do
       {:allow, _} ->

@@ -3,7 +3,7 @@ defmodule Asteroid.OIDC do
   Types and helper functions for OpenID Connect
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias Asteroid.Client
   alias Asteroid.OAuth2
@@ -24,7 +24,7 @@ defmodule Asteroid.OIDC do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "interaction required"
 
@@ -52,7 +52,7 @@ defmodule Asteroid.OIDC do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "login required"
 
@@ -80,7 +80,7 @@ defmodule Asteroid.OIDC do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "account selection required"
 
@@ -108,7 +108,7 @@ defmodule Asteroid.OIDC do
     @impl true
 
     def message(_) do
-      case astrenv(:api_error_response_verbosity) do
+      case opt(:api_error_response_verbosity) do
         :debug ->
           "account selection required"
 
@@ -206,7 +206,7 @@ defmodule Asteroid.OIDC do
           URI.parse(redirect_uri).host
         end
 
-      salt = astrenv(:oidc_subject_identifier_pairwise_salt)
+      salt = opt(:oidc_subject_identifier_pairwise_salt)
 
       # we don't follow the OIDC specification here because hashing
       # sha256(a <> b) can result in same hash by carefully choosing a and b,

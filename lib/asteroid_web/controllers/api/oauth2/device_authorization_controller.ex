@@ -3,6 +3,7 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
 
   use AsteroidWeb, :controller
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias OAuth2Utils.Scope
@@ -32,15 +33,15 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
         |> Map.put(:client, client)
         |> Map.put(:conn, conn)
 
-      requested_scopes = astrenv(:oauth2_scope_callback).(requested_scopes, ctx)
+      requested_scopes = opt(:oauth2_scope_callback).(requested_scopes, ctx)
 
       {:ok, device_code} =
         DeviceCode.gen_new(
-          user_code: astrenv(:oauth2_flow_device_authorization_user_code_callback).(ctx)
+          user_code: opt(:oauth2_flow_device_authorization_user_code_callback).(ctx)
         )
         |> DeviceCode.put_value(
           "exp",
-          now() + astrenv(:oauth2_flow_device_authorization_device_code_lifetime)
+          now() + opt(:oauth2_flow_device_authorization_device_code_lifetime)
         )
         |> DeviceCode.put_value("clid", client.id)
         |> DeviceCode.put_value("requested_scopes", Scope.Set.to_list(requested_scopes))
@@ -59,15 +60,15 @@ defmodule AsteroidWeb.API.OAuth2.DeviceAuthorizationController do
         }
         |> put_if_not_nil(
           "interval",
-          astrenv(:oauth2_flow_device_authorization_rate_limiter_interval)
+          opt(:oauth2_flow_device_authorization_rate_limiter_interval)
         )
-        |> astrenv(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
+        |> opt(:oauth2_endpoint_token_grant_type_password_before_send_resp_callback).(ctx)
 
       conn
       |> put_status(200)
       |> put_resp_header("cache-control", "no-store")
       |> put_resp_header("pragma", "no-cache")
-      |> astrenv(:oauth2_endpoint_device_authorization_before_send_conn_callback).(ctx)
+      |> opt(:oauth2_endpoint_device_authorization_before_send_conn_callback).(ctx)
       |> json(resp)
     else
       {:error, %AttributeRepository.Read.NotFoundError{}} ->

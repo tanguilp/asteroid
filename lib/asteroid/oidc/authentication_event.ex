@@ -10,6 +10,7 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   - `"exp"`: expiration time (`non_neg_integer()`)
   """
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -51,8 +52,8 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authentication_event_id, _opts \\ []) do
-    ae_store_module = astrenv(:object_store_authentication_event)[:module]
-    ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
+    ae_store_module = opt(:object_store_authentication_event)[:module]
+    ae_store_opts = opt(:object_store_authentication_event)[:opts] || []
 
     case ae_store_module.get(authentication_event_id, ae_store_opts) do
       {:ok, authentication_event} when not is_nil(authentication_event) ->
@@ -78,8 +79,8 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   @spec get_from_authenticated_session_id(AuthenticatedSession.id()) :: [%__MODULE__{}]
 
   def get_from_authenticated_session_id(auth_session_id) do
-    ae_store_module = astrenv(:object_store_authentication_event)[:module]
-    ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
+    ae_store_module = opt(:object_store_authentication_event)[:module]
+    ae_store_opts = opt(:object_store_authentication_event)[:opts] || []
 
     case ae_store_module.get_from_authenticated_session_id(auth_session_id, ae_store_opts) do
       {:ok, auth_event_ids} ->
@@ -112,11 +113,11 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   def store(authentication_event, ctx \\ %{})
 
   def store(authentication_event, ctx) do
-    ae_store_module = astrenv(:object_store_authentication_event)[:module]
-    ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
+    ae_store_module = opt(:object_store_authentication_event)[:module]
+    ae_store_opts = opt(:object_store_authentication_event)[:opts] || []
 
     authentication_event =
-      astrenv(:object_store_authentication_event_before_store_callback).(
+      opt(:object_store_authentication_event_before_store_callback).(
         authentication_event,
         ctx
       )
@@ -139,8 +140,8 @@ defmodule Asteroid.OIDC.AuthenticationEvent do
   @spec delete(t() | id()) :: :ok | {:error, any()}
 
   def delete(%__MODULE__{id: id, authenticated_session_id: authenticated_session_id}) do
-    ae_store_as_module = astrenv(:object_store_authentication_event)[:module]
-    ae_store_as_opts = astrenv(:object_store_authentication_event)[:opts] || []
+    ae_store_as_module = opt(:object_store_authentication_event)[:module]
+    ae_store_as_opts = opt(:object_store_authentication_event)[:opts] || []
 
     res = ae_store_as_module.delete(id, ae_store_as_opts)
 

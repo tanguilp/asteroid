@@ -3,7 +3,7 @@ defmodule Asteroid.WebFlow do
   Convenience functions to work with web flows
   """
 
-  import Asteroid.Utils
+  import Asteroid.Config, only: [opt: 1]
 
   alias Asteroid.OAuth2
   alias Asteroid.OIDC
@@ -39,7 +39,7 @@ defmodule Asteroid.WebFlow do
           | {:error, Exception.t()}
 
   def web_authorization_callback(_conn, authz_request) do
-    oidc_acr_config = astrenv(:oidc_acr_config, [])
+    oidc_acr_config = opt(:oidc_acr_config)
 
     case acceptable_acrs_for_scopes(authz_request) do
       nil ->
@@ -109,7 +109,7 @@ defmodule Asteroid.WebFlow do
 
   defp first_acr_callback_from_config(acceptable_acrs) do
     Enum.find(
-      astrenv(:oidc_acr_config, []),
+      opt(:oidc_acr_config),
       fn
         {acr, _acr_config} ->
           acr in acceptable_acrs
@@ -130,11 +130,11 @@ defmodule Asteroid.WebFlow do
           | {:error, Exception.t()}
 
   defp default_web_authorization_callback(%Request{flow: :authorization_code}) do
-    {:ok, astrenv(:oauth2_flow_authorization_code_web_authorization_callback)}
+    {:ok, opt(:oauth2_flow_authorization_code_web_authorization_callback)}
   end
 
   defp default_web_authorization_callback(%Request{flow: :implicit}) do
-    {:ok, astrenv(:oauth2_flow_implicit_web_authorization_callback)}
+    {:ok, opt(:oauth2_flow_implicit_web_authorization_callback)}
   end
 
   defp default_web_authorization_callback(%Request{flow: flow} = authz_req)
@@ -143,7 +143,7 @@ defmodule Asteroid.WebFlow do
               :oidc_implicit,
               :oidc_hybrid
             ] do
-    oidc_acr_config = astrenv(:oidc_acr_config, [])
+    oidc_acr_config = opt(:oidc_acr_config)
 
     maybe_preferred_acr =
       try do
@@ -174,13 +174,13 @@ defmodule Asteroid.WebFlow do
       else
         case flow do
           :oidc_authorization_code ->
-            {:ok, astrenv(:oidc_flow_authorization_code_web_authorization_callback)}
+            {:ok, opt(:oidc_flow_authorization_code_web_authorization_callback)}
 
           :oidc_implicit ->
-            {:ok, astrenv(:oidc_flow_implicit_web_authorization_callback)}
+            {:ok, opt(:oidc_flow_implicit_web_authorization_callback)}
 
           :oidc_hybrid ->
-            {:ok, astrenv(:oidc_flow_hybrid_web_authorization_callback)}
+            {:ok, opt(:oidc_flow_hybrid_web_authorization_callback)}
         end
       end
     end

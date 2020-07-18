@@ -3,9 +3,9 @@ defmodule Asteroid.OAuth2.MTLS do
   Utils functions to work with MTLS
   """
 
-  alias Asteroid.Client
+  import Asteroid.Config, only: [opt: 1]
 
-  import Asteroid.Utils
+  alias Asteroid.Client
 
   @typedoc """
   The parameter to be used to check against a certificate when using PKI mutual-TLS method
@@ -31,7 +31,7 @@ defmodule Asteroid.OAuth2.MTLS do
   @doc false
   @spec start_mtls_aliases_endpoint?() :: boolean()
   def start_mtls_aliases_endpoint?() do
-    case astrenv(:oauth2_mtls_start_endpoint, :auto) do
+    case opt(:oauth2_mtls_start_endpoint) do
       true ->
         true
 
@@ -83,7 +83,7 @@ defmodule Asteroid.OAuth2.MTLS do
   @spec uses?(atom(), Keyword.t()) :: boolean()
   def uses?(config_option, opts \\ []) do
     Enum.any?(
-      astrenv(config_option, []),
+      opt(config_option),
       fn
         {APIacAuthMTLS, apiac_opts} ->
           if opts[:native] do

@@ -1,4 +1,5 @@
 defmodule Asteroid.Token.AccessToken do
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -108,8 +109,8 @@ defmodule Asteroid.Token.AccessToken do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(access_token_id, opts \\ [check_active: true]) do
-    at_store_module = astrenv(:object_store_access_token)[:module]
-    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
+    at_store_module = opt(:object_store_access_token)[:module]
+    at_store_opts = opt(:object_store_access_token)[:opts] || []
 
     case at_store_module.get(access_token_id, at_store_opts) do
       {:ok, access_token} when not is_nil(access_token) ->
@@ -148,10 +149,10 @@ defmodule Asteroid.Token.AccessToken do
   def store(access_token, ctx \\ %{})
 
   def store(%__MODULE__{serialization_format: :opaque} = access_token, ctx) do
-    at_store_module = astrenv(:object_store_access_token)[:module]
-    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
+    at_store_module = opt(:object_store_access_token)[:module]
+    at_store_opts = opt(:object_store_access_token)[:opts] || []
 
-    access_token = astrenv(:object_store_access_token_before_store_callback).(access_token, ctx)
+    access_token = opt(:object_store_access_token_before_store_callback).(access_token, ctx)
 
     case at_store_module.put(access_token, at_store_opts) do
       :ok ->
@@ -177,8 +178,8 @@ defmodule Asteroid.Token.AccessToken do
   end
 
   def delete(access_token_id) do
-    at_store_module = astrenv(:object_store_access_token)[:module]
-    at_store_opts = astrenv(:object_store_access_token)[:opts] || []
+    at_store_module = opt(:object_store_access_token)[:module]
+    at_store_opts = opt(:object_store_access_token)[:opts] || []
 
     at_store_module.delete(access_token_id, at_store_opts)
   end
@@ -391,7 +392,7 @@ defmodule Asteroid.Token.AccessToken do
               :oidc_flow_hybrid_access_token_lifetime
           end
 
-        astrenv(conf_opt, astrenv(:oauth2_access_token_lifetime, 0))
+        opt(conf_opt) || opt(:oauth2_access_token_lifetime)
     end
   end
 
@@ -473,7 +474,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_serialization_format
         end
 
-      astrenv(conf_opt, astrenv(:oauth2_access_token_serialization_format, :opaque))
+      opt(conf_opt) || opt(:oauth2_access_token_serialization_format)
     end
   end
 
@@ -553,7 +554,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_signing_key
         end
 
-      astrenv(conf_opt, astrenv(:oauth2_access_token_signing_key))
+      opt(conf_opt) || opt(:oauth2_access_token_signing_key)
     end
   end
 
@@ -633,7 +634,7 @@ defmodule Asteroid.Token.AccessToken do
             :oidc_flow_hybrid_access_token_signing_alg
         end
 
-      astrenv(conf_opt, astrenv(:oauth2_access_token_signing_alg))
+      opt(conf_opt) || opt(:oauth2_access_token_signing_alg)
     end
   end
 end

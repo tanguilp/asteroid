@@ -1,4 +1,8 @@
 defmodule Asteroid.ObjectStore do
+  import Asteroid.Config, only: [opt: 1]
+
+  require Logger
+
   @object_store_conf_keys [
     :object_store_access_token,
     :object_store_refresh_token,
@@ -8,10 +12,6 @@ defmodule Asteroid.ObjectStore do
     :object_store_authenticated_session,
     :object_store_authentication_event
   ]
-
-  import Asteroid.Utils
-
-  require Logger
 
   @spec auto_install_from_config() :: :ok | {:error, any()}
 
@@ -91,7 +91,7 @@ defmodule Asteroid.ObjectStore do
       [],
       fn
         key, acc ->
-          case astrenv(key) do
+          case opt(key) do
             opts when is_list(opts) ->
               acc ++ [opts]
 

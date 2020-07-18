@@ -10,6 +10,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   events are not
   """
 
+  import Asteroid.Config, only: [opt: 1]
   import Asteroid.Utils
 
   alias Asteroid.Context
@@ -52,8 +53,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   @spec get(id(), Keyword.t()) :: {:ok, t()} | {:error, Exception.t()}
 
   def get(authenticated_session_id, _opts \\ []) do
-    as_store_module = astrenv(:object_store_authenticated_session)[:module]
-    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
+    as_store_module = opt(:object_store_authenticated_session)[:module]
+    as_store_opts = opt(:object_store_authenticated_session)[:opts] || []
 
     case as_store_module.get(authenticated_session_id, as_store_opts) do
       {:ok, authenticated_session} when not is_nil(authenticated_session) ->
@@ -81,11 +82,11 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   def store(authenticated_session, ctx \\ %{})
 
   def store(authenticated_session, ctx) do
-    as_store_module = astrenv(:object_store_authenticated_session)[:module]
-    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
+    as_store_module = opt(:object_store_authenticated_session)[:module]
+    as_store_opts = opt(:object_store_authenticated_session)[:opts] || []
 
     authenticated_session =
-      astrenv(:object_store_authenticated_session_before_store_callback).(
+      opt(:object_store_authenticated_session_before_store_callback).(
         authenticated_session,
         ctx
       )
@@ -110,13 +111,13 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   end
 
   def delete(authenticated_session_id) do
-    as_store_module = astrenv(:object_store_authenticated_session)[:module]
-    as_store_opts = astrenv(:object_store_authenticated_session)[:opts] || []
+    as_store_module = opt(:object_store_authenticated_session)[:module]
+    as_store_opts = opt(:object_store_authenticated_session)[:opts] || []
 
     as_store_module.delete(authenticated_session_id, as_store_opts)
 
-    rt_store_module = astrenv(:object_store_refresh_token)[:module]
-    rt_store_opts = astrenv(:object_store_refresh_token)[:opts] || []
+    rt_store_module = opt(:object_store_refresh_token)[:module]
+    rt_store_opts = opt(:object_store_refresh_token)[:opts] || []
 
     case rt_store_module.get_from_authenticated_session_id(
            authenticated_session_id,
@@ -177,8 +178,8 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
   end
 
   def compute_current_acr(authenticated_session_id) when is_binary(authenticated_session_id) do
-    ae_store_module = astrenv(:object_store_authentication_event)[:module]
-    ae_store_opts = astrenv(:object_store_authentication_event)[:opts] || []
+    ae_store_module = opt(:object_store_authentication_event)[:module]
+    ae_store_opts = opt(:object_store_authentication_event)[:opts] || []
 
     case ae_store_module.get_from_authenticated_session_id(
            authenticated_session_id,
@@ -197,7 +198,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
 
         acr_config =
           Enum.find(
-            astrenv(:oidc_acr_config, []),
+            opt(:oidc_acr_config),
             fn
               {_acr, acr_conf} ->
                 Enum.find(
@@ -477,7 +478,7 @@ defmodule Asteroid.OIDC.AuthenticatedSession do
       Enum.reduce(auth_events, MapSet.new(), &MapSet.put(&2, &1.data["name"]))
 
     Enum.find(
-      astrenv(:oidc_acr_config)[acr][:auth_event_set] || [],
+      opt(:oidc_acr_config)[acr][:auth_event_set] || [],
       fn
         conf_auth_event_set ->
           conf_auth_event_set = MapSet.new(conf_auth_event_set)
