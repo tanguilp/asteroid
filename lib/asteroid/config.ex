@@ -1180,9 +1180,9 @@ defmodule Asteroid.Config do
     Callback invoked on the `t:Asteroid.Client.t()` before it's being saved
     """
     @type oauth2_endpoint_register_client_before_save_callback ::
-            (Client.t(), Asteroid.Context.t() -> Client.t())
+    (Client.t(), Client.metadata(), Client.metadata(), Client.t() | nil -> Client.t())
     field :oauth2_endpoint_register_client_before_save_callback, :function,
-      default: &Asteroid.Utils.id_first_param/2,
+      default: &Asteroid.Utils.id_first_param/4,
       config_time: :runtime
 
     @doc """
@@ -1191,7 +1191,7 @@ defmodule Asteroid.Config do
     The callback should ensure that the client id does not already exists.
     """
     @type oauth2_endpoint_register_gen_client_id_callback ::
-            (map(), Asteroid.Context.t() -> String.t())
+            (Client.metadata(), Client.metadata(), Client.t() | nil -> String.t())
     field :oauth2_endpoint_register_gen_client_id_callback, :function,
       default: &Asteroid.OAuth2.Register.generate_client_id/2,
       config_time: :runtime
@@ -1200,9 +1200,9 @@ defmodule Asteroid.Config do
     Callback invoked to generate the client *resource* id of a newly created client
     """
     @type oauth2_endpoint_register_gen_client_resource_id_callback ::
-            (map(), Asteroid.Context.t() -> AttributeRepository.resource_id())
+    (Client.metadata(), Client.metadata(), Client.t() | nil -> AttributeRepository.resource_id())
     field :oauth2_endpoint_register_gen_client_resource_id_callback, :function,
-      default: &Asteroid.OAuth2.Register.generate_client_resource_id/2,
+      default: &Asteroid.OAuth2.Register.generate_client_resource_id/3,
       config_time: :runtime
 
     @doc """
@@ -2372,6 +2372,25 @@ defmodule Asteroid.Config do
       default: false,
       config_time: :runtime
 
+    @doc """
+    Tesla middlewares globally added to any outbound HTTP request performed by Asteroid
+    """
+    @type tesla_middlewares :: [Tesla.Client.middleware()]
+    field :tesla_middlewares, {:list, :term},
+      default: [],
+      config_time: :runtime
+
+    @doc """
+    Tesla middlewares added to any outbound HTTP request during client registration.
+
+    HTTP requests can be performed to verify redirect URIs against the sector identifier URI
+    content.
+    """
+    @type tesla_middlewares_client_registration :: [Tesla.Client.middleware()]
+    field :tesla_middlewares_client_registration, {:list, :term},
+      default: [],
+      config_time: :runtime
+
     ### end of configuration options
   end
 
@@ -2398,7 +2417,7 @@ defmodule Asteroid.Config do
 
       Process.put(:configuration_option, value)
   """
-  @spec opt(atom()) :: any() | no_return()
+  @spec opt(atom()) :: any()
   if Mix.env() == :test do
     def opt(configuration_option) do
       if configuration_option in Keyword.keys(Process.get()) do

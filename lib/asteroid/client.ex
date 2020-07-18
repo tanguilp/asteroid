@@ -240,6 +240,8 @@ defmodule Asteroid.Client do
   [RFC6749 - 10.1.  Client Authentication](https://tools.ietf.org/html/rfc6749#section-10.1)
   """
 
+  @type metadata :: %{optional(String.t()) => any()}
+
   @doc """
   Returns the JWKs of a client
 

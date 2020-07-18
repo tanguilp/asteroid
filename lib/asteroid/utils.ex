@@ -41,9 +41,9 @@ defmodule Asteroid.Utils do
   Returns the first parameter unchanged
   """
 
-  @spec id_first_param(any(), any()) :: any()
-
-  def id_first_param(param, _), do: param
+  @spec id_first_param(any(), any(), any(), any()) :: any()
+  def id_first_param(param, _ \\ nil, _ \\ nil, _ \\ nil)
+  def id_first_param(param, _, _, _), do: param
 
   @doc """
   Always returns nil
