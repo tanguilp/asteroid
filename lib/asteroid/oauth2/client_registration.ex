@@ -160,6 +160,8 @@ defmodule Asteroid.OAuth2.ClientRegistration do
   using the #{Asteroid.Config.link_to_option(:tesla_middlewares_client_registration)} option.
   """
   @spec register(Client.metadata(), Client.t() | nil) :: result()
+  def register(req_metadata, maybe_client \\ nil)
+
   def register(req_metadata, maybe_client) do
     metadata = %{}
 
@@ -518,7 +520,7 @@ defmodule Asteroid.OAuth2.ClientRegistration do
         {:ok, Map.put(metadata, "grant_types", l)}
 
       nil ->
-        {:ok, Map.put(metadata, "grant_types", ["authorization_code"])}
+        {:ok, Map.put(metadata, "grant_types", ["authorization_code", "refresh_token"])}
     end
   end
 
