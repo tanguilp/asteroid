@@ -9,10 +9,10 @@ defmodule AsteroidWeb.Error do
 
   alias Asteroid.Client
   alias Asteroid.OAuth2
+  alias Asteroid.OAuth2.ClientRegistration
   alias Asteroid.OIDC
   alias AsteroidWeb.AuthorizeController
   alias AsteroidWeb.API.OAuth2.TokenController
-  alias AsteroidWeb.API.OAuth2.RegisterController
 
   @doc """
   Responds with the appropriate error codes, headers and text to an OAuth2 protocol flow
@@ -271,12 +271,12 @@ defmodule AsteroidWeb.Error do
   defp err_name(%OAuth2.JAR.InvalidRequestObjectError{}), do: "invalid_request_object"
   defp err_name(%TokenController.ExceedingScopeError{}), do: "invalid_scope"
 
-  defp err_name(%RegisterController.InvalidClientMetadataFieldError{}),
+  defp err_name(%ClientRegistration.InvalidClientMetadataFieldError{}),
     do: "invalid_client_metadata"
 
-  defp err_name(%RegisterController.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
+  defp err_name(%ClientRegistration.InvalidRedirectURIError{}), do: "invalid_redirect_uri"
 
-  defp err_name(%RegisterController.UnauthorizedRequestedScopesError{}),
+  defp err_name(%ClientRegistration.UnauthorizedRequestedScopesError{}),
     do: "invalid_client_metadata"
 
   @spec err_status(Exception.t()) :: non_neg_integer()

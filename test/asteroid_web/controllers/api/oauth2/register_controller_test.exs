@@ -32,7 +32,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     assert response["client_id"] == "example_client_number_one"
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
-    assert response["grant_types"] == ["authorization_code"]
+    assert Enum.sort(response["grant_types"]) == ["authorization_code", "refresh_token"]
     assert response["response_types"] == ["code"]
     assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
@@ -174,7 +174,7 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     assert response["client_id"] == "example_client_number_six'"
     assert response["token_endpoint_auth_method"] == "client_secret_basic"
-    assert response["grant_types"] == ["authorization_code"]
+    assert Enum.sort(response["grant_types"]) == ["authorization_code", "refresh_token"]
     assert response["response_types"] == ["code"]
     assert {:ok, _} = Client.load_from_unique_attribute("client_id", response["client_id"])
   end
@@ -627,8 +627,8 @@ defmodule AsteroidWeb.API.OAuth2.RegisterControllerTest do
 
     client = Client.fetch_attributes(client, ["jwks"])
 
-    assert {:binary_data, :erlang.term_to_binary(key_1)} in client.attrs["jwks"]
-    assert {:binary_data, :erlang.term_to_binary(key_2)} in client.attrs["jwks"]
+    assert key_1 in client.attrs["jwks"]
+    assert key_2 in client.attrs["jwks"]
   end
 
   test "client defaults grant type and auth method", %{conn: conn} do

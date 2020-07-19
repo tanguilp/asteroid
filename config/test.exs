@@ -353,37 +353,9 @@ config :asteroid, :oauth2_flow_implicit_access_token_lifetime, 60 * 60
 
 # client registration
 
-config :asteroid,
-       :oauth2_endpoint_register_authorization_callback,
-       &Asteroid.OAuth2.Register.request_authorized?/2
-
 config :asteroid, :oauth2_endpoint_register_authorization_policy, :authorized_clients
 
 config :asteroid, :oauth2_endpoint_register_additional_metadata_field, ["test_field"]
-
-config :asteroid,
-       :oauth2_endpoint_register_before_send_resp_callback,
-       &Asteroid.Utils.id_first_param/2
-
-config :asteroid,
-       :oauth2_endpoint_register_before_send_conn_callback,
-       &Asteroid.Utils.id_first_param/2
-
-config :asteroid,
-       :oauth2_endpoint_register_client_before_save_callback,
-       &Asteroid.Utils.id_first_param/2
-
-config :asteroid,
-       :oauth2_endpoint_register_gen_client_id_callback,
-       &Asteroid.OAuth2.Register.generate_client_id/2
-
-config :asteroid,
-       :oauth2_endpoint_register_gen_client_resource_id_callback,
-       &Asteroid.OAuth2.Register.generate_client_resource_id/2
-
-config :asteroid,
-       :oauth2_endpoint_register_client_type_callback,
-       &Asteroid.OAuth2.Register.client_type/1
 
 # endpoint token
 

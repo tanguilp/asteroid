@@ -1,6 +1,6 @@
-defmodule Asteroid.OAuth2.Register do
+defmodule Asteroid.OAuth2.ClientRegistration do
   @moduledoc """
-  Utils fnuction related to client registration
+  Convenience functions related to client registration
   """
 
   import Asteroid.Config, only: [opt: 1]
@@ -113,10 +113,51 @@ defmodule Asteroid.OAuth2.Register do
       end
     end
   end
+
   @doc """
   Registers a new client
 
-  ## i18n fields
+  The following paragraphs describe the registration rules.
+
+  ## Grant and response types
+
+  Compatibility of grant types vis-a-vis response types are checked with the
+  `check_grant_response_type_consistent/2` function.
+
+  By default, the `"authorization_code"` and `"refresh_token"` grant types and `"code"`
+  response type are granted.
+
+  ## Client secret
+
+  A client secret is granted if the token endpoint authentication method is either
+  `"client_secret_basic"` or `"client_secret_post"`.
+
+  It is returned as is in the response (so that it can be used by the client) but is stored
+  in a hashed format in the attribute repository.
+
+  ## Internationalized fields
+
+  The `"client_name"`, `"client_uri"`, `"logo_uri"`, `"tos_uri"` and `"policy_uri"` fields
+  can be internationalized. Asteroid deconstructs the i18n fields and store them in the
+  `"<FIELD>_i18n"` where `<FIELD>` is the field name, keys are language code and the value the
+  extracted i18n value.
+
+  For instance, i18n client name would be stored as follow in the `"client_name_i18n"`:
+
+      %{
+        "en" => "My application",
+        "fr" => "Mon application",
+        "ru" => "Моё приложение"
+      }
+
+  ## Subject type
+
+  Subject types are handled by Asteroid and following OpenID Connect specification, the redirect
+  URIs are checked against the `"sector_identifier_uri"` document if different hosts are
+  present in the set of redirect URIs.
+
+  In case of problem with such a validation, one can easily add a Tesla logging middleware
+  using the #{Asteroid.Config.link_to_option(:tesla_middlewares_client_registration)} option.
   """
   @spec register(Client.metadata(), Client.t() | nil) :: result()
   def register(req_metadata, maybe_client) do
@@ -186,6 +227,7 @@ defmodule Asteroid.OAuth2.Register do
       |> opt(:oauth2_endpoint_register_client_before_save_callback).(
         metadata, req_metadata, maybe_client
       )
+      |> Client.store()
       |> case do
         :ok ->
           {:ok, metadata}
@@ -194,70 +236,11 @@ defmodule Asteroid.OAuth2.Register do
           error
       end
     end
-  end
-
-  @doc """
-  Returns `:ok` if the request is authorized to register new clients,
-  `{:error, Exception.t()}` otherwise
-
-  Unauthenticated requests are authorized only if the
-  #{Asteroid.Config.link_to_option(:oauth2_endpoint_register_authorization_policy)} is set
-  to `:all`.
-
-  A client passed as a parameter shall be authenticated.
-
-  When using the HTTP `Bearer` scheme, it is not required that the client exists in Asteroid.
-  """
-
-  @spec request_authorized?(Plug.Conn.t(), Client.t() | nil) ::
-          :ok
-          | {:error, %OAuth2.Client.AuthenticationError{}}
-          | {:error, %OAuth2.Client.AuthorizationError{}}
-
-  def request_authorized?(conn, maybe_authenticated_client) do
-    case opt(:oauth2_endpoint_register_authorization_policy) do
-      :all ->
-        :ok
-
-      :authenticated_clients ->
-        if APIac.authenticated?(conn) do
-          :ok
-        else
-          if maybe_authenticated_client do
-            {:error,
-             Asteroid.OAuth2.Client.AuthenticationError.exception(
-               reason: :client_authentication_required
-             )}
-          else
-            {:error,
-             Asteroid.OAuth2.Client.AuthenticationError.exception(
-               reason: :client_authentication_required
-             )}
-          end
-        end
-
-      :authorized_clients ->
-        if APIac.metadata(conn)["scope"] != nil and
-             "asteroid.register" in Scope.Set.from_scope_param!(APIac.metadata(conn)["scope"]) do
-          :ok
-        else
-          if maybe_authenticated_client do
-            client = Client.fetch_attributes(maybe_authenticated_client, ["client_id", "scope"])
-
-            if "asteroid.register" in client.attrs["scope"] do
-              :ok
-            else
-              {:error,
-               Asteroid.OAuth2.Client.AuthorizationError.exception(reason: :unauthorized_client)}
-            end
-          else
-            {:error,
-             Asteroid.OAuth2.Client.AuthenticationError.exception(
-               reason: :client_authentication_required
-             )}
-          end
-        end
-    end
+  rescue
+    _ in Scope.Set.InvalidScopeParam ->
+      {:error, %InvalidClientMetadataFieldError{
+        field: "scope", reason: "malformed scope param"}
+      }
   end
 
   @doc """
@@ -346,8 +329,11 @@ defmodule Asteroid.OAuth2.Register do
   """
 
   @spec generate_client_id(Client.metadata(), Client.metadata(), Client.t() | nil) :: String.t()
-  def generate_client_id(%{"client_name" => client_name}, _req_metadata, _maybe_client)
-  when is_binary(client_name) do
+  def generate_client_id(
+    _metadata = %{"client_name" => client_name},
+    _req_metadata,
+    _maybe_client
+  ) when is_binary(client_name) do
     client_name_sanitized =
       client_name
       |> String.replace(~r/[^\x20-\x7E]/, "")
@@ -357,7 +343,7 @@ defmodule Asteroid.OAuth2.Register do
     gen_new_client_id_from_client_name(client_name_sanitized, 0)
   end
 
-  def generate_client_id(_, _ctx) do
+  def generate_client_id(_, _req_metadata, _maybe_client) do
     secure_random_b64(20)
   end
 
@@ -417,7 +403,7 @@ defmodule Asteroid.OAuth2.Register do
   """
   @spec verify_redirect_uris_against_sector_identifier_uri(
     String.t(), [OAuth2.RedirectUri.t(), ...]
-  ) :: :ok | {:error, %InvalidClientMetadataFieldError{}}
+  ) :: :ok | {:error, Exception.t()}
   def verify_redirect_uris_against_sector_identifier_uri(
     sector_identifier_uri, redirect_uris
   ) do
@@ -519,7 +505,7 @@ defmodule Asteroid.OAuth2.Register do
   end
 
   defp handle_grant_types(metadata, _, nil) do
-    {:ok, Map.put(metadata, "grant_types", ["authorization_code"])}
+    {:ok, Map.put(metadata, "grant_types", ["authorization_code", "refresh_token"])}
   end
 
   defp handle_grant_types(metadata, _, %Client{} = authenticated_client) do
@@ -926,7 +912,7 @@ defmodule Asteroid.OAuth2.Register do
     case jwks do
       %{"keys" => keys} when is_list(keys) ->
         if Enum.all?(keys, fn key -> JOSEUtils.JWK.verify(key) == :ok end) do
-          Map.put(metadata, "jwks", keys)
+          {:ok, Map.put(metadata, "jwks", keys)}
         else
           {:error, %InvalidClientMetadataFieldError{
             field: "jwks",
@@ -1481,7 +1467,7 @@ defmodule Asteroid.OAuth2.Register do
     Client.metadata(),
     Client.t() | nil
   ) :: result()
-  def handle_client_id(metadata, req_metadata, maybe_client) do
+  defp handle_client_id(metadata, req_metadata, maybe_client) do
     client_id = opt(:oauth2_endpoint_register_gen_client_id_callback).(
       metadata, req_metadata, maybe_client
     )
@@ -1512,8 +1498,8 @@ defmodule Asteroid.OAuth2.Register do
   end
 
   @spec set_client_secret(Client.t(), String.t() | nil) :: Client.t()
-  def set_client_secret(client, nil), do: client
-  def set_client_secret(client, hash), do: Client.add(client, "client_secret", hash)
+  defp set_client_secret(client, nil), do: client
+  defp set_client_secret(client, hash), do: Client.add(client, "client_secret", hash)
 
   @spec tesla_middlewares() :: [Tesla.Client.middleware()]
   defp tesla_middlewares() do

@@ -1114,18 +1114,6 @@ defmodule Asteroid.Config do
       config_time: :runtime
 
     @doc """
-    Callback called to determine whether a client is authorized to create new clients on
-    the register endpoint or not
-    """
-    @type oauth2_endpoint_register_authorization_callback ::
-            (Plug.Conn.t(), Asteroid.Client.t() ->
-               :ok | {:error, Exception.t()})
-    field :oauth2_endpoint_register_authorization_callback, :function,
-      default: &Asteroid.OAuth2.Register.request_authorized?/2,
-      config_time: :runtime,
-      uses: [:oauth2_endpoint_register_authorization_policy]
-
-    @doc """
     The client registration policy
 
     This configuration option can have 3 values:
@@ -1145,8 +1133,7 @@ defmodule Asteroid.Config do
     field :oauth2_endpoint_register_authorization_policy,
       {:one_of_atoms, [:all, :authenticated_clients, :authorized_clients]},
       default: :authorized_clients,
-      config_time: :runtime,
-      used_by: [:oauth2_endpoint_register_authorization_callback]
+      config_time: :runtime
 
     @doc """
     Additional fields that are saved when registering new clients
@@ -1193,7 +1180,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_gen_client_id_callback ::
             (Client.metadata(), Client.metadata(), Client.t() | nil -> String.t())
     field :oauth2_endpoint_register_gen_client_id_callback, :function,
-      default: &Asteroid.OAuth2.Register.generate_client_id/2,
+      default: &Asteroid.OAuth2.ClientRegistration.generate_client_id/3,
       config_time: :runtime
 
     @doc """
@@ -1202,7 +1189,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_gen_client_resource_id_callback ::
     (Client.metadata(), Client.metadata(), Client.t() | nil -> AttributeRepository.resource_id())
     field :oauth2_endpoint_register_gen_client_resource_id_callback, :function,
-      default: &Asteroid.OAuth2.Register.generate_client_resource_id/3,
+      default: &Asteroid.OAuth2.ClientRegistration.generate_client_resource_id/3,
       config_time: :runtime
 
     @doc """
@@ -1211,7 +1198,7 @@ defmodule Asteroid.Config do
     @type oauth2_endpoint_register_client_type_callback ::
             (Client.t() -> Asteroid.OAuth2.Client.type())
     field :oauth2_endpoint_register_client_type_callback, :function,
-      default: &Asteroid.OAuth2.Register.client_type/1,
+      default: &Asteroid.OAuth2.ClientRegistration.client_type/1,
       config_time: :runtime
 
     @doc """
