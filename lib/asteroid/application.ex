@@ -76,7 +76,8 @@ defmodule Asteroid.Application do
       "https://oauth.tools/callback/code",
       "https://oauth.tools/callback/implicit",
       "https://oauth.tools/callback/hybrid",
-      "http://localhost:4000/openid_connect_redirect_uri"
+      "http://localhost:4000/openid_connect_redirect_uri",
+      "http://localhost:4000/openid_connect_redirect_uri?iss=https://repentant-brief-fishingcat.gigalixirapp.com"
     ])
     |> Client.store()
 
