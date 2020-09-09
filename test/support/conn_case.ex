@@ -18,7 +18,8 @@ defmodule AsteroidWeb.ConnCase do
   using do
     quote do
       # Import conveniences for testing with connections
-      use Phoenix.ConnTest
+      import Plug.Conn
+      import Phoenix.ConnTest
       alias AsteroidWeb.Router.Helpers, as: Routes
 
       # The default endpoint for testing
@@ -26,7 +27,7 @@ defmodule AsteroidWeb.ConnCase do
     end
   end
 
-  setup tags do
+  setup _tags do
     # :ok = Ecto.Adapters.SQL.Sandbox.checkout(Asteroid.Repo)
 
     # unless tags[:async] do

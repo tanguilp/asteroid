@@ -11,6 +11,7 @@ defmodule Asteroid.Application do
 
   def start(_type, _args) do
     children = [
+      {Phoenix.PubSub, [name: Asteroid.PubSub, adapter: Phoenix.PubSub.PG2]},
       AsteroidWeb.Endpoint
     ]
 
