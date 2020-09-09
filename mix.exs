@@ -36,7 +36,7 @@ defmodule Asteroid.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps(_) do
     [
-      {:apiac, github: "tanguilp/apiac", tag: "0.3.0"},
+      {:apiac, "~> 1.0",},
       {:apiac_auth_basic, github: "tanguilp/apiac_auth_basic"},
       {:apiac_auth_bearer, github: "tanguilp/apiac_auth_bearer"},
       {:apiac_auth_client_secret_post, github: "tanguilp/apiac_auth_client_secret_post"},
@@ -49,23 +49,23 @@ defmodule Asteroid.MixProject do
       # {:attribute_repository_ldap, github: "tanguilp/attribute_repository_ldap"},
       {:attribute_repository_mnesia, github: "tanguilp/attribute_repository_mnesia"},
       # {:attribute_repository_riak, github: "tanguilp/attribute_repository_riak"},
-      {:content_type, github: "marcelotto/content_type", tag: "master"},
+      {:content_type, "~> 0.1.0"},
       {:corsica, "~> 1.0"},
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
-      {:ex_doc, "~> 0.19", only: :dev, runtime: false},
-      {:gettext, "~> 0.11"},
+      {:dialyxir, "~> 1.0.0", only: [:dev], runtime: false},
+      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+      {:gettext, "~> 0.18"},
       {:hammer, "~> 6.0"},
-      {:jason, "~> 1.0"},
-      {:jose, "~> 1.9"},
+      {:jason, "~> 1.2"},
+      {:jose, "~> 1.10"},
       {:jwks_uri_updater, github: "tanguilp/jwks_uri_updater"},
       {:oauth2_metadata_updater, github: "tanguilp/oauth2_metadata_updater", override: true},
-      {:phoenix, "~> 1.4.0"},
-      {:phoenix_html, "~> 2.11"},
+      {:phoenix, "~> 1.5.4"},
+      {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:plug_cowboy, "~> 2.0"},
+      {:plug_cowboy, "~> 2.3"},
       {:poison, "~> 4.0", override: true},
       {:riak, github: "tanguilp/riak-elixir-client"},
-      {:singleton, "~> 1.2.0"}
+      {:singleton, "~> 1.3.0"}
     ]
   end
 
